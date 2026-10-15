@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +10,26 @@ import 'package:somasmart_flutter/features/auth/presentation/screens/welcome_scr
 import 'package:somasmart_flutter/features/auth/presentation/screens/login_screen.dart';
 import 'package:somasmart_flutter/features/auth/presentation/screens/signup_screen.dart';
 import 'package:somasmart_flutter/features/auth/presentation/screens/forgot_password_screen.dart';
+
+/// Flutter tests draw text in a block font (every letter a full square), far
+/// wider than a phone's. For the screen-size checks, load a real system font as
+/// "Roboto" when one is available so text measures like on a device.
+Future<bool> _loadDeviceLikeFont() async {
+  const candidates = [
+    'C:/Windows/Fonts/segoeui.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/System/Library/Fonts/Supplemental/Arial.ttf',
+  ];
+  for (final path in candidates) {
+    final file = File(path);
+    if (!file.existsSync()) continue;
+    final bytes = file.readAsBytesSync();
+    final loader = FontLoader('Roboto')..addFont(Future.value(ByteData.view(bytes.buffer)));
+    await loader.load();
+    return true;
+  }
+  return false;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,99 +42,98 @@ void main() {
   });
 
   group('WelcomeScreen Widget Tests', () {
-    testWidgets('renders official S logo mark, SomaSmart branding, Swahili headline & value proposition, and Get Started button',
-        (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-          ],
-          child: const MaterialApp(
-            home: WelcomeScreen(),
-          ),
-        ),
-      );
+    Widget welcome(SharedPreferences p, {ThemeData? theme}) => ProviderScope(
+          overrides: [sharedPreferencesProvider.overrideWithValue(p)],
+          child: MaterialApp(theme: theme, home: const WelcomeScreen()),
+        );
 
-      // Logo and background image assets
-      expect(find.byType(Image), findsNWidgets(2));
-      expect(find.text('Soma', findRichText: true), findsOneWidget);
-      expect(find.text('Smart', findRichText: true), findsOneWidget);
-      expect(find.text('Mustakabali\nMzuri Unaanzia\nHapa'), findsOneWidget);
+    testWidgets('renders brand, Swahili headline, features, Get Started and Log in', (tester) async {
+      await tester.pumpWidget(welcome(prefs));
+      await tester.pumpAndSettle();
+
+      expect(find.text('SomaSmart', findRichText: true), findsOneWidget);
+      expect(find.text('Mustakabali mzuri\nunaanzia hapa'), findsOneWidget);
       expect(find.text('Anza Sasa'), findsOneWidget);
-      expect(find.byIcon(Icons.arrow_forward_rounded), findsOneWidget);
-      expect(
-        find.text(
-          'Muhtasari wa masomo ya O-Level na A-Level, Video,\nmajaribio ya maabara na mwalimu wa AI.',
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.text('Jifunze kwa ufanisi. Fika mbali na SomaSmart.'),
-        findsOneWidget,
-      );
-      // 4 Feature Pillars (Swahili)
-      expect(find.text('Muhtasari\nwa Masomo'), findsOneWidget);
-      expect(find.text('Video'), findsOneWidget);
-      expect(find.text('Majaribio ya\nMaabara'), findsOneWidget);
-      expect(find.text('Msaada wa\nMwalimu wa AI'), findsOneWidget);
-      // Ensure no Sign In button or pagination dots on WelcomeScreen
-      expect(find.text('Sign In'), findsNothing);
-      expect(find.text('Ingia kwenye Akaunti'), findsNothing);
+      expect(find.byKey(const Key('welcome-login')), findsOneWidget);
+      expect(find.text('Una akaunti tayari? Ingia', findRichText: true), findsOneWidget);
+      expect(find.text('Muhtasari\nwa masomo'), findsOneWidget);
+      expect(find.text('Video\nza masomo'), findsOneWidget);
+      expect(find.text('Majaribio\nya maabara'), findsOneWidget);
+      expect(find.text('Mwalimu\nwa AI'), findsOneWidget);
+      expect(find.text('SW'), findsOneWidget);
+      expect(find.text('EN'), findsOneWidget);
     });
 
     testWidgets('renders in English when language is en', (tester) async {
       SharedPreferences.setMockInitialValues({'somasmart_language': 'en'});
       final enPrefs = await SharedPreferences.getInstance();
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(enPrefs),
-          ],
-          child: const MaterialApp(
-            home: WelcomeScreen(),
-          ),
-        ),
-      );
+      await tester.pumpWidget(welcome(enPrefs));
+      await tester.pumpAndSettle();
 
       expect(find.text('Get Started'), findsOneWidget);
-      expect(find.text('A Brighter\nFuture Starts\nHere'), findsOneWidget);
-      expect(
-        find.text(
-          'O-level & A-level notes, Videos,\npractical simulations and AI tutor.',
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.text('Study smarter. Go further with SomaSmart.'),
-        findsOneWidget,
-      );
-      // 4 Feature Pillars (English)
-      expect(find.text('Comprehensive\nNotes'), findsOneWidget);
-      expect(find.text('Videos'), findsOneWidget);
-      expect(find.text('Practical\nSimulations'), findsOneWidget);
-      expect(find.text('AI Tutor\nSupport'), findsOneWidget);
-      // Ensure no Sign In button on WelcomeScreen
-      expect(find.text('Sign In'), findsNothing);
+      expect(find.text('A brighter future\nstarts here'), findsOneWidget);
+      expect(find.text('Already have an account? Log in', findRichText: true), findsOneWidget);
+      expect(find.text('Study\nnotes'), findsOneWidget);
+      expect(find.text('AI\ntutor'), findsOneWidget);
+    });
+
+    testWidgets('the language switch changes the language', (tester) async {
+      await tester.pumpWidget(welcome(prefs));
+      await tester.pumpAndSettle();
+      expect(find.text('Anza Sasa'), findsOneWidget);
+
+      await tester.tap(find.text('EN'));
+      await tester.pumpAndSettle();
+      expect(find.text('Get Started'), findsOneWidget);
+      expect(prefs.getString('somasmart_language'), 'en');
     });
 
     testWidgets('renders in Dark Theme without crashing and preserves light-only visuals', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-          ],
-          child: MaterialApp(
-            theme: ThemeData.dark(),
-            home: const WelcomeScreen(),
-          ),
-        ),
-      );
+      await tester.pumpWidget(welcome(prefs, theme: ThemeData.dark()));
+      await tester.pumpAndSettle();
 
-      expect(find.text('Soma', findRichText: true), findsOneWidget);
-      expect(find.text('Smart', findRichText: true), findsOneWidget);
-      expect(find.text('Muhtasari\nwa Masomo'), findsOneWidget);
+      expect(find.text('SomaSmart', findRichText: true), findsOneWidget);
+      expect(find.text('Muhtasari\nwa masomo'), findsOneWidget);
     });
+
+    // Real phone and tablet sizes (logical pixels). Any overflow fails the test.
+    const sizes = <String, Size>{
+      'small phone 320x568': Size(320, 568),
+      'phone 360x640': Size(360, 640),
+      'phone 390x844': Size(390, 844),
+      'large phone 412x915': Size(412, 915),
+      'tablet 768x1024': Size(768, 1024),
+      'phone landscape 844x390': Size(844, 390),
+      'tablet landscape 1280x800': Size(1280, 800),
+    };
+    var realisticFont = false;
+    setUpAll(() async => realisticFont = await _loadDeviceLikeFont());
+
+    for (final entry in sizes.entries) {
+      testWidgets('lays out without overflow on ${entry.key}', (tester) async {
+        tester.view.physicalSize = entry.value;
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
+
+        await tester.pumpWidget(welcome(prefs));
+        await tester.pumpAndSettle();
+
+        final button = find.byKey(const Key('welcome-get-started'));
+        expect(button, findsOneWidget);
+        final portrait = entry.value.height > entry.value.width;
+        if (portrait && realisticFont) {
+          // With device-like text, Get Started sits near the bottom and fully on screen.
+          final rect = tester.getRect(button);
+          expect(rect.bottom, lessThanOrEqualTo(entry.value.height));
+          expect(rect.top, greaterThan(entry.value.height * 0.70));
+        } else {
+          // Otherwise it must at least be reachable by scrolling.
+          await tester.ensureVisible(button);
+          await tester.pumpAndSettle();
+          expect(tester.getRect(button).bottom, lessThanOrEqualTo(entry.value.height));
+        }
+      });
+    }
   });
 
   group('LoginScreen Widget Tests', () {

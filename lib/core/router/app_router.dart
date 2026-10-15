@@ -113,7 +113,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/welcome',
         name: 'welcome',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => MaterialPage(
+        // Fades in from the splash instead of sliding.
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          transitionDuration: const Duration(milliseconds: 450),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut), child: child),
           child: Theme(
             data: AppTheme.lightTheme,
             child: const WelcomeScreen(),

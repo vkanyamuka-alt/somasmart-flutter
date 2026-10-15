@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,10 +8,13 @@ import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 
-/// Official SomaSmart Splash & Startup Screen.
+/// Official SomaSmart splash screen.
 ///
-/// Features the official "S" logo mark, live "SomaSmart" typography,
-/// and localized tagline with a smooth, subtle startup animation sequence.
+/// Intro (about 1.9 s): the logo springs in with a slight turn while a soft
+/// navy halo grows behind it, a gold ring draws itself around the logo, then
+/// the "SomaSmart" wordmark rises and the tagline fades in. While the app
+/// decides where to go, the logo breathes gently and the ring turns slowly.
+/// Honors the system "reduce motion" setting.
 class SplashScreen extends ConsumerStatefulWidget {
   final Duration animationDuration;
   final Duration holdDuration;
@@ -17,8 +22,8 @@ class SplashScreen extends ConsumerStatefulWidget {
 
   const SplashScreen({
     super.key,
-    this.animationDuration = const Duration(milliseconds: 1100),
-    this.holdDuration = const Duration(milliseconds: 500),
+    this.animationDuration = const Duration(milliseconds: 1900),
+    this.holdDuration = const Duration(milliseconds: 600),
     this.autoNavigate = true,
   });
 
@@ -27,97 +32,86 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _logoFadeAnimation;
-  late Animation<double> _logoScaleAnimation;
-  late Animation<double> _titleFadeAnimation;
-  late Animation<Offset> _titleSlideAnimation;
-  late Animation<double> _taglineFadeAnimation;
+    with TickerProviderStateMixin {
+  late final AnimationController _intro;
+  late final AnimationController _idle;
+
+  late final Animation<double> _logoScale;
+  late final Animation<double> _logoFade;
+  late final Animation<double> _logoTurn;
+  late final Animation<double> _halo;
+  late final Animation<double> _ring;
+  late final Animation<double> _titleFade;
+  late final Animation<Offset> _titleSlide;
+  late final Animation<double> _taglineFade;
+
+  bool _started = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.animationDuration,
-    );
+    _intro = AnimationController(vsync: this, duration: widget.animationDuration);
+    _idle = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600));
 
-    // 1. Logo fades and scales gently from 0.85 to 1.0 (0.0 -> 0.6)
-    _logoFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.55, curve: Curves.easeOut),
-      ),
-    );
+    CurvedAnimation curve(double begin, double end, Curve c) =>
+        CurvedAnimation(parent: _intro, curve: Interval(begin, end, curve: c));
 
-    _logoScaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.60, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    // 2. Title "SomaSmart" fades and slides smoothly (0.35 -> 0.8)
-    _titleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.35, 0.80, curve: Curves.easeOut),
-      ),
-    );
-
-    _titleSlideAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 0.15),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.35, 0.80, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    // 3. Tagline fades in subtly (0.55 -> 1.0)
-    _taglineFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.55, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    _startStartupSequence();
+    _logoScale = Tween<double>(begin: 0.45, end: 1.0).animate(curve(0.0, 0.45, Curves.easeOutBack));
+    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(curve(0.0, 0.25, Curves.easeOut));
+    _logoTurn = Tween<double>(begin: -0.18, end: 0.0).animate(curve(0.0, 0.45, Curves.easeOutCubic));
+    _halo = Tween<double>(begin: 0.0, end: 1.0).animate(curve(0.05, 0.55, Curves.easeOutCubic));
+    _ring = Tween<double>(begin: 0.0, end: 1.0).animate(curve(0.20, 0.70, Curves.easeInOutCubic));
+    _titleFade = Tween<double>(begin: 0.0, end: 1.0).animate(curve(0.48, 0.80, Curves.easeOut));
+    _titleSlide = Tween<Offset>(begin: const Offset(0, 0.45), end: Offset.zero)
+        .animate(curve(0.48, 0.85, Curves.easeOutCubic));
+    _taglineFade = Tween<double>(begin: 0.0, end: 1.0).animate(curve(0.68, 1.0, Curves.easeOut));
   }
 
-  Future<void> _startStartupSequence() async {
-    await _controller.forward();
-    if (widget.autoNavigate) {
-      await Future.delayed(widget.holdDuration);
-      if (mounted) {
-        try {
-          final client = ref.read(supabaseClientProvider);
-          final user = client.auth.currentUser;
-          if (user != null) {
-            context.go('/home');
-          } else {
-            context.go('/welcome');
-          }
-        } catch (_) {
-          context.go('/welcome');
-        }
-      }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    // Reduce motion: show the finished frame straight away.
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      _intro.value = 1.0;
+      _finish();
+    } else {
+      _intro.forward().whenComplete(() {
+        if (mounted) _idle.repeat(reverse: true);
+        _finish();
+      });
+    }
+  }
+
+  Future<void> _finish() async {
+    if (!widget.autoNavigate) return;
+    await Future.delayed(widget.holdDuration);
+    if (!mounted) return;
+    try {
+      final client = ref.read(supabaseClientProvider);
+      context.go(client.auth.currentUser != null ? '/home' : '/welcome');
+    } catch (_) {
+      context.go('/welcome');
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _intro.dispose();
+    _idle.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentLang = ref.watch(languageProvider);
+    final isSw = ref.watch(languageProvider) == 'sw';
+    final size = MediaQuery.sizeOf(context);
+    // Scale with the screen: small phones get a smaller mark, tablets a larger one.
+    final logoSize = (size.shortestSide * 0.26).clamp(84.0, 132.0);
+    final ringSize = logoSize * 1.55;
 
-    final tagline = currentLang == 'sw'
+    final tagline = isSw
         ? 'Jifunze Haraka. Elewa Zaidi.\nMudu Kila Mada.'
         : 'Learn Fast. Understand Deeply.\nMaster Every Topic.';
 
@@ -128,123 +122,174 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         statusBarBrightness: Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.lightBgSurface,
+        backgroundColor: Colors.white,
         body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+          child: AnimatedBuilder(
+            animation: Listenable.merge([_intro, _idle]),
+            builder: (context, _) {
+              final breathe = 1.0 + 0.03 * Curves.easeInOut.transform(_idle.value);
+              return SizedBox(
+                width: double.infinity,
+                child: Column(
                 children: [
-                  const Spacer(flex: 3),
-
-                  // 1. Official S Logo Mark
-                  FadeTransition(
-                    opacity: _logoFadeAnimation,
-                    child: ScaleTransition(
-                      scale: _logoScaleAnimation,
-                      child: Image.asset(
-                        'assets/images/logo.png',
-                        width: 88,
-                        height: 88,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 88,
-                          height: 88,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(20),
+                  const Spacer(flex: 5),
+                  SizedBox(
+                    width: ringSize,
+                    height: ringSize,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Soft navy halo
+                        Transform.scale(
+                          scale: 0.55 + 0.45 * _halo.value,
+                          child: Container(
+                            width: ringSize,
+                            height: ringSize,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.primary.withValues(alpha: 0.07 * _halo.value),
+                            ),
                           ),
-                          child: const Center(
-                            child: Text(
-                              'S',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 44,
+                        ),
+                        // Gold ring drawing itself, then turning slowly
+                        Transform.rotate(
+                          angle: _idle.isAnimating ? _idle.value * 0.6 : 0,
+                          child: CustomPaint(
+                            size: Size.square(ringSize * 0.86),
+                            painter: _RingPainter(progress: _ring.value),
+                          ),
+                        ),
+                        // Logo mark
+                        Opacity(
+                          opacity: _logoFade.value,
+                          child: Transform.rotate(
+                            angle: _logoTurn.value,
+                            child: Transform.scale(
+                              scale: _logoScale.value * breathe,
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                width: logoSize,
+                                height: logoSize,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => _LogoFallback(size: logoSize),
                               ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // 2. Live "SomaSmart" Typography Wordmark
+                  const SizedBox(height: 22),
                   SlideTransition(
-                    position: _titleSlideAnimation,
-                    child: FadeTransition(
-                      opacity: _titleFadeAnimation,
-                      child: const Text(
-                        'SomaSmart',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.6,
-                          color: AppColors.lightTextPrimary,
-                        ),
-                      ),
+                    position: _titleSlide,
+                    child: Opacity(
+                      opacity: _titleFade.value,
+                      child: const _Wordmark(fontSize: 32),
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
-                  // 3. Localized Tagline
-                  FadeTransition(
-                    opacity: _taglineFadeAnimation,
-                    child: Text(
-                      tagline,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        height: 1.5,
-                        letterSpacing: 0.1,
-                        color: AppColors.lightTextSecondary,
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(flex: 3),
-
-                  // Minimal Brand Footer Indicator
-                  FadeTransition(
-                    opacity: _taglineFadeAnimation,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightBgContainer,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.lightBorderSubtle,
-                        ),
-                      ),
+                  Opacity(
+                    opacity: _taglineFade.value,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
-                        currentLang == 'sw'
-                            ? 'Mfumo wa Kisasa wa Kujisomea'
-                            : 'Modern Learning Platform',
+                        tagline,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          height: 1.5,
+                          color: AppColors.lightTextSecondary,
                         ),
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 24),
+                  const Spacer(flex: 6),
+                  Opacity(
+                    opacity: _taglineFade.value,
+                    child: Text(
+                      isSw ? 'Mfumo wa Kisasa wa Kujisomea' : 'Modern Learning Platform',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
                 ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
+}
+
+/// "Soma" in navy, "Smart" in gold, as on the welcome screen.
+class _Wordmark extends StatelessWidget {
+  final double fontSize;
+  const _Wordmark({required this.fontSize});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = TextStyle(fontSize: fontSize, fontWeight: FontWeight.w800, letterSpacing: -0.6);
+    return Text.rich(
+      TextSpan(children: [
+        TextSpan(text: 'Soma', style: base.copyWith(color: AppColors.primaryDark)),
+        TextSpan(text: 'Smart', style: base.copyWith(color: AppColors.brandGold)),
+      ]),
+    );
+  }
+}
+
+class _LogoFallback extends StatelessWidget {
+  final double size;
+  const _LogoFallback({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(size * 0.22)),
+      child: Center(
+        child: Text('S', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: size * 0.5)),
+      ),
+    );
+  }
+}
+
+/// A gold arc that draws from the top, clockwise, as [progress] goes 0 → 1,
+/// with a faint full track underneath.
+class _RingPainter extends CustomPainter {
+  final double progress;
+  _RingPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0) return;
+    final rect = Offset.zero & size;
+    final stroke = size.width * 0.028;
+    final arcRect = rect.deflate(stroke / 2);
+
+    final track = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..color = AppColors.brandGold.withValues(alpha: 0.14 * progress);
+    canvas.drawArc(arcRect, 0, math.pi * 2, false, track);
+
+    final arc = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..color = AppColors.brandGold;
+    canvas.drawArc(arcRect, -math.pi / 2, math.pi * 2 * progress * 0.92, false, arc);
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) => old.progress != progress;
 }

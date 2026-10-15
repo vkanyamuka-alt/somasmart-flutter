@@ -1,545 +1,491 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
 
-/// Official SomaSmart Welcome & Onboarding Screen.
+/// Welcome screen shown after the splash, before sign-in.
 ///
-/// Designed to match the official design reference:
-/// 1. Upper Photo Section (~44-46% height): Hero student photograph with
-///    top-right "A Brighter Future Starts Here" headline and gold accent bar.
-/// 2. Wave Transition: Subtle, elegant flowing light-blue curves connecting the photo into the lower section.
-/// 3. Lower Content Section:
-///    - Centered SomaSmart branding ([S Logo] + "SomaSmart")
-///    - Value proposition headline: "O-level & A-level notes, Videos, practical simulations and AI tutor."
-///    - Gold accent line
-///    - Supporting tagline: "Study smarter. Go further with SomaSmart."
-///    - 4 Feature Pillars: Comprehensive Notes, Videos, Practical Simulations, AI Tutor Support
-///    - Primary Action: Prominent "Get Started ->" button routing to Login/Sign Up.
-///
-/// NOTE: The Welcome Screen is strictly styled in Light Theme regardless of the global app theme.
-class WelcomeScreen extends ConsumerWidget {
+/// Layout adapts to the screen:
+/// * phones (portrait): photo on top (~45% of the height, less on short
+///   screens) fading into the page, then headline, subtitle and four feature
+///   icons; "Get Started" stays near the bottom with a "Log in" link under it.
+///   On very short screens the content scrolls instead of overflowing.
+/// * tablets / landscape: photo on the left, content on the right.
+/// Always light, whatever the app theme.
+class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final lang = ref.watch(languageProvider);
-    final isSw = lang == 'sw';
-    final mediaQuery = MediaQuery.of(context);
-    final screenHeight = mediaQuery.size.height;
+  ConsumerState<WelcomeScreen> createState() => _WelcomeScreenState();
+}
 
-    // Balanced portrait hero image region (~36-38% of viewport height)
-    final photoHeight = (screenHeight * 0.37).clamp(240.0, 310.0);
+class _WelcomeScreenState extends ConsumerState<WelcomeScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  bool _started = false;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // Background soft ambient waves & subtle corner accents
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _BackgroundAmbientPainter(),
-            ),
-          ),
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+  }
 
-          // Scrollable content wrapper for responsiveness
-          SafeArea(
-            top: false,
-            bottom: true,
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // --------------------------------------------------------
-                  // 1. UPPER PHOTO SECTION (~36-38% of viewport)
-                  // --------------------------------------------------------
-                  SizedBox(
-                    height: photoHeight,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Main Student Hero Photograph
-                        Image.asset(
-                          'assets/images/welcome_student.jpg',
-                          fit: BoxFit.cover,
-                          alignment: const Alignment(0.0, -0.18),
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                            color: const Color(0xFFE2E8F0),
-                          ),
-                        ),
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      _c.value = 1.0;
+    } else {
+      _c.forward();
+    }
+  }
 
-                        // Top-Right Soft Legibility Gradient
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: 90,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.70),
-                                  Colors.white.withValues(alpha: 0.0),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
-                        // Top-Right Headline ("A Brighter Future Starts Here")
-                        SafeArea(
-                          bottom: false,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18.0,
-                              vertical: 10.0,
-                            ),
-                            child: Align(
-                              alignment: Alignment.topRight,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    isSw
-                                        ? 'Mustakabali\nMzuri Unaanzia\nHapa'
-                                        : 'A Brighter\nFuture Starts\nHere',
-                                    textAlign: TextAlign.right,
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w800,
-                                      height: 1.25,
-                                      color: Color(0xFF0F294A),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    width: 26,
-                                    height: 3,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF59E0B),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+  Future<void> _go(String route) async {
+    await ref.read(onboardingCompletedProvider.notifier).completeOnboarding();
+    if (mounted) context.go(route);
+  }
 
-                        // Layered Decorative Transition Waves at Bottom of Photo
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          height: 44,
-                          child: CustomPaint(
-                            painter: _HeroWaveTransitionPainter(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // --------------------------------------------------------
-                  // 2. LOWER CONTENT SECTION (Cohesive, balanced layout)
-                  // --------------------------------------------------------
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 22.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 12),
-
-                        // 1. Centered SomaSmart Branding ([S Logo] SomaSmart)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              'assets/images/logo.png',
-                              width: 34,
-                              height: 34,
-                              fit: BoxFit.contain,
-                              errorBuilder:
-                                  (context, error, stackTrace) =>
-                                      Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    'S',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Soma',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.4,
-                                    color: Color(0xFF0B2545),
-                                  ),
-                                ),
-                                Text(
-                                  'Smart',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.4,
-                                    color: Color(0xFFF59E0B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        // 2. Main Feature Text
-                        Text(
-                          isSw
-                              ? 'Muhtasari wa masomo ya O-Level na A-Level, Video,\nmajaribio ya maabara na mwalimu wa AI.'
-                              : 'O-level & A-level notes, Videos,\npractical simulations and AI tutor.',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 17.5,
-                            fontWeight: FontWeight.w800,
-                            height: 1.30,
-                            letterSpacing: -0.3,
-                            color: Color(0xFF0A2540),
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        // 3. Gold Brand Accent Bar
-                        Container(
-                          width: 36,
-                          height: 3.5,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF59E0B),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        // 4. Supporting Tagline
-                        Text(
-                          isSw
-                              ? 'Jifunze kwa ufanisi. Fika mbali na SomaSmart.'
-                              : 'Study smarter. Go further with SomaSmart.',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 13.0,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF475569),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // 5. 4 Feature Pillars Row with Subtle Dividers
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 2.0,
-                            vertical: 2.0,
-                          ),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceEvenly,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Pillar 1: Notes
-                              Expanded(
-                                child: _buildFeaturePillar(
-                                  icon: Icons.menu_book_rounded,
-                                  iconColor: const Color(0xFF0284C7),
-                                  bgColor: const Color(0xFFE0F2FE),
-                                  label: isSw
-                                      ? 'Muhtasari\nwa Masomo'
-                                      : 'Comprehensive\nNotes',
-                                ),
-                              ),
-                              _buildPillarDivider(),
-
-                              // Pillar 2: Videos
-                              Expanded(
-                                child: _buildFeaturePillar(
-                                  icon: Icons.play_arrow_rounded,
-                                  iconColor: const Color(0xFFD97706),
-                                  bgColor: const Color(0xFFFEF3C7),
-                                  label: isSw ? 'Video' : 'Videos',
-                                ),
-                              ),
-                              _buildPillarDivider(),
-
-                              // Pillar 3: Practicals
-                              Expanded(
-                                child: _buildFeaturePillar(
-                                  icon: Icons.science_rounded,
-                                  iconColor: const Color(0xFF9333EA),
-                                  bgColor: const Color(0xFFF3E8FF),
-                                  label: isSw
-                                      ? 'Majaribio ya\nMaabara'
-                                      : 'Practical\nSimulations',
-                                ),
-                              ),
-                              _buildPillarDivider(),
-
-                              // Pillar 4: AI Tutor
-                              Expanded(
-                                child: _buildFeaturePillar(
-                                  icon: Icons.psychology_rounded,
-                                  iconColor: const Color(0xFF16A34A),
-                                  bgColor: const Color(0xFFDCFCE7),
-                                  label: isSw
-                                      ? 'Msaada wa\nMwalimu wa AI'
-                                      : 'AI Tutor\nSupport',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // 6. Primary Action: "Get Started ->" ("Anza Sasa ->")
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              await ref
-                                  .read(
-                                      onboardingCompletedProvider.notifier)
-                                  .completeOnboarding();
-                              if (context.mounted) {
-                                context.go('/login');
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              elevation: 2,
-                              shadowColor: AppColors.primary
-                                  .withValues(alpha: 0.35),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 24),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  isSw ? 'Anza Sasa' : 'Get Started',
-                                  style: const TextStyle(
-                                    fontSize: 16.5,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.2,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 20,
-                                  color: Colors.white,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+  /// Fade + rise for one piece of content, between [begin] and [end] of the intro.
+  Widget _reveal(double begin, double end, Widget child, {double rise = 18}) {
+    final t = CurvedAnimation(parent: _c, curve: Interval(begin, end, curve: Curves.easeOutCubic));
+    return AnimatedBuilder(
+      animation: t,
+      child: child,
+      builder: (context, child) => Opacity(
+        opacity: t.value,
+        child: Transform.translate(offset: Offset(0, rise * (1 - t.value)), child: child),
       ),
     );
   }
 
-  /// Helper widget rendering a single feature pillar item
-  Widget _buildFeaturePillar({
-    required IconData icon,
-    required Color iconColor,
-    required Color bgColor,
-    required String label,
-  }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: bgColor,
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 22,
-            ),
-          ),
+  @override
+  Widget build(BuildContext context) {
+    final isSw = ref.watch(languageProvider) == 'sw';
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: LayoutBuilder(
+          builder: (context, box) {
+            final wide = box.maxWidth > box.maxHeight && box.maxWidth >= 600;
+            return wide ? _wideLayout(box, isSw) : _portraitLayout(box, isSw);
+          },
         ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w600,
-            height: 1.2,
-            color: Color(0xFF334155),
+      ),
+    );
+  }
+
+  Widget _portraitLayout(BoxConstraints box, bool isSw) {
+    final h = box.maxHeight;
+    final compact = h < 700;
+    final tablet = box.maxWidth >= 600;
+    // Taller screens give the photo more room so the page does not feel empty.
+    final heroShare = compact ? 0.38 : (h > 900 ? 0.50 : 0.45);
+    final heroHeight = (h * heroShare).clamp(210.0, 600.0);
+
+    return Column(
+      children: [
+        SizedBox(
+          height: heroHeight,
+          child: _hero(isSw, fadeToBottom: true, wideFrame: box.maxWidth / heroHeight > 1.4),
+        ),
+        Expanded(
+          child: SafeArea(
+            top: false,
+            child: LayoutBuilder(
+              builder: (context, inner) => SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: inner.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: _content(isSw, compact: compact, scale: tablet ? 1.18 : 1.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  /// Subtle vertical divider between pillars
-  Widget _buildPillarDivider() {
+  Widget _wideLayout(BoxConstraints box, bool isSw) {
+    return Row(
+      children: [
+        Expanded(child: _hero(isSw, fadeToBottom: false)),
+        Expanded(
+          child: SafeArea(
+            left: false,
+            child: LayoutBuilder(
+              builder: (context, inner) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: inner.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 460),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: _content(isSw, compact: box.maxHeight < 500, showBrand: true),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Photo with the brand chip and language switch over it.
+  Widget _hero(bool isSw, {required bool fadeToBottom, bool wideFrame = false}) {
+    final zoom = CurvedAnimation(parent: _c, curve: const Interval(0.0, 0.55, curve: Curves.easeOutCubic));
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        AnimatedBuilder(
+          animation: zoom,
+          builder: (context, child) => Opacity(
+            opacity: zoom.value,
+            child: Transform.scale(scale: 1.08 - 0.08 * zoom.value, child: child),
+          ),
+          child: Image.asset(
+            'assets/images/welcome_hero_portrait.jpg',
+            fit: BoxFit.cover,
+            // A wide, short frame crops top and bottom: aim higher to keep the face whole.
+            alignment: Alignment(-0.15, wideFrame ? -0.75 : -0.35),
+            errorBuilder: (context, error, stackTrace) => const ColoredBox(color: AppColors.primarySoft),
+          ),
+        ),
+        // Light wash at the top so the chips stay readable on any crop.
+        const Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 110,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x66FFFFFF), Color(0x00FFFFFF)],
+              ),
+            ),
+          ),
+        ),
+        if (fadeToBottom)
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 120,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x00FFFFFF), Color(0xFFFFFFFF)],
+                ),
+              ),
+            ),
+          ),
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Row(
+                children: [
+                  // Shrinks instead of overflowing on narrow screens or large text.
+                  if (fadeToBottom)
+                    const Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: _BrandChip(),
+                      ),
+                    ),
+                  const Spacer(),
+                  _LanguageSwitch(
+                    isSw: isSw,
+                    onChanged: (code) => ref.read(languageProvider.notifier).setLanguage(code),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _content(bool isSw, {required bool compact, bool showBrand = false, double scale = 1.0}) {
+    final headlineSize = (compact ? 25.0 : 29.0) * scale;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: compact ? 8 : 14),
+        if (showBrand) ...[
+          _reveal(0.10, 0.45, const _BrandChip(plain: true)),
+          const SizedBox(height: 18),
+        ],
+        _reveal(
+          0.20,
+          0.60,
+          Text(
+            isSw ? 'Mustakabali mzuri\nunaanzia hapa' : 'A brighter future\nstarts here',
+            style: TextStyle(
+              fontSize: headlineSize,
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+              letterSpacing: -0.6,
+              color: AppColors.primaryDark,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _reveal(
+          0.28,
+          0.64,
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: AppColors.brandGold, borderRadius: BorderRadius.circular(2)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _reveal(
+          0.32,
+          0.70,
+          Text(
+            isSw
+                ? 'Muhtasari wa O-Level na A-Level, video, majaribio ya maabara na mwalimu wa AI, mahali pamoja.'
+                : 'O-level and A-level notes, videos, practical simulations and an AI tutor, all in one place.',
+            style: TextStyle(
+              fontSize: (compact ? 14.5 : 15.5) * scale,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+              color: AppColors.lightTextSecondary,
+            ),
+          ),
+        ),
+        SizedBox(height: compact ? 18 : 26),
+        _features(isSw, compact: compact, scale: scale),
+        SizedBox(height: compact ? 20 : 28),
+        const Spacer(),
+        _reveal(
+          0.60,
+          1.00,
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              key: const Key('welcome-get-started'),
+              onPressed: () => _go('/signup'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    isSw ? 'Anza Sasa' : 'Get Started',
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, letterSpacing: -0.2),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 20),
+                ],
+              ),
+            ),
+          ),
+          rise: 28,
+        ),
+        const SizedBox(height: 6),
+        _reveal(
+          0.70,
+          1.00,
+          Center(
+            child: TextButton(
+              key: const Key('welcome-login'),
+              onPressed: () => _go('/login'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              child: Text.rich(
+                TextSpan(
+                  style: const TextStyle(fontSize: 14.5, color: AppColors.lightTextSecondary),
+                  children: [
+                    TextSpan(text: isSw ? 'Una akaunti tayari? ' : 'Already have an account? '),
+                    TextSpan(
+                      text: isSw ? 'Ingia' : 'Log in',
+                      style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: compact ? 6 : 12),
+      ],
+    );
+  }
+
+  Widget _features(bool isSw, {required bool compact, double scale = 1.0}) {
+    final items = [
+      (Icons.menu_book_rounded, isSw ? 'Muhtasari\nwa masomo' : 'Study\nnotes'),
+      (Icons.play_circle_outline_rounded, isSw ? 'Video\nza masomo' : 'Video\nlessons'),
+      (Icons.science_outlined, isSw ? 'Majaribio\nya maabara' : 'Practical\nsimulations'),
+      (Icons.psychology_outlined, isSw ? 'Mwalimu\nwa AI' : 'AI\ntutor'),
+    ];
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < items.length; i++)
+          Expanded(
+            child: _reveal(
+              0.40 + i * 0.07,
+              0.75 + i * 0.06,
+              _Feature(icon: items[i].$1, label: items[i].$2, compact: compact, scale: scale),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _Feature extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool compact;
+  final double scale;
+  const _Feature({required this.icon, required this.label, required this.compact, this.scale = 1.0});
+
+  @override
+  Widget build(BuildContext context) {
+    final circle = (compact ? 46.0 : 52.0) * scale;
+    return Column(
+      children: [
+        Container(
+          width: circle,
+          height: circle,
+          decoration: const BoxDecoration(color: AppColors.primarySoft, shape: BoxShape.circle),
+          child: Icon(icon, color: AppColors.primary, size: circle * 0.48),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: (compact ? 11.5 : 12.5) * scale,
+            height: 1.25,
+            fontWeight: FontWeight.w600,
+            color: AppColors.lightTextPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BrandChip extends StatelessWidget {
+  final bool plain;
+  const _BrandChip({this.plain = false});
+
+  @override
+  Widget build(BuildContext context) {
+    const word = TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.4);
+    final row = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset('assets/images/logo.png', width: 28, height: 28),
+        const SizedBox(width: 8),
+        Text.rich(TextSpan(children: [
+          TextSpan(text: 'Soma', style: word.copyWith(color: AppColors.primaryDark)),
+          TextSpan(text: 'Smart', style: word.copyWith(color: AppColors.brandGold)),
+        ])),
+      ],
+    );
+    if (plain) return row;
     return Container(
-      width: 1,
-      height: 38,
-      margin: const EdgeInsets.only(top: 3),
-      color: const Color(0xFFE2E8F0),
+      padding: const EdgeInsets.fromLTRB(8, 6, 14, 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 2))],
+      ),
+      child: row,
     );
   }
 }
 
-/// Custom painter rendering multi-layered organic flowing waves
-/// between the photo section and the lower content area.
-class _HeroWaveTransitionPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 1. Back wave layer (soft translucent blue)
-    final paintBack = Paint()
-      ..color = const Color(0xFFBAE6FD).withValues(alpha: 0.65)
-      ..style = PaintingStyle.fill;
-
-    final pathBack = Path()
-      ..moveTo(0, size.height * 0.35)
-      ..cubicTo(
-        size.width * 0.30,
-        size.height * 0.05,
-        size.width * 0.65,
-        size.height * 0.70,
-        size.width,
-        size.height * 0.25,
-      )
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(pathBack, paintBack);
-
-    // 2. Front wave layer (seamless transition into white background)
-    final paintFront = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    final pathFront = Path()
-      ..moveTo(0, size.height * 0.65)
-      ..cubicTo(
-        size.width * 0.35,
-        size.height * 0.85,
-        size.width * 0.70,
-        size.height * 0.30,
-        size.width,
-        size.height * 0.55,
-      )
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(pathFront, paintFront);
-  }
+class _LanguageSwitch extends StatelessWidget {
+  final bool isSw;
+  final ValueChanged<String> onChanged;
+  const _LanguageSwitch({required this.isSw, required this.onChanged});
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// Custom painter rendering ambient background soft bubbles and bottom wave
-class _BackgroundAmbientPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Left ambient soft circle
-    final paintCircleLeft = Paint()
-      ..color = const Color(0xFFE0F2FE).withValues(alpha: 0.40)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(
-      Offset(0, size.height * 0.58),
-      36,
-      paintCircleLeft,
+  Widget build(BuildContext context) {
+    Widget option(String code, String label, bool active) => GestureDetector(
+          onTap: () => onChanged(code),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: active ? AppColors.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: active ? Colors.white : AppColors.primaryDark,
+              ),
+            ),
+          ),
+        );
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 2))],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [option('sw', 'SW', isSw), option('en', 'EN', !isSw)],
+      ),
     );
-
-    // Right ambient soft circle
-    final paintCircleRight = Paint()
-      ..color = const Color(0xFFE0F2FE).withValues(alpha: 0.45)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(
-      Offset(size.width + 10, size.height * 0.52),
-      44,
-      paintCircleRight,
-    );
-
-    // Bottom soft decorative curve
-    final paintBottom = Paint()
-      ..color = const Color(0xFFE0F2FE).withValues(alpha: 0.35)
-      ..style = PaintingStyle.fill;
-
-    final pathBottom = Path()
-      ..moveTo(0, size.height - 28)
-      ..cubicTo(
-        size.width * 0.35,
-        size.height - 48,
-        size.width * 0.65,
-        size.height - 12,
-        size.width,
-        size.height - 36,
-      )
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(pathBottom, paintBottom);
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

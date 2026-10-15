@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Primary Brand Colors (Royal Scholar Blue)
-  static const Color primary = Color(0xFF0058BE);
-  static const Color primaryLight = Color(0xFF2170E4);
-  static const Color primaryDark = Color(0xFF003C82);
-  static const Color primaryGlow = Color(0x330058BE);
+  // Primary brand colours, measured from the logo (same palette as the web):
+  // navy #184E78 for actions, deep navy for headings, gold #DB9E3D sparingly.
+  static const Color primary = Color(0xFF184E78);
+  static const Color primaryLight = Color(0xFF3D7AB0);
+  static const Color primaryDark = Color(0xFF123B5B);
+  static const Color primaryGlow = Color(0x33184E78);
+  static const Color primarySoft = Color(0xFFE8EFF6);
+  static const Color brandGold = Color(0xFFDB9E3D);
+  static const Color brandGoldSoft = Color(0xFFFBF3E4);
   
   // Hero Section Special Tones
   static const Color heroNavyDark = Color(0xFF0B1A36);
@@ -18,7 +22,7 @@ class AppColors {
   // Secondary / Academic Accents
   static const Color secondary = Color(0xFF06B6D4);
   static const Color accentPurple = Color(0xFF7C3AED);
-  static const Color accentGold = Color(0xFFF59E0B);
+  static const Color accentGold = brandGold;
   
   // Semantic Colors
   static const Color success = Color(0xFF10B981);
