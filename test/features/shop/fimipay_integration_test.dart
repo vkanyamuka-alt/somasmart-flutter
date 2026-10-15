@@ -52,6 +52,22 @@ void main() {
 
       expect(result.success, isFalse);
       expect(result.errorMessage, 'Nambari ya simu si sahihi.');
+      expect(result.isInProgress, isFalse);
+    });
+
+    test('FimipayPaymentResult: Parses 409 payment_in_progress with the open order', () {
+      final result = FimipayPaymentResult.fromJson({
+        'success': false,
+        'code': 'payment_in_progress',
+        'order_id': 'fp_open',
+        'payment_reference': 'FP-OPEN',
+        'error': 'Una malipo yanayosubiri.',
+      });
+
+      expect(result.success, isFalse);
+      expect(result.isInProgress, isTrue);
+      expect(result.orderId, 'fp_open');
+      expect(result.errorMessage, 'Una malipo yanayosubiri.');
     });
 
     test('FimipayStatusResult: Parses order_status response with SUCCESS, PAID, and COMPLETED status', () {

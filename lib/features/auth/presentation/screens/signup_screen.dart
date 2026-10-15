@@ -61,15 +61,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              lang == 'sw'
-                  ? 'Akaunti imeundwa! Weka nambari ya siri ya OTP uliyotumiwa kwa SMS.'
-                  : 'Account created! Enter the SMS OTP sent to your phone.',
+              result.needsSignIn
+                  ? (lang == 'sw'
+                      ? 'Akaunti imeundwa! Tafadhali ingia.'
+                      : 'Account created! Please sign in.')
+                  : (lang == 'sw'
+                      ? 'Akaunti imeundwa! Karibu SomaSmart.'
+                      : 'Account created! Welcome to SomaSmart.'),
             ),
             backgroundColor: AppColors.success,
           ),
         );
-        final targetPhone = result.phone ?? normalizedPhone;
-        context.push('/verify-otp?phone=${Uri.encodeComponent(targetPhone)}');
+        context.go(result.needsSignIn ? '/login' : '/home');
       } else {
         final authState = ref.read(authControllerProvider);
         final error = authState.error ?? result.errorMessage;

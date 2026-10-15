@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,29 +33,13 @@ class OnboardingNotifier extends StateNotifier<bool> {
   }
 }
 
-/// In-memory OTP store record with expiration timestamp.
-class _OtpRecord {
-  final String code;
-  final DateTime expiresAt;
-  final DateTime lastSentAt;
-
-  const _OtpRecord({
-    required this.code,
-    required this.expiresAt,
-    required this.lastSentAt,
-  });
-
-  bool get isExpired => DateTime.now().isAfter(expiresAt);
-  int get cooldownRemainingSeconds {
-    final elapsed = DateTime.now().difference(lastSentAt).inSeconds;
-    return (60 - elapsed).clamp(0, 60);
-  }
-}
-
 /// Result of sign in or sign up operation.
 class AuthResult {
   final bool success;
-  final bool isUnverified;
+
+  /// Sign-up worked but Supabase returned no session (e.g. email confirmation is on):
+  /// the student has to sign in.
+  final bool needsSignIn;
   final String? phone;
   final String? errorMessage;
 
@@ -64,19 +47,14 @@ class AuthResult {
 
   const AuthResult({
     required this.success,
-    this.isUnverified = false,
+    this.needsSignIn = false,
     this.phone,
     this.errorMessage,
   });
 
-  factory AuthResult.success({String? phone}) => AuthResult(
+  factory AuthResult.success({String? phone, bool needsSignIn = false}) => AuthResult(
         success: true,
-        phone: phone,
-      );
-
-  factory AuthResult.unverified(String phone) => AuthResult(
-        success: false,
-        isUnverified: true,
+        needsSignIn: needsSignIn,
         phone: phone,
       );
 
@@ -86,7 +64,10 @@ class AuthResult {
       );
 }
 
-/// Controller managing Phone-First Supabase authentication and OTP lifecycle.
+/// Controller managing Phone-First Supabase authentication.
+///
+/// Phone verification is skipped: there is no server-side SMS OTP yet, and codes made on the
+/// device proved nothing. Add verification back only through a server-side OTP.
 final authControllerProvider =
     StateNotifierProvider<AuthController, AsyncValue<void>>((ref) {
   return AuthController(ref);
@@ -94,9 +75,6 @@ final authControllerProvider =
 
 class AuthController extends StateNotifier<AsyncValue<void>> {
   final Ref _ref;
-
-  // In-memory OTP cache keyed by normalized phone number
-  static final Map<String, _OtpRecord> _otpCache = {};
 
   AuthController(this._ref) : super(const AsyncValue.data(null));
 
@@ -123,14 +101,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     return RegExp(r'^\+255[67]\d{8}$').hasMatch(norm);
   }
 
-  /// Calculates seconds remaining in the resend OTP cooldown timer for a given phone.
-  int getCooldownRemaining(String phone) {
-    final norm = normalizePhoneNumber(phone);
-    final record = _otpCache[norm];
-    if (record == null) return 0;
-    return record.cooldownRemainingSeconds;
-  }
-
   /// Authenticate an existing student via Phone Number and Password.
   Future<AuthResult> signIn({
     required String phone,
@@ -152,28 +122,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
       final user = response.user;
       if (user != null) {
-        // Check verification state in profile
-        var isVerified = true;
-        try {
-          final profileRes = await _client
-              .from('profiles')
-              .select('is_verified')
-              .eq('id', user.id)
-              .maybeSingle();
-          if (profileRes != null && profileRes['is_verified'] != null) {
-            isVerified = profileRes['is_verified'] == true;
-          }
-        } catch (_) {}
-
         await _ref.read(userProfileProvider.notifier).refreshProfile();
         state = const AsyncValue.data(null);
-
-        if (!isVerified) {
-          // Send verification OTP if account is still unverified
-          await sendOtp(normPhone);
-          return AuthResult.unverified(normPhone);
-        }
-
         return AuthResult.success(phone: normPhone);
       } else {
         throw const AuthException('Sign in failed. Invalid credentials.');
@@ -187,7 +137,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Register a new student account in an unverified state and dispatch SMS OTP.
+  /// Register a new student account.
   Future<AuthResult> signUp({
     required String phone,
     required String password,
@@ -262,15 +212,13 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
           debugPrint('⚠️ [STUDENT PROFILES DB UPSERT NON-FATAL ERROR]: $studentDbErr\n$studentDbSt');
         }
 
-        // 4. Send initial verification SMS OTP
-        try {
-          await sendOtp(normPhone);
-        } catch (otpErr, otpSt) {
-          debugPrint('⚠️ [SEND OTP NON-FATAL ERROR]: $otpErr\n$otpSt');
+        // No phone verification step (see class comment).
+        final hasSession = response.session != null;
+        if (hasSession) {
+          await _ref.read(userProfileProvider.notifier).refreshProfile();
         }
-
         state = const AsyncValue.data(null);
-        return AuthResult.unverified(normPhone);
+        return AuthResult.success(phone: normPhone, needsSignIn: !hasSession);
       } else {
         throw const AuthException('Registration failed. Please try again.');
       }
@@ -290,174 +238,6 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       debugPrint('  Stack Trace:\n$st');
       state = AsyncValue.error(e, st);
       return AuthResult.failure(e.toString());
-    }
-  }
-
-  /// Generates and sends a 6-digit OTP code to the student's phone number.
-  Future<bool> sendOtp(String phone, {bool force = false}) async {
-    final normPhone = normalizePhoneNumber(phone);
-    if (!force) {
-      final cooldown = getCooldownRemaining(normPhone);
-      if (cooldown > 0) {
-        return false; // Still in cooldown period
-      }
-    }
-
-    // Generate cryptographic-quality random 6-digit OTP (e.g. 100000 - 999999)
-    final randomCode = '${100000 + Random().nextInt(900000)}';
-    final now = DateTime.now();
-
-    _otpCache[normPhone] = _OtpRecord(
-      code: randomCode,
-      expiresAt: now.add(const Duration(minutes: 10)),
-      lastSentAt: now,
-    );
-
-    try {
-      // Record OTP in database if table exists or call SMS edge function
-      await _client.from('otp_verifications').insert({
-        'phone': normPhone,
-        'otp_code': randomCode,
-        'expires_at': now.add(const Duration(minutes: 10)).toIso8601String(),
-        'is_used': false,
-      });
-    } catch (_) {}
-
-    return true;
-  }
-
-  /// Resends SMS OTP respecting the 60-second cooldown timer.
-  Future<bool> resendOtp(String phone, {bool force = false}) async {
-    final normPhone = normalizePhoneNumber(phone);
-    if (!force) {
-      final cooldown = getCooldownRemaining(normPhone);
-      if (cooldown > 0) return false;
-    }
-    return sendOtp(normPhone, force: true);
-  }
-
-  /// Verifies the 6-digit OTP, marks account as verified, and signs the user in.
-  Future<bool> verifyOtp({
-    required String phone,
-    required String otpToken,
-  }) async {
-    state = const AsyncValue.loading();
-    final normPhone = normalizePhoneNumber(phone);
-    final trimmedToken = otpToken.trim();
-
-    final record = _otpCache[normPhone];
-    var isValid = false;
-
-    // 1. Verify against in-memory cache or standard testing token
-    if (trimmedToken == '123456' || (record != null && !record.isExpired && record.code == trimmedToken)) {
-      isValid = true;
-    }
-
-    // 2. Database validation fallback
-    if (!isValid) {
-      try {
-        final dbOtp = await _client
-            .from('otp_verifications')
-            .select('*')
-            .eq('phone', normPhone)
-            .eq('otp_code', trimmedToken)
-            .eq('is_used', false)
-            .order('created_at', ascending: false)
-            .limit(1)
-            .maybeSingle();
-
-        if (dbOtp != null) {
-          final expStr = dbOtp['expires_at']?.toString();
-          if (expStr != null && DateTime.tryParse(expStr)?.isAfter(DateTime.now()) == true) {
-            isValid = true;
-            try {
-              await _client
-                  .from('otp_verifications')
-                  .update({'is_used': true})
-                  .eq('id', dbOtp['id']);
-            } catch (_) {}
-          }
-        }
-      } catch (_) {}
-    }
-
-    if (isValid) {
-      // 3. Mark account as verified in profiles
-      final user = _client.auth.currentUser;
-      if (user != null) {
-        try {
-          await _client.from('profiles').update({'is_verified': true}).eq('id', user.id);
-        } catch (_) {}
-      } else {
-        try {
-          await _client.from('profiles').update({'is_verified': true}).eq('phone', normPhone);
-        } catch (_) {}
-      }
-
-      await _ref.read(userProfileProvider.notifier).refreshProfile();
-      state = const AsyncValue.data(null);
-      return true;
-    } else {
-      const err = 'Nambari ya uhakiki (OTP) si sahihi au muda wake umekwisha.';
-      state = AsyncValue.error(const AuthException(err), StackTrace.current);
-      return false;
-    }
-  }
-
-  /// Send password reset OTP via SMS to phone number.
-  Future<bool> sendPhonePasswordResetOtp({required String phone}) async {
-    state = const AsyncValue.loading();
-    final normPhone = normalizePhoneNumber(phone);
-
-    try {
-      // Check if phone exists in profiles
-      try {
-        final profile = await _client
-            .from('profiles')
-            .select('id, email')
-            .eq('phone', normPhone)
-            .maybeSingle();
-
-        if (profile == null) {
-          throw const AuthException('Hakuna akaunti yenye namba hii ya simu.');
-        }
-      } catch (e) {
-        if (e is AuthException) rethrow;
-      }
-
-      final ok = await sendOtp(normPhone);
-      state = const AsyncValue.data(null);
-      return ok;
-    } on AuthException catch (e, st) {
-      state = AsyncValue.error(e, st);
-      return false;
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      return false;
-    }
-  }
-
-  /// Verifies reset OTP and updates user password.
-  Future<bool> verifyResetOtpAndSetPassword({
-    required String phone,
-    required String otpToken,
-    required String newPassword,
-  }) async {
-    state = const AsyncValue.loading();
-    final normPhone = normalizePhoneNumber(phone);
-
-    final isOtpValid = await verifyOtp(phone: normPhone, otpToken: otpToken);
-    if (!isOtpValid) return false;
-
-    try {
-      await _client.auth.updateUser(
-        UserAttributes(password: newPassword.trim()),
-      );
-      state = const AsyncValue.data(null);
-      return true;
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      return false;
     }
   }
 

@@ -122,6 +122,14 @@ class ShopRepository {
           ? (response.data['error']?.toString() ?? 'Imeshindikana kuanzisha malipo.')
           : 'Imeshindikana kuwasiliana na seva ya malipo.';
       return FimipayPaymentResult.error(errorMsg);
+    } on FunctionException catch (e) {
+      // Non-2xx replies (409 payment_in_progress, 4xx/5xx with an `error` text) carry JSON in details.
+      final details = e.details;
+      if (details is Map) {
+        final result = FimipayPaymentResult.fromJson(Map<String, dynamic>.from(details));
+        if (result.isInProgress || result.errorMessage != null) return result;
+      }
+      return FimipayPaymentResult.error('Imeshindikana kuanzisha malipo. Tafadhali jaribu tena.');
     } catch (e) {
       return FimipayPaymentResult.error('Hitilafu ya mtandao wakati wa kuanzisha malipo: $e');
     }
@@ -151,6 +159,14 @@ class ShopRepository {
         paymentStatus: 'UNKNOWN',
         isActive: false,
         errorMessage: 'Unable to verify payment status.',
+      );
+    } on FunctionException catch (e) {
+      return FimipayStatusResult(
+        success: false,
+        // 404: the order is not this student's (or does not exist) — stop waiting on it.
+        paymentStatus: e.status == 404 ? 'NOT_FOUND' : 'ERROR',
+        isActive: false,
+        errorMessage: e.toString(),
       );
     } catch (e) {
       return FimipayStatusResult(

@@ -172,8 +172,11 @@ void main() {
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
           ],
-          child: const MaterialApp(
-            home: VerifyOtpScreen(phone: '+255712345678'),
+          child: MaterialApp(
+            home: VerifyOtpScreen(
+              phone: '+255712345678',
+              onResend: (_) async => true,
+            ),
           ),
         ),
       );
@@ -222,6 +225,60 @@ void main() {
       expect(find.text('Badilisha'), findsOneWidget);
       expect(find.text('Thibitisha'), findsOneWidget);
       expect(find.textContaining('Tuma tena msimbo baada ya 01:00'), findsOneWidget);
+    });
+  });
+
+  group('VerifyOtpScreen is disabled without a server-side OTP', () {
+    testWidgets('8. Rejects every code, including the old master code 123456', (tester) async {
+      var verified = false;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: MaterialApp(
+            home: VerifyOtpScreen(
+              phone: '+255712345678',
+              onVerified: (_) => verified = true,
+            ),
+          ),
+        ),
+      );
+
+      final textFields = find.byType(TextFormField);
+      for (int i = 0; i < 6; i++) {
+        await tester.enterText(textFields.at(i), '${i + 1}');
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+
+      expect(verified, isFalse);
+      expect(find.text('Phone verification is not available yet.'), findsOneWidget);
+      for (int i = 0; i < 6; i++) {
+        final TextFormField field = tester.widget(textFields.at(i));
+        expect(field.controller?.text, isEmpty);
+      }
+    });
+
+    testWidgets('9. Resend is unavailable without a server sender', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: const MaterialApp(
+            home: VerifyOtpScreen(phone: '+255712345678'),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(seconds: 60));
+      await tester.tap(find.textContaining('Resend Code'), warnIfMissed: false);
+      await tester.pump();
+
+      expect(find.text('Phone verification is not available yet.'), findsOneWidget);
+      expect(find.textContaining('Resend Code (3 left)'), findsOneWidget);
     });
   });
 }

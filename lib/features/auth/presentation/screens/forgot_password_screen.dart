@@ -8,7 +8,7 @@ import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
 
 /// Official SomaSmart Forgot Password Screen.
-/// Supports Phone OTP Reset (Primary), Email Reset (Secondary), and Contact Support fallback.
+/// Supports Email Reset and Contact Support. Phone (SMS) reset is disabled until a server-side OTP exists.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -20,19 +20,13 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _phoneFormKey = GlobalKey<FormState>();
   final _emailFormKey = GlobalKey<FormState>();
-  final _resetPasswordFormKey = GlobalKey<FormState>();
 
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
-  final _otpController = TextEditingController();
-  final _newPasswordController = TextEditingController();
 
   // Reset Modes: 0 = Phone (SMS OTP), 1 = Email
   int _resetMode = 0;
-  // Phone flow step: 0 = enter phone, 1 = enter OTP + new password
-  int _phoneStep = 0;
 
-  bool _obscurePassword = true;
   bool _isSuccess = false;
   String? _errorMessage;
   String? _successMessage;
@@ -41,83 +35,20 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   void dispose() {
     _phoneController.dispose();
     _emailController.dispose();
-    _otpController.dispose();
-    _newPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleSendPhoneOtp() async {
+  /// SMS reset needs a server-side OTP, which does not exist yet; codes used to be made
+  /// (and accepted) on the device. Until then, send phone-only students to Contact Support.
+  void _handleSendPhoneOtp() {
     if (!_phoneFormKey.currentState!.validate()) return;
-
-    setState(() {
-      _errorMessage = null;
-      _successMessage = null;
-    });
-
     final lang = ref.read(languageProvider);
-    final authNotifier = ref.read(authControllerProvider.notifier);
-
-    final rawPhone = _phoneController.text.trim();
-    final normalizedPhone = AuthController.normalizePhoneNumber(rawPhone);
-
-    final success = await authNotifier.sendPhonePasswordResetOtp(
-      phone: normalizedPhone,
-    );
-
-    if (mounted) {
-      if (success) {
-        setState(() {
-          _phoneStep = 1;
-          _successMessage = lang == 'sw'
-              ? 'Nambari ya OTP imetumwa kwa SMS kwa $normalizedPhone.'
-              : 'Password reset OTP has been sent via SMS to $normalizedPhone.';
-        });
-      } else {
-        final authState = ref.read(authControllerProvider);
-        final error = authState.error;
-        setState(() {
-          _errorMessage = AuthController.getLocalizedErrorMessage(error, lang);
-        });
-      }
-    }
-  }
-
-  Future<void> _handleVerifyPhoneOtpAndReset() async {
-    if (!_resetPasswordFormKey.currentState!.validate()) return;
-
     setState(() {
-      _errorMessage = null;
       _successMessage = null;
+      _errorMessage = lang == 'sw'
+          ? 'Kuweka upya nenosiri kwa SMS hakupatikani bado. Tumia barua pepe kama uliisajili, au wasiliana na msaada hapa chini.'
+          : 'Password reset by SMS is not available yet. Use your email if you registered one, or contact support below.';
     });
-
-    final lang = ref.read(languageProvider);
-    final authNotifier = ref.read(authControllerProvider.notifier);
-
-    final rawPhone = _phoneController.text.trim();
-    final normalizedPhone = AuthController.normalizePhoneNumber(rawPhone);
-
-    final success = await authNotifier.verifyResetOtpAndSetPassword(
-      phone: normalizedPhone,
-      otpToken: _otpController.text.trim(),
-      newPassword: _newPasswordController.text,
-    );
-
-    if (mounted) {
-      if (success) {
-        setState(() {
-          _isSuccess = true;
-          _successMessage = lang == 'sw'
-              ? 'Nenosiri lako limewekwa upya kikamilifu! Sasa unaweza kuingia.'
-              : 'Password reset successfully! You can now sign in with your new password.';
-        });
-      } else {
-        final authState = ref.read(authControllerProvider);
-        final error = authState.error;
-        setState(() {
-          _errorMessage = AuthController.getLocalizedErrorMessage(error, lang);
-        });
-      }
-    }
   }
 
   Future<void> _handleSendEmailReset() async {
@@ -176,12 +107,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 : AppColors.lightTextPrimary,
           ),
           onPressed: () {
-            if (_phoneStep == 1 && !_isSuccess) {
-              setState(() {
-                _phoneStep = 0;
-                _errorMessage = null;
-              });
-            } else if (context.canPop()) {
+            if (context.canPop()) {
               context.pop();
             } else {
               context.go('/login');
@@ -237,7 +163,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 const SizedBox(height: 20),
 
                 // 3. Mode Toggle (Phone SMS OTP vs Email)
-                if (!_isSuccess && _phoneStep == 0) ...[
+                if (!_isSuccess) ...[
                   Container(
                     decoration: BoxDecoration(
                       color: isDark
@@ -428,7 +354,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 ],
 
                 // 6. Primary Flow: Phone Mode Step 0 (Input Phone)
-                if (!_isSuccess && _resetMode == 0 && _phoneStep == 0) ...[
+                if (!_isSuccess && _resetMode == 0) ...[
                   Form(
                     key: _phoneFormKey,
                     child: Column(
@@ -522,220 +448,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         ),
                         const SizedBox(height: 24),
                         PrimaryButton(
-                          text: isSw ? 'Tuma Nambari ya OTP' : 'Send Reset OTP',
+                          text: isSw ? 'Endelea' : 'Continue',
                           isLoading: isLoading,
                           onPressed: isLoading ? null : _handleSendPhoneOtp,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-
-                // 7. Phone Mode Step 1 (Input OTP + New Password)
-                if (!_isSuccess && _resetMode == 0 && _phoneStep == 1) ...[
-                  Form(
-                    key: _resetPasswordFormKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isSw ? 'Nambari ya OTP ya SMS' : 'SMS OTP Code',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.lightTextPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _otpController,
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.next,
-                          style: TextStyle(
-                            fontSize: 18,
-                            letterSpacing: 4,
-                            fontWeight: FontWeight.w700,
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.lightTextPrimary,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: isSw
-                                ? 'Weka nambari ya OTP'
-                                : 'Enter 6-digit OTP',
-                            hintStyle: TextStyle(
-                              letterSpacing: 1,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w400,
-                              color: isDark
-                                  ? AppColors.darkTextMuted
-                                  : AppColors.lightTextMuted,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.pin_rounded,
-                              size: 20,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.lightTextSecondary,
-                            ),
-                            filled: true,
-                            fillColor: isDark
-                                ? AppColors.darkBgContainer
-                                : AppColors.lightBgContainer,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? AppColors.darkBorder
-                                    : AppColors.lightBorder,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? AppColors.darkBorderSubtle
-                                    : AppColors.lightBorderSubtle,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                                width: 1.5,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                          ),
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) {
-                              return isSw
-                                  ? 'Tafadhali weka nambari ya OTP.'
-                                  : 'Please enter the OTP code.';
-                            }
-                            if (val.trim().length != 6) {
-                              return isSw
-                                  ? 'OTP lazima iwe ya tarakimu 6.'
-                                  : 'OTP must be 6 digits.';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          isSw ? 'Nenosiri Jipya' : 'New Password',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.lightTextPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _newPasswordController,
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _handleVerifyPhoneOtpAndReset(),
-                          style: TextStyle(
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.lightTextPrimary,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: isSw
-                                ? 'Weka nenosiri jipya'
-                                : 'Enter new password',
-                            hintStyle: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w400,
-                              color: isDark
-                                  ? AppColors.darkTextMuted
-                                  : AppColors.lightTextMuted,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.lock_outline_rounded,
-                              size: 20,
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.lightTextSecondary,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                size: 20,
-                                color: isDark
-                                    ? AppColors.darkTextSecondary
-                                    : AppColors.lightTextSecondary,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
-                            filled: true,
-                            fillColor: isDark
-                                ? AppColors.darkBgContainer
-                                : AppColors.lightBgContainer,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? AppColors.darkBorder
-                                    : AppColors.lightBorder,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? AppColors.darkBorderSubtle
-                                    : AppColors.lightBorderSubtle,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                                width: 1.5,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                          ),
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) {
-                              return isSw
-                                  ? 'Tafadhali weka nenosiri jipya.'
-                                  : 'Please enter a new password.';
-                            }
-                            if (val.length < 6) {
-                              return isSw
-                                  ? 'Nenosiri lazima liwe na angalau herufi 6.'
-                                  : 'Password must be at least 6 characters.';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        PrimaryButton(
-                          text: isSw
-                              ? 'Weka Nenosiri Jipya'
-                              : 'Set New Password',
-                          isLoading: isLoading,
-                          onPressed:
-                              isLoading ? null : _handleVerifyPhoneOtpAndReset,
                         ),
                       ],
                     ),

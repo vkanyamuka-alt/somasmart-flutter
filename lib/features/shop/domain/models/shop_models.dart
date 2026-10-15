@@ -209,6 +209,9 @@ class FimipayPaymentResult {
   final String message;
   final String? errorMessage;
 
+  /// Machine-readable reason from the Edge Function, e.g. `payment_in_progress`.
+  final String? code;
+
   const FimipayPaymentResult({
     required this.success,
     this.orderId = '',
@@ -216,7 +219,11 @@ class FimipayPaymentResult {
     this.status = 'PENDING',
     this.message = '',
     this.errorMessage,
+    this.code,
   });
+
+  /// The server refused a second prompt because an order is still open; [orderId] is that order.
+  bool get isInProgress => code == 'payment_in_progress';
 
   factory FimipayPaymentResult.fromJson(Map<String, dynamic> json) {
     final isSuccess = json['success'] == true;
@@ -227,6 +234,7 @@ class FimipayPaymentResult {
       status: (json['status']?.toString() ?? 'PENDING').toUpperCase(),
       message: json['message']?.toString() ?? '',
       errorMessage: json['error']?.toString() ?? json['errorMessage']?.toString(),
+      code: json['code']?.toString(),
     );
   }
 

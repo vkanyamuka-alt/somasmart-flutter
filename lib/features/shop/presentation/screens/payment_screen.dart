@@ -503,16 +503,36 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      if (paymentState.errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          paymentState.errorMessage!,
+                          style: const TextStyle(fontSize: 12, color: AppColors.warning),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      Text(
+                        lang == 'sw'
+                            ? 'Simu ikionyesha salio halitoshi au ombi limeghairiwa, unaweza kujaribu namba nyingine.'
+                            : 'If your phone shows insufficient balance or the request was cancelled, you can try another number.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
 
                       OutlinedButton(
-                        onPressed: () => paymentNotifier.cancelPayment(),
+                        key: const Key('payment-cancel-waiting'),
+                        onPressed: () => paymentNotifier.cancelWaiting(),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         child: Text(
-                          lang == 'sw' ? 'Ghairi Malipo' : 'Cancel Payment',
+                          lang == 'sw' ? 'Ghairi / Jaribu namba nyingine' : 'Cancel / Try another number',
                           style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                         ),
                       ),

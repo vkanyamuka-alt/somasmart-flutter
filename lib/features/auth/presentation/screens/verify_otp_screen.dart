@@ -7,16 +7,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/soma_smart_logo.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
-import '../controllers/auth_controller.dart';
 
-/// Supported OTP operation flows for reusability across Auth & Recovery.
-enum OtpFlow {
-  verification,
-  passwordReset,
-  custom,
-}
-
-/// Reusable 6-digit OTP Verification Screen.
+/// Reusable 6-digit OTP Verification Screen — DISABLED.
+///
+/// Not reachable: there is no `/verify-otp` route. Codes used to be generated and accepted
+/// on the device (including a master code), which verified nothing. Without an injected
+/// [customVerifier] / [onResend] the screen refuses every code. Wire both to a server-side
+/// SMS OTP before adding a route back.
 ///
 /// Features:
 /// - Masked phone display (e.g. "+255 7XX XXX 123") with "Edit" navigation link
@@ -28,17 +25,21 @@ enum OtpFlow {
 /// - Native Autofill & numeric keypad support
 class VerifyOtpScreen extends ConsumerStatefulWidget {
   final String? phone;
-  final OtpFlow flow;
   final void Function(String otpCode)? onVerified;
+
+  /// Server-side check of the entered code. Required: without it no code is accepted.
   final Future<bool> Function(String otpCode)? customVerifier;
+
+  /// Asks the server to send a new code. Without it resending is unavailable.
+  final Future<bool> Function(String phone)? onResend;
   final VoidCallback? onEditPhone;
 
   const VerifyOtpScreen({
     super.key,
     this.phone,
-    this.flow = OtpFlow.verification,
     this.onVerified,
     this.customVerifier,
+    this.onResend,
     this.onEditPhone,
   });
 
@@ -111,10 +112,8 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
 
   void _startCooldownTimer() {
     _timer?.cancel();
-    final authNotifier = ref.read(authControllerProvider.notifier);
-    final currentCooldown = authNotifier.getCooldownRemaining(_effectivePhone);
     setState(() {
-      _secondsRemaining = currentCooldown > 0 ? currentCooldown : 60;
+      _secondsRemaining = 60;
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -131,6 +130,10 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
       }
     });
   }
+
+  String _unavailableMessage(bool isSw) => isSw
+      ? 'Uthibitisho wa simu haupatikani bado.'
+      : 'Phone verification is not available yet.';
 
   String _formatTimerDisplay(int totalSeconds) {
     final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
@@ -208,20 +211,19 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
       _isVerifying = true;
     });
 
-    bool success = false;
-
-    if (widget.customVerifier != null) {
-      success = await widget.customVerifier!(code);
-    } else {
-      final authNotifier = ref.read(authControllerProvider.notifier);
-      success = await authNotifier.verifyOtp(
-        phone: _effectivePhone,
-        otpToken: code,
-      );
+    if (widget.customVerifier == null) {
+      // No server-side OTP yet: never accept a code.
+      setState(() {
+        _isVerifying = false;
+        _errorMessage = _unavailableMessage(isSw);
+      });
+      _clearAndRefocus();
+      return;
     }
 
+    final success = await widget.customVerifier!(code);
+
     if (mounted) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
       setState(() {
         _isVerifying = false;
       });
@@ -229,8 +231,6 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
       if (success) {
         if (widget.onVerified != null) {
           widget.onVerified!(code);
-        } else if (widget.flow == OtpFlow.passwordReset) {
-          _showSetNewPasswordSheet(context, code, isDark: isDark, isSw: isSw);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -255,182 +255,21 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     }
   }
 
-  void _showSetNewPasswordSheet(
-    BuildContext context,
-    String verifiedToken, {
-    required bool isDark,
-    required bool isSw,
-  }) {
-    final passwordController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    bool isSaving = false;
-    String? localError;
-    bool obscure = true;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? AppColors.darkBgSurface : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-              ),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white24 : Colors.black12,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      isSw ? 'Weka Nenosiri Jipya' : 'Set New Password',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      isSw
-                          ? 'Weka nenosiri jipya ili uweze kuingia kwenye akaunti yako.'
-                          : 'Enter your new password to regain access to your account.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (localError != null) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          localError!,
-                          style: const TextStyle(color: AppColors.error, fontSize: 12.5),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-                    TextFormField(
-                      controller: passwordController,
-                      obscureText: obscure,
-                      style: TextStyle(
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: isSw ? 'Nenosiri Jipya' : 'New Password',
-                        hintText: isSw ? 'Weka nenosiri jipya' : 'Enter new password',
-                        prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            size: 20,
-                          ),
-                          onPressed: () => setModalState(() => obscure = !obscure),
-                        ),
-                        filled: true,
-                        fillColor: isDark ? AppColors.darkBgContainer : AppColors.lightBgContainer,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.trim().length < 6) {
-                          return isSw
-                              ? 'Nenosiri lazima liwe na angalau herufi 6'
-                              : 'Password must be at least 6 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    PrimaryButton(
-                      text: isSw ? 'Hifadhi Nenosiri' : 'Save New Password',
-                      isLoading: isSaving,
-                      onPressed: isSaving
-                          ? null
-                          : () async {
-                              if (!formKey.currentState!.validate()) return;
-                              setModalState(() {
-                                isSaving = true;
-                                localError = null;
-                              });
-                              final authNotifier = ref.read(authControllerProvider.notifier);
-                              final ok = await authNotifier.verifyResetOtpAndSetPassword(
-                                phone: _effectivePhone,
-                                otpToken: verifiedToken,
-                                newPassword: passwordController.text,
-                              );
-                              if (ctx.mounted) {
-                                setModalState(() => isSaving = false);
-                                if (ok) {
-                                  Navigator.pop(ctx);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        isSw
-                                            ? 'Nenosiri jipya limehifadhiwa! Karibu uingie.'
-                                            : 'Password reset successfully! Please sign in.',
-                                      ),
-                                      backgroundColor: AppColors.success,
-                                    ),
-                                  );
-                                  context.go('/login');
-                                } else {
-                                  setModalState(() {
-                                    localError = isSw
-                                        ? 'Imeshindikana kuweka nenosiri jipya.'
-                                        : 'Failed to reset password. Please try again.';
-                                  });
-                                }
-                              }
-                            },
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   Future<void> _handleResend() async {
     if (_secondsRemaining > 0 || _isResendExhausted) return;
 
     final lang = ref.read(languageProvider);
     final isSw = lang == 'sw';
-    final authNotifier = ref.read(authControllerProvider.notifier);
 
     setState(() {
       _errorMessage = null;
     });
 
-    bool ok = await authNotifier.resendOtp(_effectivePhone, force: true);
+    if (widget.onResend == null) {
+      setState(() => _errorMessage = _unavailableMessage(isSw));
+      return;
+    }
+    final ok = await widget.onResend!(_effectivePhone);
 
     if (mounted) {
       if (ok) {

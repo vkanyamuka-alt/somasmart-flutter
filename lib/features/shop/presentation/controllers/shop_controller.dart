@@ -67,14 +67,42 @@ class PaymentState {
   }
 }
 
+/// Maps a `payment_status` from `fimipay-check-status` to a final step, or null while still pending.
+/// Only the payment's own status counts: `is_active` can be true because of the free trial.
+PaymentStep? paymentStepForStatus(String paymentStatus) {
+  switch (paymentStatus.toUpperCase()) {
+    case 'SUCCESS':
+    case 'COMPLETED':
+    case 'PAID':
+      return PaymentStep.success;
+    case 'CANCELLED':
+    case 'USERCANCELLED':
+      return PaymentStep.cancelled;
+    case 'REJECTED':
+      return PaymentStep.rejected;
+    case 'FAILED':
+    case 'NOT_FOUND':
+      return PaymentStep.failed;
+    default:
+      return null;
+  }
+}
+
 /// Controller managing payment initiation, FimiPay push reconciliation, and simulated fallback.
 class PaymentController extends StateNotifier<PaymentState> {
   final ShopRepository _repository;
   final Ref _ref;
+  final Duration pollInterval;
+  final int pollWindowSeconds;
   Timer? _pollTimer;
   Timer? _countdownTimer;
 
-  PaymentController(this._repository, this._ref) : super(const PaymentState());
+  PaymentController(
+    this._repository,
+    this._ref, {
+    this.pollInterval = const Duration(seconds: 4),
+    this.pollWindowSeconds = 120,
+  }) : super(const PaymentState());
 
   @override
   void dispose() {
@@ -163,7 +191,9 @@ class PaymentController extends StateNotifier<PaymentState> {
         operator: state.operator.code,
       );
 
-      if (!result.success) {
+      // A prompt sent within the last 2 minutes is still open: keep waiting on that order
+      // instead of sending a second prompt.
+      if ((!result.success && !result.isInProgress) || result.orderId.isEmpty) {
         state = state.copyWith(
           step: PaymentStep.failed,
           errorMessage: result.errorMessage ?? 'Imeshindikana kuanzisha malipo ya FimiPay.',
@@ -171,25 +201,15 @@ class PaymentController extends StateNotifier<PaymentState> {
         return;
       }
 
-      // If order was already fulfilled immediately (e.g. instant simulation)
-      if (result.status == 'SUCCESS' || result.status == 'PAID' || result.status == 'COMPLETED') {
-        await _ref.read(userProfileProvider.notifier).refreshProfile();
-        state = state.copyWith(
-          step: PaymentStep.success,
-          orderId: result.orderId,
-          paymentReference: result.paymentReference,
-          errorMessage: null,
-        );
-        return;
-      }
-
-      // Transition to waiting for USSD prompt on student's phone
+      // Never trust create_order's own status: FimiPay (test mode) can answer SUCCESS
+      // before the subscription is activated. fimipay-check-status confirms and, if the
+      // webhook is late, activates — so always wait for it.
       state = state.copyWith(
         step: PaymentStep.waitingPrompt,
         orderId: result.orderId,
         paymentReference: result.paymentReference,
-        pollSecondsRemaining: 120,
-        errorMessage: null,
+        pollSecondsRemaining: pollWindowSeconds,
+        errorMessage: result.isInProgress ? result.errorMessage : null,
       );
 
       _startStatusPolling(result.orderId);
@@ -201,101 +221,94 @@ class PaymentController extends StateNotifier<PaymentState> {
     }
   }
 
-  /// Safe, limited interval polling for FimiPay order status (Primary: Webhook, Secondary: Reconcile)
+  /// Polls `fimipay-check-status` (backup to the webhook) until the order settles or the window ends.
   void _startStatusPolling(String orderId) {
     _stopPolling();
+    var inFlight = false;
 
-    // 1. Countdown timer
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (state.pollSecondsRemaining <= 1) {
-        timer.cancel();
-        if (state.step == PaymentStep.waitingPrompt || state.step == PaymentStep.verifying) {
-          // Robust final check before declaring timeout failure
-          _repository.checkFimipayPaymentStatus(orderId: orderId).then((finalRes) async {
-            if (!mounted) return;
-            if (finalRes.isActive ||
-                finalRes.paymentStatus == 'SUCCESS' ||
-                finalRes.paymentStatus == 'PAID' ||
-                finalRes.paymentStatus == 'COMPLETED') {
-              _stopPolling();
-              await _ref.read(userProfileProvider.notifier).refreshProfile();
-              if (mounted) {
-                state = state.copyWith(
-                  step: PaymentStep.success,
-                  errorMessage: null,
-                );
-              }
-            } else {
-              _stopPolling();
-              if (mounted) {
-                state = state.copyWith(
-                  step: PaymentStep.failed,
-                  errorMessage: 'Muda wa kusubiri malipo umekwisha. Kama umekamilisha malipo kwenye simu, usajili wako utawashwa punde kupitia ujumbe wa mtandao.',
-                );
-              }
-            }
-          }).catchError((_) {
-            _stopPolling();
-            if (mounted) {
-              state = state.copyWith(
-                step: PaymentStep.failed,
-                errorMessage: 'Muda wa kusubiri malipo umekwisha. Kama umekamilisha malipo kwenye simu, usajili wako utawashwa punde kupitia ujumbe wa mtandao.',
-              );
-            }
-          });
+    // Returns true once the order has settled and the state has moved on.
+    Future<bool> checkOnce() async {
+      if (inFlight) return false;
+      inFlight = true;
+      try {
+        final statusRes = await _repository.checkFimipayPaymentStatus(orderId: orderId);
+        if (!mounted || state.step != PaymentStep.waitingPrompt || state.orderId != orderId) {
+          return true;
         }
-      } else {
-        state = state.copyWith(pollSecondsRemaining: state.pollSecondsRemaining - 1);
+        final next = paymentStepForStatus(statusRes.paymentStatus);
+        if (next == null) return false;
+        await _settle(next);
+        return true;
+      } catch (_) {
+        return false; // Keep waiting on transient network hiccups
+      } finally {
+        inFlight = false;
       }
-    });
+    }
 
-    // 2. Status reconciliation poll every 4 seconds (max 30 attempts in 120s)
-    _pollTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
+    // 1. Countdown, with one last check before declaring a timeout
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (!mounted || state.step != PaymentStep.waitingPrompt) {
         timer.cancel();
         return;
       }
-
-      try {
-        final statusRes = await _repository.checkFimipayPaymentStatus(orderId: orderId);
-
-        if (statusRes.isActive ||
-            statusRes.paymentStatus == 'SUCCESS' ||
-            statusRes.paymentStatus == 'PAID' ||
-            statusRes.paymentStatus == 'COMPLETED') {
-          _stopPolling();
-          await _ref.read(userProfileProvider.notifier).refreshProfile();
-          if (mounted) {
-            state = state.copyWith(
-              step: PaymentStep.success,
-              errorMessage: null,
-            );
-          }
-        } else if (statusRes.paymentStatus == 'CANCELLED' || statusRes.paymentStatus == 'USERCANCELLED') {
-          _stopPolling();
-          if (mounted) {
-            state = state.copyWith(
-              step: PaymentStep.cancelled,
-              errorMessage: 'Malipo yameghairiwa na mtumiaji.',
-            );
-          }
-        } else if (statusRes.paymentStatus == 'REJECTED') {
-          _stopPolling();
-          if (mounted) {
-            state = state.copyWith(
-              step: PaymentStep.rejected,
-              errorMessage: 'Malipo yamekataliwa. Tafadhali hakiki salio au namba kisha jaribu tena.',
-            );
-          }
-        }
-      } catch (_) {
-        // Continue waiting on transient network hiccups
+      if (state.pollSecondsRemaining > 1) {
+        state = state.copyWith(
+          pollSecondsRemaining: state.pollSecondsRemaining - 1,
+          errorMessage: state.errorMessage,
+        );
+        return;
+      }
+      _stopPolling();
+      inFlight = false;
+      if (await checkOnce()) return;
+      if (mounted && state.step == PaymentStep.waitingPrompt && state.orderId == orderId) {
+        state = state.copyWith(
+          step: PaymentStep.failed,
+          errorMessage: 'Bado hatujapokea uthibitisho. Kama umelipa, usajili wako utawashwa punde. Angalia "Malipo Yangu" kwenye Akaunti.',
+        );
       }
     });
+
+    // 2. Status reconciliation poll
+    _pollTimer = Timer.periodic(pollInterval, (timer) async {
+      if (!mounted || state.step != PaymentStep.waitingPrompt) {
+        timer.cancel();
+        return;
+      }
+      await checkOnce();
+    });
+  }
+
+  Future<void> _settle(PaymentStep next) async {
+    _stopPolling();
+    if (next == PaymentStep.success) {
+      await _ref.read(userProfileProvider.notifier).refreshProfile();
+    }
+    if (!mounted) return;
+    state = state.copyWith(
+      step: next,
+      errorMessage: switch (next) {
+        PaymentStep.cancelled => 'Malipo yameghairiwa. Kama salio halitoshi, ongeza salio au tumia namba nyingine.',
+        PaymentStep.rejected => 'Malipo yamekataliwa. Tafadhali hakiki salio au namba kisha jaribu tena.',
+        PaymentStep.failed => 'Malipo hayakukamilika. Tafadhali jaribu tena.',
+        _ => null,
+      },
+    );
+  }
+
+  /// "Cancel / Try another number" while waiting: stop waiting and go back to the form.
+  /// FimiPay can report a cancellation (e.g. insufficient balance) minutes after the phone shows it.
+  /// The order itself stays open server-side; if it is approved later the webhook still activates it.
+  void cancelWaiting() {
+    _stopPolling();
+    state = state.copyWith(
+      step: PaymentStep.idle,
+      orderId: '',
+      paymentReference: '',
+      pollSecondsRemaining: pollWindowSeconds,
+      errorMessage: null,
+    );
   }
 
   /// Simulates PIN entry submission and verifies with Edge Function webhook (Simulated mode).

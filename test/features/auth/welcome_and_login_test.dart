@@ -165,6 +165,9 @@ void main() {
       expect(find.text('Remember me'), findsOneWidget);
       expect(find.text('Forgot password?'), findsOneWidget);
       expect(find.text('Sign In'), findsOneWidget);
+
+      // Guest access was removed: every app route needs a session.
+      expect(find.text('Continue as Guest'), findsNothing);
     });
 
     testWidgets('validates invalid phone number format', (tester) async {
@@ -240,7 +243,7 @@ void main() {
   });
 
   group('ForgotPasswordScreen Widget Tests', () {
-    testWidgets('renders reset password tabs, phone OTP input, and contact support card',
+    testWidgets('renders reset password tabs, phone input, and contact support card',
         (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -256,8 +259,30 @@ void main() {
       expect(find.text('Umesahau Nenosiri?'), findsOneWidget);
       expect(find.text('Simu (SMS)'), findsOneWidget);
       expect(find.text('Barua Pepe'), findsOneWidget);
-      expect(find.text('Tuma Nambari ya OTP'), findsOneWidget);
+      expect(find.text('Endelea'), findsOneWidget);
+      expect(find.text('Tuma Nambari ya OTP'), findsNothing);
       expect(find.text('Wasiliana na Msaada'), findsOneWidget);
+    });
+
+    testWidgets('phone reset sends no OTP and points to support instead', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: const MaterialApp(
+            home: ForgotPasswordScreen(),
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextFormField).first, '0712345678');
+      await tester.ensureVisible(find.text('Endelea'));
+      await tester.tap(find.text('Endelea'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Kuweka upya nenosiri kwa SMS hakupatikani bado'), findsOneWidget);
+      expect(find.text('Nambari ya OTP ya SMS'), findsNothing);
     });
   });
 }

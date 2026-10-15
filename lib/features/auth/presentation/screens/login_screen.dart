@@ -15,7 +15,7 @@ import '../controllers/auth_controller.dart';
 /// 4. Phone Number and Password fields with visibility toggle
 /// 5. Remember Me and Forgot Password options
 /// 6. Primary "Sign In" button with loading state
-/// 7. Sign Up link and Guest browsing option
+/// 7. Sign Up link
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -59,22 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (mounted) {
       if (result.isSuccess) {
-        if (result.isUnverified) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                lang == 'sw'
-                    ? 'Akaunti yako haijahakikiwa bado. Tafadhali weka OTP uliyotumiwa.'
-                    : 'Your account is unverified. Please enter the OTP sent to your phone.',
-              ),
-              backgroundColor: AppColors.warning,
-            ),
-          );
-          final targetPhone = result.phone ?? normalizedPhone;
-          context.push('/verify-otp?phone=${Uri.encodeComponent(targetPhone)}');
-        } else {
-          context.go('/home');
-        }
+        context.go('/home');
       } else {
         final authState = ref.read(authControllerProvider);
         final error = authState.error;
@@ -551,25 +536,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                     ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ==========================================
-                  // 8. GUEST / EXPLORE OPTION
-                  // ==========================================
-                  TextButton(
-                    onPressed: () => context.go('/home'),
-                    child: Text(
-                      isSw ? 'Endelea kama Mgeni' : 'Continue as Guest',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
-                      ),
-                    ),
                   ),
                 ],
               ),

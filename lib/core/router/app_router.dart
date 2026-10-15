@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/supabase_service.dart';
 import '../../features/account/presentation/screens/account_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/notes/presentation/screens/note_viewer_screen.dart';
@@ -38,16 +41,62 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../theme/app_theme.dart';
-import '../../features/auth/presentation/screens/verify_otp_screen.dart';
 import '../../features/auth/presentation/screens/contact_support_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
+/// Routes reachable without signing in. Every other route requires a Supabase session.
+const publicRoutes = {
+  '/splash',
+  '/welcome',
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/contact-support',
+};
+
+/// go_router redirect: signed-out users are sent to /login from any non-public route.
+String? authRedirect({required String location, required bool isSignedIn}) {
+  if (isSignedIn || publicRoutes.contains(location)) return null;
+  return '/login';
+}
+
+/// Re-runs the redirect whenever Supabase signs in, signs out or drops the session.
+class _AuthChangeNotifier extends ChangeNotifier {
+  late final StreamSubscription<AuthState> _subscription;
+
+  _AuthChangeNotifier(Stream<AuthState> stream) {
+    _subscription = stream.listen((_) => notifyListeners());
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
+  // main() initialises Supabase before runApp. If it is not available (e.g. widget tests),
+  // fail closed: treat the user as signed out, like the splash screen does.
+  GoTrueClient? auth;
+  try {
+    auth = ref.watch(supabaseClientProvider).auth;
+  } catch (_) {
+    auth = null;
+  }
+  final authChanges = _AuthChangeNotifier(auth?.onAuthStateChange ?? const Stream.empty());
+  ref.onDispose(authChanges.dispose);
+
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     debugLogDiagnostics: true,
+    refreshListenable: authChanges,
+    redirect: (context, state) => authRedirect(
+      location: state.matchedLocation,
+      isSignedIn: auth?.currentSession != null,
+    ),
     routes: [
       GoRoute(
         path: '/splash',
@@ -103,27 +152,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             child: const ForgotPasswordScreen(),
           ),
         ),
-      ),
-      GoRoute(
-        path: '/verify-otp',
-        name: 'verify-otp',
-        parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) {
-          final phone = state.uri.queryParameters['phone'];
-          final flowStr = state.uri.queryParameters['flow'];
-          final flow = flowStr == 'passwordReset'
-              ? OtpFlow.passwordReset
-              : OtpFlow.verification;
-          return MaterialPage(
-            child: Theme(
-              data: AppTheme.lightTheme,
-              child: VerifyOtpScreen(
-                phone: phone,
-                flow: flow,
-              ),
-            ),
-          );
-        },
       ),
       GoRoute(
         path: '/contact-support',
