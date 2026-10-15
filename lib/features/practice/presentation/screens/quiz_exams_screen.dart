@@ -1,0 +1,645 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/card_surface.dart';
+import '../../../../core/widgets/status_badge.dart';
+import '../../../account/presentation/controllers/account_controller.dart';
+import '../../../settings/presentation/controllers/settings_controller.dart';
+import '../../domain/models/quiz_models.dart';
+import '../controllers/quiz_controllers.dart';
+
+/// Screen representing the Quiz & Exams Discovery Hub.
+/// Faithfully mirrors React `QuizExams.jsx` functionality, tabs, filters, and access rules.
+class QuizExamsScreen extends ConsumerStatefulWidget {
+  final String? initialTab;
+
+  const QuizExamsScreen({super.key, this.initialTab});
+
+  @override
+  ConsumerState<QuizExamsScreen> createState() => _QuizExamsScreenState();
+}
+
+class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialTab != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(quizTabFilterProvider.notifier).state = widget.initialTab!;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _hasAccess(UserProfile? profile) {
+    if (profile == null) return false;
+    return profile.isPremium || profile.isTrialActive;
+  }
+
+  void _handleStartQuiz(BuildContext context, QuizModel quiz, bool hasAccess, String lang) {
+    if (!hasAccess) {
+      _showPremiumModal(context, lang);
+      return;
+    }
+    context.push('/quiz/${quiz.id}');
+  }
+
+  void _showPremiumModal(BuildContext context, String lang) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkBgSurface : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 5,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.black12,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_rounded,
+                color: AppColors.primary,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              lang == 'sw'
+                  ? 'Majaribio Yanahitaji Usajili (Premium)'
+                  : 'Subscription Required for Quizzes',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              lang == 'sw'
+                  ? 'Fanya mazoezi ya mitihani na majaribio yote kwa kulipia TSh 2,500 tu kwa mwezi.'
+                  : 'Practice exams and quizzes require an active SomaSmart Premium subscription (TSh 2,500/month).',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                    height: 1.4,
+                  ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.push('/subscription');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  lang == 'sw'
+                      ? 'Lipia Usajili Sasa (TSh 2,500)'
+                      : 'Activate Subscription (TSh 2,500)',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                lang == 'sw' ? 'Baadaye' : 'Maybe Later',
+                style: TextStyle(
+                  color: isDark
+                      ? AppColors.darkTextMuted
+                      : AppColors.lightTextMuted,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = ref.watch(languageProvider);
+    final activeTab = ref.watch(quizTabFilterProvider);
+    final selectedForm = ref.watch(quizFormFilterProvider);
+    final quizzesAsync = ref.watch(quizListProvider);
+    final userProfileAsync = ref.watch(userProfileProvider);
+    final hasAccess = _hasAccess(userProfileAsync.value);
+
+    final tabs = [
+      {'key': 'topic', 'label_sw': 'Mada (Topic)', 'label_en': 'Topic Quizzes', 'icon': Icons.menu_book_rounded},
+      {'key': 'exam', 'label_sw': 'Mitihani (Exams)', 'label_en': 'Subject Exams', 'icon': Icons.description_outlined},
+      {'key': 'practice', 'label_sw': 'Mazoezi (Practice)', 'label_en': 'Practice Tests', 'icon': Icons.check_circle_outline_rounded},
+      {'key': 'timed', 'label_sw': 'Muda (Timed)', 'label_en': 'Timed Drills', 'icon': Icons.timer_outlined},
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          lang == 'sw' ? 'Majaribio & Mitihani' : 'Quiz & Exams',
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.pop(),
+        ),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(quizListProvider);
+        },
+        child: CustomScrollView(
+          slivers: [
+            // Header Info & Subtitle
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lang == 'sw'
+                          ? 'Pima uelewa wako, fanya mazoezi na kujiandaa na mitihani yako ya kitaifa ya NECTA.'
+                          : 'Test your understanding, practice and prepare for your national NECTA examinations.',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Search input
+                    TextField(
+                      controller: _searchController,
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val.trim().toLowerCase();
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: lang == 'sw'
+                            ? 'Tafuta jaribio au mada...'
+                            : 'Search quiz or topic...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // 4 Category Tabs
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: tabs.map((tab) {
+                          final isSelected = activeTab == tab['key'];
+                          final label = lang == 'sw'
+                              ? tab['label_sw'] as String
+                              : tab['label_en'] as String;
+                          final icon = tab['icon'] as IconData;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    icon,
+                                    size: 16,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : (isDark
+                                            ? AppColors.darkTextSecondary
+                                            : AppColors.lightTextSecondary),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(label),
+                                ],
+                              ),
+                              selected: isSelected,
+                              selectedColor: AppColors.primary,
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.lightTextPrimary),
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                              onSelected: (_) {
+                                ref.read(quizTabFilterProvider.notifier).state =
+                                    tab['key'] as String;
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Form Level Filter Chips (All, Form 1..6)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: FilterChip(
+                              label: Text(lang == 'sw' ? 'Madarasa Yote' : 'All Forms'),
+                              selected: selectedForm == null,
+                              onSelected: (_) {
+                                ref.read(quizFormFilterProvider.notifier).state = null;
+                              },
+                            ),
+                          ),
+                          ...List.generate(6, (idx) {
+                            final form = idx + 1;
+                            final isSel = selectedForm == form;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: FilterChip(
+                                label: Text('Form $form'),
+                                selected: isSel,
+                                onSelected: (_) {
+                                  ref.read(quizFormFilterProvider.notifier).state =
+                                      isSel ? null : form;
+                                },
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Quizzes List
+            quizzesAsync.when(
+              data: (allQuizzes) {
+                // Apply Tab categorization logic matching React getQuizzesByType
+                List<QuizModel> tabQuizzes;
+                if (activeTab == 'topic') {
+                  tabQuizzes = allQuizzes
+                      .asMap()
+                      .entries
+                      .where((e) => e.key % 4 == 0 || e.key % 4 == 1)
+                      .map((e) => e.value)
+                      .toList();
+                } else if (activeTab == 'exam') {
+                  tabQuizzes = allQuizzes
+                      .asMap()
+                      .entries
+                      .where((e) => e.key % 4 == 2)
+                      .map((e) => e.value)
+                      .toList();
+                } else if (activeTab == 'practice') {
+                  tabQuizzes = allQuizzes
+                      .asMap()
+                      .entries
+                      .where((e) => e.key % 4 == 3 && e.key != 3)
+                      .map((e) => e.value)
+                      .toList();
+                } else {
+                  // timed tab
+                  tabQuizzes = allQuizzes
+                      .asMap()
+                      .entries
+                      .where((e) => e.key == 3)
+                      .map((e) => e.value)
+                      .toList();
+                }
+
+                // If tab filter results in empty list but allQuizzes has items, show allQuizzes
+                if (tabQuizzes.isEmpty && allQuizzes.isNotEmpty) {
+                  tabQuizzes = allQuizzes;
+                }
+
+                // Apply text search
+                if (_searchQuery.isNotEmpty) {
+                  tabQuizzes = tabQuizzes.where((q) {
+                    final title = q.title.toLowerCase();
+                    final subSw = (q.subjectNameSw ?? '').toLowerCase();
+                    final subEn = (q.subjectNameEn ?? '').toLowerCase();
+                    return title.contains(_searchQuery) ||
+                        subSw.contains(_searchQuery) ||
+                        subEn.contains(_searchQuery);
+                  }).toList();
+                }
+
+                if (tabQuizzes.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 48,
+                      ),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.quiz_outlined,
+                              size: 48,
+                              color: isDark
+                                  ? AppColors.darkTextMuted
+                                  : AppColors.lightTextMuted,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              lang == 'sw'
+                                  ? 'Hakuna majaribio yaliyopatikana'
+                                  : 'No quizzes found',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              lang == 'sw'
+                                  ? 'Walimu wetu wanaongeza majaribio mapya ya mada hii hivi karibuni.'
+                                  : 'Our teachers are adding new assessments for this topic soon.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final quiz = tabQuizzes[index];
+                        return _buildQuizCard(
+                          context,
+                          quiz: quiz,
+                          hasAccess: hasAccess,
+                          lang: lang,
+                          isDark: isDark,
+                        );
+                      },
+                      childCount: tabQuizzes.length,
+                    ),
+                  ),
+                );
+              },
+              loading: () => const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (err, _) => SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: AppColors.danger,
+                          size: 40,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          lang == 'sw'
+                              ? 'Hitilafu katika kupakia majaribio'
+                              : 'Failed to load quizzes',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: () => ref.invalidate(quizListProvider),
+                          child: Text(lang == 'sw' ? 'Jaribu Tena' : 'Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 60),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuizCard(
+    BuildContext context, {
+    required QuizModel quiz,
+    required bool hasAccess,
+    required String lang,
+    required bool isDark,
+  }) {
+    Color diffColor = AppColors.success;
+    if (quiz.difficulty == 'medium') {
+      diffColor = AppColors.warning;
+    } else if (quiz.difficulty == 'hard') {
+      diffColor = AppColors.danger;
+    }
+
+    return CardSurface(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: Difficulty badge & Duration
+          Row(
+            children: [
+              StatusBadge(
+                label: quiz.difficulty.toUpperCase(),
+                color: diffColor,
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Form ${quiz.formLevel}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 14,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.lightTextMuted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${quiz.timeLimitMinutes} mins',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Title
+          Text(
+            quiz.title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 6),
+
+          // Subject Name
+          if (quiz.subjectNameSw != null || quiz.subjectNameEn != null)
+            Text(
+              quiz.getSubjectDisplayName(lang),
+              style: TextStyle(
+                fontSize: 12.5,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
+              ),
+            ),
+          const SizedBox(height: 14),
+
+          // Bottom Action Row: Total Questions + Start Test Button
+          Row(
+            children: [
+              Text(
+                '${quiz.totalQuestions > 0 ? quiz.totalQuestions : 5} ${lang == 'sw' ? 'Maswali' : 'Questions'}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
+                ),
+              ),
+              const Spacer(),
+              ElevatedButton.icon(
+                onPressed: () => _handleStartQuiz(context, quiz, hasAccess, lang),
+                icon: Text(
+                  lang == 'sw' ? 'Anza Jaribio' : 'Start Test',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+                label: Icon(
+                  hasAccess ? Icons.arrow_forward_rounded : Icons.lock_rounded,
+                  size: 14,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
