@@ -22,6 +22,8 @@ import 'package:somasmart_flutter/features/account/presentation/controllers/acco
 import 'package:somasmart_flutter/features/home/presentation/screens/home_screen.dart';
 import 'package:somasmart_flutter/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:somasmart_flutter/features/settings/presentation/screens/settings_screen.dart';
+import 'package:somasmart_flutter/features/subjects/presentation/controllers/subjects_controller.dart';
+import 'package:somasmart_flutter/features/subjects/presentation/screens/level_screen.dart';
 
 const _captureDir = String.fromEnvironment('CAPTURE_DIR');
 
@@ -77,7 +79,7 @@ void main() {
     await _loadFonts();
   });
 
-  Future<void> capture(WidgetTester tester, String name, Widget screen, {required bool dark, required Size size, String lang = 'en'}) async {
+  Future<void> capture(WidgetTester tester, String name, Widget screen, {required bool dark, required Size size, String lang = 'en', String? tap}) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     tester.view.physicalSize = size * 2;
@@ -93,6 +95,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           languageProvider.overrideWith((ref) => _Lang(lang)),
           userProfileProvider.overrideWith(() => _Profile(student)),
+          lessonCountsProvider.overrideWith((ref) async => {'mathematics|1': 1, 'physics|1': 1, 'chemistry|1': 2, 'biology|1': 5}),
         ],
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
@@ -109,6 +112,10 @@ void main() {
       await precacheImage(const AssetImage('assets/images/hero-student-v2.png'), ctx);
     });
     await tester.pumpAndSettle();
+    if (tap != null) {
+      await tester.tap(find.text(tap));
+      await tester.pumpAndSettle();
+    }
     while (tester.takeException() != null) {}
 
     final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
@@ -128,6 +135,11 @@ void main() {
     testWidgets('home $mode', (t) => capture(t, 'flutter-home-$mode', const HomeScreen(), dark: dark, size: phone));
     testWidgets('settings $mode', (t) => capture(t, 'flutter-settings-$mode', const SettingsScreen(), dark: dark, size: const Size(390, 1500)));
   }
+  for (final dark in [false, true]) {
+    final mode = dark ? 'dark' : 'light';
+    testWidgets('o-level $mode', (t) => capture(t, 'flutter-olevel-$mode', const LevelScreen(level: 'o-level'), dark: dark, size: const Size(390, 1100), lang: 'sw', tap: 'Kidato cha 1'));
+  }
+  testWidgets('a-level tablet', (t) => capture(t, 'flutter-alevel-tablet', const LevelScreen(level: 'a-level'), dark: false, size: const Size(820, 900), lang: 'sw', tap: 'Sayansi'));
   testWidgets('home sw small phone', (t) => capture(t, 'flutter-home-sw-320', const HomeScreen(), dark: false, size: const Size(320, 1300), lang: 'sw'));
 }
 

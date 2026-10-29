@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
-import '../../../subjects/presentation/controllers/subjects_controller.dart';
 import '../widgets/plant_cell_tablet_widget.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -31,8 +30,7 @@ class HomeScreen extends ConsumerWidget {
         title: 'O-level',
         icon: Icons.school_rounded,
         onTap: () {
-          ref.read(selectedFormLevelProvider.notifier).state = 4;
-          context.push('/subjects');
+          context.push('/subjects?level=o-level');
         },
       ),
       _QuickCardData(
@@ -40,8 +38,7 @@ class HomeScreen extends ConsumerWidget {
         title: 'A-level',
         icon: Icons.menu_book_rounded,
         onTap: () {
-          ref.read(selectedFormLevelProvider.notifier).state = 5;
-          context.push('/subjects');
+          context.push('/subjects?level=a-level');
         },
       ),
       _QuickCardData(

@@ -28,7 +28,9 @@ void main() {
 
     // 2. Subscription expiring today
     test('2. Subscription expiring today returns 0 days remaining and is not negative', () {
-      final expiringToday = DateTime.now().toUtc().add(const Duration(hours: 2));
+      // Last moment of today (UTC). "Now + 2 hours" was tomorrow after 22:00 UTC.
+      final now = DateTime.now().toUtc();
+      final expiringToday = DateTime.utc(now.year, now.month, now.day, 23, 59, 59, 999);
       final paidToday = UserProfile(
         id: 'user_expiring_today',
         email: 'today@somasmart.ac.tz',

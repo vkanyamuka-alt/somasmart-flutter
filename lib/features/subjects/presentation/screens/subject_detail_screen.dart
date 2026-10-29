@@ -74,7 +74,7 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
             child: PopupMenuButton<int>(
               initialValue: selectedForm,
               onSelected: (val) {
-                ref.read(selectedFormLevelProvider.notifier).state = val;
+                ref.read(pickedFormLevelProvider.notifier).state = val;
               },
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

@@ -14,7 +14,7 @@ import '../../features/shop/presentation/screens/payment_screen.dart';
 import '../../features/shop/presentation/screens/shop_screen.dart';
 import '../../features/shop/presentation/screens/subscription_screen.dart';
 import '../../features/subjects/presentation/screens/subject_detail_screen.dart';
-import '../../features/subjects/presentation/screens/subjects_screen.dart';
+import '../../features/subjects/presentation/screens/level_screen.dart';
 import '../../features/forum/presentation/screens/discussion_detail_screen.dart';
 import '../../features/forum/presentation/screens/forum_screen.dart';
 import '../../features/practice/presentation/screens/quiz_exams_screen.dart';
@@ -258,7 +258,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/subjects',
         name: 'subjects',
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const SubjectsScreen(),
+        builder: (context, state) =>
+            LevelScreen(level: state.uri.queryParameters['level'] ?? 'o-level'),
       ),
       GoRoute(
         path: '/subjects/:id',

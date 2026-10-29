@@ -125,10 +125,16 @@ const List<SubjectModel> initialSubjects = [
   ),
 ];
 
-/// Currently selected Form Level (1 to 6).
-final selectedFormLevelProvider = StateProvider<int>((ref) {
-  final userProfile = ref.watch(userProfileProvider).value;
-  return userProfile?.formLevel ?? 4;
+/// The form the student picked (level screen or subject page), if any.
+final pickedFormLevelProvider = StateProvider<int?>((ref) => null);
+
+/// Form (1 to 6) whose content is shown: the student's pick, otherwise their
+/// own form. (It used to be one value recomputed from the profile, so a
+/// profile reload threw the pick away mid-way through a subject.)
+final selectedFormLevelProvider = Provider<int>((ref) {
+  final picked = ref.watch(pickedFormLevelProvider);
+  if (picked != null) return picked;
+  return ref.watch(userProfileProvider).value?.formLevel ?? 4;
 });
 
 /// Subject search query.
@@ -257,3 +263,31 @@ final subjectDetailProvider =
     hasAccess: hasAccess,
   );
 });
+
+/// Notes and lessons published per subject and form, keyed
+/// `'<subject key>|<form>'` (subject key from [subjectMap]). The level screen
+/// shows these counts on its form and subject cards, as the web does.
+final lessonCountsProvider = FutureProvider<Map<String, int>>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+  final counts = <String, int>{};
+  void add(List<dynamic> rows) {
+    for (final row in rows) {
+      final key = subjectMap[row['subject_id']?.toString()];
+      final form = row['form_level'];
+      if (key == null || form is! int) continue;
+      counts['$key|$form'] = (counts['$key|$form'] ?? 0) + 1;
+    }
+  }
+
+  try {
+    add(await client.from('notes').select('subject_id, form_level').eq('status', 'approved'));
+  } catch (_) {}
+  try {
+    add(await client.from('learning_materials').select('subject_id, form_level').eq('status', 'published'));
+  } catch (_) {}
+  return counts;
+});
+
+/// Lessons for one subject (any id: route id or database id) and form.
+int lessonCountFor(Map<String, int> counts, String subjectId, int form) =>
+    counts['${subjectMap[subjectId]}|$form'] ?? 0;
