@@ -23,6 +23,9 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
     final savedMode = _prefs.getString(AppConstants.keyThemeMode);
     if (savedMode == 'light') {
       state = ThemeMode.light;
+    } else if (savedMode == 'system') {
+      // Follows the device, like the web's "System" option.
+      state = ThemeMode.system;
     } else if (savedMode == 'dark') {
       state = ThemeMode.dark;
     } else {
@@ -42,9 +45,6 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
   Future<void> setTheme(ThemeMode mode) async {
     state = mode;
-    await _prefs.setString(
-      AppConstants.keyThemeMode,
-      mode == ThemeMode.light ? 'light' : 'dark',
-    );
+    await _prefs.setString(AppConstants.keyThemeMode, mode.name);
   }
 }

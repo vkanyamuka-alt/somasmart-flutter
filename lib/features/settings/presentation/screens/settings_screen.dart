@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../../../core/widgets/section_widgets.dart';
+import '../../../account/presentation/controllers/account_controller.dart';
 import '../controllers/settings_controller.dart';
 
-/// Settings Screen (Tab 5)
-/// Fully aligned with SomaSmart React `Settings.jsx` information architecture & visual direction.
+/// Settings, grouped the same way as the web Settings page:
+/// Account, Appearance, Notifications, Support, Legal, Sign out and
+/// Request account deletion. Only settings that work are shown.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -14,653 +18,426 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _privacyExpanded = false;
-  bool _termsExpanded = false;
-  bool _showDeleteConfirm = false;
+  // One expandable row open at a time: about, privacy, terms or delete.
+  String? _open;
+
+  void _toggle(String id) => setState(() => _open = _open == id ? null : id);
+
+  Future<void> _confirmSignOut(bool isSw) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isSw ? 'Toka kwenye akaunti?' : 'Sign out?'),
+        content: Text(isSw ? 'Utahitaji kuingia tena ili kuendelea kusoma.' : 'You will need to log in again to keep studying.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(isSw ? 'Ghairi' : 'Cancel')),
+          FilledButton(
+            key: const Key('settings-confirm-sign-out'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(isSw ? 'Toka' : 'Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (yes != true) return;
+    await ref.read(userProfileProvider.notifier).signOut();
+    if (mounted) context.go('/welcome');
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final themeMode = ref.watch(themeModeProvider);
     final notificationsEnabled = ref.watch(notificationsEnabledProvider);
-    final currentLang = ref.watch(languageProvider);
+    final lang = ref.watch(languageProvider);
+    final isSw = lang == 'sw';
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+    String t(String en, String sw) => isSw ? sw : en;
+
+    final name = (profile?.fullName.trim().isNotEmpty ?? false) && profile!.fullName != 'User'
+        ? profile.fullName
+        : t('Student', 'Mwanafunzi');
+    final initials = name.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).map((w) => w[0]).take(2).join().toUpperCase();
+    final bodyStyle = TextStyle(
+      fontSize: 14,
+      height: 1.6,
+      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+    );
 
     return Scaffold(
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: 100,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.l, AppSpacing.gutter, AppSpacing.bottomNavClearance),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.settings_rounded,
-                    color: AppColors.primary,
-                    size: 22,
+                Semantics(
+                  header: true,
+                  child: Text(
+                    t('Settings', 'Mipangilio'),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.3),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      currentLang == 'sw' ? 'Mipangilio' : 'Settings',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    Text(
-                      currentLang == 'sw'
-                          ? 'Mapendeleo, Usiri na Udhibiti wa Akaunti'
-                          : 'Preferences, Privacy & App Controls',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
+                const SizedBox(height: AppSpacing.l + 4),
 
-            // Card 1: Theme / Muonekano
-            _SettingsCard(
-              title: currentLang == 'sw' ? 'Muonekano' : 'Appearance / Theme',
-              icon: Icons.palette_outlined,
-              description: currentLang == 'sw'
-                  ? 'Badilisha muonekano wa programu kulingana na mwangaza unaoupenda.'
-                  : 'Customize the visual theme between light and dark modes.',
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _ChoiceButton(
-                      label: 'Light Mode',
-                      icon: Icons.light_mode_rounded,
-                      isSelected: themeMode == ThemeMode.light ||
-                          (themeMode == ThemeMode.system && !isDark),
-                      onTap: () {
-                        ref.read(themeModeProvider.notifier).setTheme(ThemeMode.light);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _ChoiceButton(
-                      label: 'Dark Mode',
-                      icon: Icons.dark_mode_rounded,
-                      isSelected: themeMode == ThemeMode.dark ||
-                          (themeMode == ThemeMode.system && isDark),
-                      onTap: () {
-                        ref.read(themeModeProvider.notifier).setTheme(ThemeMode.dark);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Card 2: App Notifications / Taarifa za App
-            _SettingsCard(
-              title: currentLang == 'sw' ? 'Taarifa za App' : 'App Notifications',
-              icon: Icons.notifications_none_rounded,
-              trailing: Switch.adaptive(
-                value: notificationsEnabled,
-                activeTrackColor: AppColors.primary,
-                activeThumbColor: Colors.white,
-                onChanged: (val) {
-                  ref.read(notificationsEnabledProvider.notifier).setEnabled(val);
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        val
-                            ? (currentLang == 'sw'
-                                ? 'Arifa zimeamilishwa!'
-                                : 'Notifications enabled!')
-                            : (currentLang == 'sw'
-                                ? 'Arifa zimezimwa.'
-                                : 'Notifications disabled.'),
-                      ),
-                      duration: const Duration(seconds: 2),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: isDark
-                          ? AppColors.darkBgSurface
-                          : AppColors.lightBgSurface,
-                    ),
-                  );
-                },
-              ),
-              description: currentLang == 'sw'
-                  ? 'Washa au zima arifa za masomo mapya, ratiba za masomo na quizzes mpya kwenye simu yako.'
-                  : 'Enable or disable push alerts for new syllabus summaries, quiz additions, and study planners.',
-            ),
-            const SizedBox(height: 14),
-
-            // Card 3: Language Settings / Mipangilio ya Lugha
-            _SettingsCard(
-              title: currentLang == 'sw' ? 'Mipangilio ya Lugha' : 'Language Settings',
-              icon: Icons.language_rounded,
-              description: currentLang == 'sw'
-                  ? 'Chagua lugha ya kutumia kwenye jukwaa la SomaSmart.'
-                  : 'Choose the language to use across the SomaSmart platform.',
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _ChoiceButton(
-                      label: 'Kiswahili',
-                      isSelected: currentLang == 'sw',
-                      onTap: () {
-                        ref.read(languageProvider.notifier).setLanguage('sw');
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _ChoiceButton(
-                      label: 'English',
-                      isSelected: currentLang == 'en',
-                      onTap: () {
-                        ref.read(languageProvider.notifier).setLanguage('en');
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Card 4: Privacy Policy Accordion / Sera ya Faragha
-            _AccordionSettingsCard(
-              title: currentLang == 'sw' ? 'Sera ya Faragha' : 'Privacy Policy',
-              icon: Icons.shield_outlined,
-              isExpanded: _privacyExpanded,
-              onToggle: () {
-                setState(() {
-                  _privacyExpanded = !_privacyExpanded;
-                });
-              },
-              collapsedDescription: currentLang == 'sw'
-                  ? 'Soma jinsi tunavyolinda na kusimamia taarifa zako za siri.'
-                  : 'Read how we secure and protect your private account data.',
-              expandedContent: currentLang == 'sw'
-                  ? 'SomaSmart inajali usalama na usiri wa taarifa zako. Tunakusanya taarifa za msingi kama jina, barua pepe na namba ya simu ili kuboresha matumizi yako. Hatushiriki taarifa zako na upande wowote wa tatu bila ridhaa yako.'
-                  : 'SomaSmart values your data privacy. We collect basic account info (name, email, phone) to personalize your learning. Your credentials are fully encrypted and are never shared with third parties without your consent.',
-            ),
-            const SizedBox(height: 14),
-
-            // Card 5: Terms of Service Accordion / Vigezo na Masharti
-            _AccordionSettingsCard(
-              title: currentLang == 'sw' ? 'Vigezo na Masharti' : 'Terms of Service',
-              icon: Icons.article_outlined,
-              isExpanded: _termsExpanded,
-              onToggle: () {
-                setState(() {
-                  _termsExpanded = !_termsExpanded;
-                });
-              },
-              collapsedDescription: currentLang == 'sw'
-                  ? 'Sheria na vigezo vya matumizi ya huduma za SomaSmart.'
-                  : 'The terms and regulations governing the use of SomaSmart app.',
-              expandedContent: currentLang == 'sw'
-                  ? 'Kwa kutumia jukwaa hili, unakubali kutonakili, kutosambaza au kuuza summaries, notes na quizzes za SomaSmart bila kibali maalum cha maandishi. Huduma hii ni kwa matumizi yako ya kibinafsi pekee.'
-                  : 'By accessing SomaSmart services, you agree not to duplicate, distribute, or resell any platform summaries or quiz contents without written consent. The service is strictly for personal educational use.',
-            ),
-            const SizedBox(height: 14),
-
-            // Card 6: Account Security / Usalama wa Akaunti
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBgSurface : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.error.withValues(alpha: 0.25),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.delete_outline_rounded,
-                        size: 20,
-                        color: AppColors.error,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        currentLang == 'sw' ? 'Usalama wa Akaunti' : 'Account Security',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.error,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    currentLang == 'sw'
-                        ? 'Ukitaka kufuta akaunti yako kabisa na kufuta data zako zote kwenye mfumo.'
-                        : 'Permanently delete your user profile and remove all stored educational logs from our databases.',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                      height: 1.45,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (!_showDeleteConfirm)
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            _showDeleteConfirm = true;
-                          });
-                        },
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: AppColors.error.withValues(alpha: 0.35),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        child: Text(
-                          currentLang == 'sw' ? 'Futa Akaunti Yako' : 'Delete Account',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.error,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.error.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                SettingsGroup(label: t('Account', 'Akaunti'), children: [
+                  InkWell(
+                    key: const Key('settings-account'),
+                    onTap: () => context.go('/account'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l, vertical: AppSpacing.m + 2),
+                      child: Row(
                         children: [
-                          Text(
-                            currentLang == 'sw'
-                                ? 'Je, una uhakika kabisa? Data zote zitapotea daima.'
-                                : 'Are you absolutely sure? This cannot be undone.',
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.error,
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: isDark ? AppColors.primaryLight.withValues(alpha: 0.14) : AppColors.primarySoft,
+                            child: Text(
+                              initials.isEmpty ? 'S' : initials,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: isDark ? AppColors.primaryLight : AppColors.primary,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _showDeleteConfirm = false;
-                                  });
-                                },
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
+                          const SizedBox(width: AppSpacing.m),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                                if ((profile?.phone ?? '').isNotEmpty || (profile?.email ?? '').isNotEmpty)
+                                  Text(
+                                    (profile!.phone.isNotEmpty ? profile.phone : profile.email),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                                   ),
-                                ),
-                                child: Text(
-                                  currentLang == 'sw' ? 'Ghairi' : 'Cancel',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: isDark
-                                        ? AppColors.darkTextSecondary
-                                        : AppColors.lightTextSecondary,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        currentLang == 'sw'
-                                            ? 'Ombi lako la kufuta akaunti limetumwa.'
-                                            : 'Account deletion request submitted.',
-                                      ),
-                                      backgroundColor: AppColors.error,
-                                    ),
-                                  );
-                                  setState(() {
-                                    _showDeleteConfirm = false;
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.error,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 6,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: Text(
-                                  currentLang == 'sw' ? 'Ndio, Futa' : 'Yes, Delete',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          Icon(Icons.chevron_right_rounded, color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
                         ],
                       ),
                     ),
-                ],
-              ),
+                  ),
+                ]),
+
+                SettingsGroup(label: t('Appearance', 'Mwonekano'), children: [
+                  _Block(
+                    title: t('Display mode', 'Mandhari'),
+                    subtitle: t('System follows your device.', 'Mfumo unafuata mpangilio wa kifaa chako.'),
+                    child: _Segmented<ThemeMode>(
+                      keyPrefix: 'settings-theme',
+                      value: themeMode,
+                      onChanged: (mode) => ref.read(themeModeProvider.notifier).setTheme(mode),
+                      options: [
+                        _Option(ThemeMode.system, t('System', 'Mfumo'), Icons.phone_android_rounded),
+                        _Option(ThemeMode.light, t('Light', 'Mwanga'), Icons.light_mode_outlined),
+                        _Option(ThemeMode.dark, t('Dark', 'Giza'), Icons.dark_mode_outlined),
+                      ],
+                    ),
+                  ),
+                  _Block(
+                    title: t('Language', 'Lugha'),
+                    child: _Segmented<String>(
+                      keyPrefix: 'settings-language',
+                      value: lang,
+                      onChanged: (code) => ref.read(languageProvider.notifier).setLanguage(code),
+                      options: const [
+                        _Option('sw', 'Kiswahili'),
+                        _Option('en', 'English'),
+                      ],
+                    ),
+                  ),
+                ]),
+
+                SettingsGroup(label: t('Notifications', 'Arifa'), children: [
+                  SettingsRow(
+                    icon: Icons.notifications_none_rounded,
+                    title: t('App notifications', 'Arifa za app'),
+                    subtitle: t('New lessons, quizzes and announcements', 'Masomo mapya, quizzes na matangazo'),
+                    trailing: Switch.adaptive(
+                      key: const Key('settings-notifications'),
+                      value: notificationsEnabled,
+                      activeTrackColor: isDark ? AppColors.primaryLight : AppColors.primary,
+                      onChanged: (val) {
+                        ref.read(notificationsEnabledProvider.notifier).setEnabled(val);
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(SnackBar(
+                            content: Text(val ? t('Notifications on', 'Arifa zimewashwa') : t('Notifications off', 'Arifa zimezimwa')),
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                      },
+                    ),
+                  ),
+                ]),
+
+                SettingsGroup(label: t('Support', 'Msaada'), children: [
+                  SettingsRow(
+                    key: const Key('settings-help'),
+                    icon: Icons.help_outline_rounded,
+                    title: t('Help and support', 'Msaada'),
+                    onTap: () => context.push('/contact-support'),
+                  ),
+                  _ExpandRow(
+                    id: 'about',
+                    open: _open == 'about',
+                    onToggle: _toggle,
+                    icon: Icons.info_outline_rounded,
+                    title: t('About SomaSmart', 'Kuhusu SomaSmart'),
+                    body: Text(
+                      t(
+                        'SomaSmart is a learning platform for Tanzanian secondary students: NECTA notes, quizzes and practicals, on the web and the mobile app.',
+                        'SomaSmart ni jukwaa la elimu kwa wanafunzi wa sekondari Tanzania: notes za NECTA, quizzes na practicals, kwenye tovuti na app ya simu.',
+                      ),
+                      style: bodyStyle,
+                    ),
+                  ),
+                ]),
+
+                SettingsGroup(label: t('Legal', 'Sheria'), children: [
+                  _ExpandRow(
+                    id: 'privacy',
+                    open: _open == 'privacy',
+                    onToggle: _toggle,
+                    icon: Icons.shield_outlined,
+                    title: t('Privacy policy', 'Sera ya faragha'),
+                    body: Text(
+                      t(
+                        'SomaSmart values your data privacy. We collect basic account info (name, email, phone) to personalize your learning. Your data is never shared with third parties without your consent.',
+                        'SomaSmart inajali usalama na usiri wa taarifa zako. Tunakusanya taarifa za msingi kama jina, barua pepe na namba ya simu ili kuboresha matumizi yako. Hatushiriki taarifa zako na upande wowote wa tatu bila ridhaa yako.',
+                      ),
+                      style: bodyStyle,
+                    ),
+                  ),
+                  _ExpandRow(
+                    id: 'terms',
+                    open: _open == 'terms',
+                    onToggle: _toggle,
+                    icon: Icons.article_outlined,
+                    title: t('Terms of service', 'Vigezo na masharti'),
+                    body: Text(
+                      t(
+                        'By using SomaSmart, you agree not to copy, distribute or resell its summaries, notes or quizzes without written permission. The service is for your personal educational use only.',
+                        'Kwa kutumia jukwaa hili, unakubali kutonakili, kutosambaza au kuuza summaries, notes na quizzes za SomaSmart bila kibali maalum cha maandishi. Huduma hii ni kwa matumizi yako ya kibinafsi pekee.',
+                      ),
+                      style: bodyStyle,
+                    ),
+                  ),
+                ]),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    key: const Key('settings-sign-out'),
+                    onPressed: () => _confirmSignOut(isSw),
+                    icon: const Icon(Icons.logout_rounded, size: 18),
+                    label: Text(t('Sign out', 'Toka')),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                SettingsGroup(label: t('Delete account', 'Futa akaunti'), children: [
+                  _ExpandRow(
+                    id: 'delete',
+                    open: _open == 'delete',
+                    onToggle: _toggle,
+                    icon: Icons.person_remove_outlined,
+                    title: t('Request account deletion', 'Omba kufutwa kwa akaunti'),
+                    danger: true,
+                    body: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t(
+                            "To delete your account and all your data, contact the SomaSmart team from the phone number or email you registered with. We'll confirm with you before deleting anything.",
+                            'Ili kufuta akaunti yako na taarifa zako zote, wasiliana na timu ya SomaSmart ukitumia namba au email uliyosajili nayo. Tutakuthibitishia kabla ya kufuta.',
+                          ),
+                          style: bodyStyle,
+                        ),
+                        const SizedBox(height: AppSpacing.m),
+                        OutlinedButton(
+                          key: const Key('settings-delete-contact'),
+                          onPressed: () => context.push('/contact-support'),
+                          child: Text(t('Contact support', 'Wasiliana na msaada')),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _SettingsCard extends StatelessWidget {
-  final String title;
+/// A row that opens to show more text underneath, like the web's expandable rows.
+class _ExpandRow extends StatelessWidget {
+  final String id;
+  final bool open;
+  final ValueChanged<String> onToggle;
   final IconData icon;
-  final String? description;
-  final Widget? trailing;
-  final Widget? child;
+  final String title;
+  final Widget body;
+  final bool danger;
 
-  const _SettingsCard({
-    required this.title,
+  const _ExpandRow({
+    required this.id,
+    required this.open,
+    required this.onToggle,
     required this.icon,
-    this.description,
-    this.trailing,
-    this.child,
+    required this.title,
+    required this.body,
+    this.danger = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final trailingWidget = trailing;
-    final desc = description;
-    final childWidget = child;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkBgSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          expanded: open,
+          child: SettingsRow(
+            key: Key('settings-row-$id'),
+            icon: icon,
+            title: title,
+            danger: danger,
+            onTap: () => onToggle(id),
+            trailing: AnimatedRotation(
+              turns: open ? 0.25 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(Icons.chevron_right_rounded, color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+            ),
+          ),
         ),
-      ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          alignment: Alignment.topCenter,
+          child: open
+              ? Padding(padding: const EdgeInsets.fromLTRB(62, 0, AppSpacing.l, AppSpacing.l), child: body)
+              : const SizedBox(width: double.infinity),
+        ),
+      ],
+    );
+  }
+}
+
+/// Title, optional subtitle and a control underneath.
+class _Block extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Widget child;
+  const _Block({required this.title, this.subtitle, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.l),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 18, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              ?trailingWidget,
-            ],
-          ),
-          if (desc != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              desc,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary,
-                height: 1.45,
-              ),
-            ),
+          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(subtitle!, style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
           ],
-          if (childWidget != null) ...[
-            const SizedBox(height: 12),
-            childWidget,
-          ],
+          const SizedBox(height: AppSpacing.m),
+          child,
         ],
       ),
     );
   }
 }
 
-class _AccordionSettingsCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final bool isExpanded;
-  final VoidCallback onToggle;
-  final String collapsedDescription;
-  final String expandedContent;
+class _Option<T> {
+  final T value;
+  final String label;
+  final IconData? icon;
+  const _Option(this.value, this.label, [this.icon]);
+}
 
-  const _AccordionSettingsCard({
-    required this.title,
-    required this.icon,
-    required this.isExpanded,
-    required this.onToggle,
-    required this.collapsedDescription,
-    required this.expandedContent,
-  });
+/// Equal-width choice buttons, the selected one filled with navy.
+class _Segmented<T> extends StatelessWidget {
+  final String keyPrefix;
+  final T value;
+  final ValueChanged<T> onChanged;
+  final List<_Option<T>> options;
+
+  const _Segmented({required this.keyPrefix, required this.value, required this.onChanged, required this.options});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkBgSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onToggle,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
+    final accent = isDark ? AppColors.primaryLight : AppColors.primary;
+    return Row(
+      children: [
+        for (var i = 0; i < options.length; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          Expanded(
+            child: Semantics(
+              selected: options[i].value == value,
+              button: true,
+              child: InkWell(
+                key: Key('$keyPrefix-${options[i].value is Enum ? (options[i].value as Enum).name : options[i].value}'),
+                onTap: () => onChanged(options[i].value),
+                borderRadius: BorderRadius.circular(AppRadius.tile),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(
+                    color: options[i].value == value ? accent : Colors.transparent,
+                    borderRadius: BorderRadius.circular(AppRadius.tile),
+                    border: Border.all(color: options[i].value == value ? accent : (isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(icon, size: 18, color: AppColors.primary),
-                        const SizedBox(width: 8),
+                        if (options[i].icon != null) ...[
+                          Icon(
+                            options[i].icon,
+                            size: 15,
+                            color: options[i].value == value ? Colors.white : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
                         Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700,
+                          options[i].label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: options[i].value == value ? Colors.white : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                           ),
                         ),
                       ],
                     ),
-                    Icon(
-                      isExpanded
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 20,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                AnimatedCrossFade(
-                  firstChild: Text(
-                    collapsedDescription,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                      height: 1.45,
-                    ),
                   ),
-                  secondChild: Container(
-                    padding: const EdgeInsets.only(top: 8),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: isDark
-                              ? AppColors.darkBorder
-                              : AppColors.lightBorder,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      expandedContent,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.lightTextPrimary,
-                        height: 1.55,
-                      ),
-                    ),
-                  ),
-                  crossFadeState: isExpanded
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  duration: const Duration(milliseconds: 200),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChoiceButton extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ChoiceButton({
-    required this.label,
-    this.icon,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.12)
-              : (isDark ? AppColors.darkBgBase : AppColors.lightBgContainer),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 16,
-                color: isSelected
-                    ? AppColors.primary
-                    : (isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary),
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? (isDark
-                        ? AppColors.primaryLight
-                        : AppColors.primary)
-                    : (isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        ],
+      ],
     );
   }
 }

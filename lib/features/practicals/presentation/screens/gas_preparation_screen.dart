@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/theme_provider.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/gas_preparation_state.dart';
 import '../../data/models/practical_model.dart';
@@ -44,8 +43,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(gasPreparationControllerProvider);
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSwahili = ref.watch(languageProvider) == 'sw';
 
     return PopScope(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/settings/presentation/controllers/settings_controller.dart';
 import '../theme/app_colors.dart';
 
-/// Custom bottom navigation bar for the 5 SomaSmart core tabs.
-class SomaSmartBottomNav extends StatelessWidget {
+/// Bottom navigation for the 5 core tabs, with the same labels as the web app.
+class SomaSmartBottomNav extends ConsumerWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
@@ -13,34 +15,35 @@ class SomaSmartBottomNav extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSw = ref.watch(languageProvider) == 'sw';
 
     final navItems = [
       _NavItem(
         icon: Icons.home_outlined,
         activeIcon: Icons.home_rounded,
-        label: 'Home',
+        label: isSw ? 'Nyumbani' : 'Home',
       ),
       _NavItem(
         icon: Icons.shopping_bag_outlined,
         activeIcon: Icons.shopping_bag_rounded,
-        label: 'Shop',
+        label: isSw ? 'Duka' : 'Shop',
       ),
       _NavItem(
         icon: Icons.bar_chart_outlined,
         activeIcon: Icons.bar_chart_rounded,
-        label: 'Progress',
+        label: isSw ? 'Maendeleo' : 'Progress',
       ),
       _NavItem(
         icon: Icons.person_outline_rounded,
         activeIcon: Icons.person_rounded,
-        label: 'Account',
+        label: isSw ? 'Akaunti' : 'Account',
       ),
       _NavItem(
         icon: Icons.settings_outlined,
         activeIcon: Icons.settings_rounded,
-        label: 'Settings',
+        label: isSw ? 'Mipangilio' : 'Settings',
       ),
     ];
 

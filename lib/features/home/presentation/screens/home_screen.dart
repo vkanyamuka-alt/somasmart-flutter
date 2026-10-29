@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/card_surface.dart';
+import '../../../../core/widgets/section_widgets.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../../subjects/presentation/controllers/subjects_controller.dart';
-import '../widgets/plant_cell_tablet_widget.dart';
 
+/// Home dashboard. Same order as the web dashboard (docs/DESIGN_SYSTEM.md):
+/// hero, access status, then Study, Practise and exams, and Community.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -14,581 +17,362 @@ class HomeScreen extends ConsumerWidget {
     if (date == null) return '';
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
-    final year = date.year.toString();
-    return '$day/$month/$year';
+    return '$day/$month/${date.year}';
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSw = ref.watch(languageProvider) == 'sw';
+    final profile = ref.watch(userProfileProvider).valueOrNull;
 
-    final quickAccessCards = [
-      _QuickCardData(
-        title: 'O-level',
-        icon: Icons.school_rounded,
+    final rawName = profile?.fullName.trim();
+    final firstName = (rawName != null && rawName.isNotEmpty && rawName != 'User')
+        ? rawName.split(' ').first
+        : (isSw ? 'Mwanafunzi' : 'Student');
+
+    String t(String en, String sw) => isSw ? sw : en;
+
+    final study = [
+      FeatureCard(
+        key: const Key('home-card-o-level'),
+        icon: Icons.school_outlined,
+        title: 'O-Level',
+        description: t('Form 1–4 subjects', 'Masomo ya Kidato 1–4'),
         onTap: () {
           ref.read(selectedFormLevelProvider.notifier).state = 4;
           context.push('/subjects');
         },
       ),
-      _QuickCardData(
-        title: 'A-level',
-        icon: Icons.menu_book_rounded,
+      FeatureCard(
+        key: const Key('home-card-a-level'),
+        icon: Icons.menu_book_outlined,
+        title: 'A-Level',
+        description: t('Form 5–6 subjects', 'Masomo ya Kidato 5–6'),
         onTap: () {
           ref.read(selectedFormLevelProvider.notifier).state = 5;
           context.push('/subjects');
         },
       ),
-      _QuickCardData(
-        title: 'Practicals',
-        icon: Icons.science_rounded,
-        onTap: () {
-          context.push('/practicals');
-        },
-      ),
-      _QuickCardData(
-        title: 'Syllabus',
+      FeatureCard(
+        key: const Key('home-card-syllabus'),
         icon: Icons.description_outlined,
-        onTap: () {
-          context.push('/syllabus');
-        },
-      ),
-      _QuickCardData(
-        title: 'Past Papers',
-        icon: Icons.assignment_turned_in_outlined,
-        onTap: () {
-          context.push('/quiz-exams?tab=practice');
-        },
-      ),
-      _QuickCardData(
-        title: 'Quiz & Exams',
-        icon: Icons.fact_check_outlined,
-        onTap: () {
-          context.push('/quiz-exams');
-        },
-      ),
-      _QuickCardData(
-        title: 'Discussion Forum',
-        icon: Icons.chat_bubble_outline_rounded,
-        onTap: () {
-          context.push('/forum');
-        },
+        title: t('Syllabus', 'Mtaala'),
+        description: t('Official NECTA and TIE syllabus', 'Mtaala rasmi wa NECTA na TIE'),
+        onTap: () => context.push('/syllabus'),
       ),
     ];
 
-    final lang = ref.watch(languageProvider);
-    final isSwahili = lang == 'sw';
-    final userProfileAsync = ref.watch(userProfileProvider);
-    final profile = userProfileAsync.valueOrNull;
+    final practise = [
+      FeatureCard(
+        key: const Key('home-card-practicals'),
+        icon: Icons.science_outlined,
+        title: t('Practicals', 'Vitendo'),
+        description: t('Virtual science labs', 'Maabara za sayansi mtandaoni'),
+        onTap: () => context.push('/practicals'),
+      ),
+      FeatureCard(
+        key: const Key('home-card-past-papers'),
+        icon: Icons.assignment_turned_in_outlined,
+        title: t('Past papers', 'Mitihani ya zamani'),
+        description: t('Practise with previous exams', 'Jizoeze kwa mitihani iliyopita'),
+        onTap: () => context.push('/quiz-exams?tab=practice'),
+      ),
+      FeatureCard(
+        key: const Key('home-card-quiz-exams'),
+        icon: Icons.fact_check_outlined,
+        title: t('Quizzes and exams', 'Majaribio na mitihani'),
+        description: t('Test what you have learned', 'Pima ulichojifunza'),
+        onTap: () => context.push('/quiz-exams'),
+      ),
+    ];
 
-    final rawName = profile?.fullName.trim();
-    final firstName = (rawName != null && rawName.isNotEmpty && rawName != 'User')
-        ? rawName.split(' ').first
-        : 'Anna';
-
-    // Authoritative dynamic subscription state
-    final bool isPaidActive = profile?.isPremium == true;
-    final bool isTrialActive = profile != null && !isPaidActive && profile.isTrialActive;
-
-    final int? daysCount;
-    final String statusTitle;
-    final String? statusSubtext;
-    final String badgeLabel;
-    final Color badgeTextColor;
-    final Color badgeBgColor;
-    final Color badgeDotColor;
-
-    if (isPaidActive) {
-      daysCount = profile?.subscriptionDaysRemaining ?? 0;
-      statusTitle = isSwahili ? 'Siku Zilizobaki' : 'Days Remaining';
-      final expiryStr = _formatDate(profile?.subscriptionExpiresAt);
-      statusSubtext = expiryStr.isNotEmpty
-          ? (isSwahili ? 'Inaisha tarehe $expiryStr' : 'Expires $expiryStr')
-          : null;
-      badgeLabel = 'Premium';
-      badgeTextColor = const Color(0xFF059669);
-      badgeBgColor = isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5);
-      badgeDotColor = const Color(0xFF10B981);
-    } else if (isTrialActive) {
-      daysCount = profile.trialDaysLeft;
-      statusTitle = isSwahili ? 'Siku Zilizobaki' : 'Days Remaining';
-      final trialEnd = profile.createdAt?.add(const Duration(days: 6));
-      final expiryStr = _formatDate(trialEnd);
-      statusSubtext = expiryStr.isNotEmpty
-          ? (isSwahili ? 'Inaisha tarehe $expiryStr' : 'Expires $expiryStr')
-          : null;
-      badgeLabel = isSwahili ? 'Jaribio la Bure' : 'Free Trial';
-      badgeTextColor = const Color(0xFFD97706);
-      badgeBgColor = isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7);
-      badgeDotColor = const Color(0xFFF59E0B);
-    } else {
-      daysCount = null;
-      statusTitle = isSwahili ? 'Usajili Umeisha' : 'Subscription Expired';
-      statusSubtext = isSwahili ? 'Boresha uendelee kusoma' : 'Upgrade to continue';
-      badgeLabel = isSwahili ? 'Umeisha' : 'Expired';
-      badgeTextColor = AppColors.error;
-      badgeBgColor = isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2);
-      badgeDotColor = AppColors.error;
-    }
+    final community = [
+      FeatureCard(
+        key: const Key('home-card-forum'),
+        icon: Icons.forum_outlined,
+        title: t('Discussion forum', 'Jukwaa la majadiliano'),
+        description: t('Ask and answer with other students', 'Uliza na ujibu pamoja na wanafunzi wengine'),
+        onTap: () => context.push('/forum'),
+      ),
+    ];
 
     return Scaffold(
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 12,
-          bottom: 90, // Safe clearance for bottom nav & floating Ask Me
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.gutter,
+          AppSpacing.m,
+          AppSpacing.gutter,
+          AppSpacing.bottomNavClearance,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ===== 1. HERO CARD =====
-            _DashboardHeroBanner(
-              isDark: isDark,
-              displayName: firstName,
-              onContinue: () {
-                context.push('/subjects');
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // ===== 2. SUBSCRIPTION STATUS CARD =====
-            InkWell(
-              onTap: () => context.push('/subscription'),
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F1D32) : const Color(0xFFF0F7FF),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF1E3A5F)
-                        : const Color(0xFFD0E2FF),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HeroCard(
+                  name: firstName,
+                  isSw: isSw,
+                  onContinue: () => context.push('/subjects'),
                 ),
-                child: Row(
-                  children: [
-                    // Calendar icon container
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1E293B)
-                            : const Color(0xFFDCEBFF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.calendar_month_rounded,
-                        size: 24,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-
-                    // Main remaining days & expiry text
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (daysCount != null) ...[
-                                Text(
-                                  '$daysCount ',
-                                  style: const TextStyle(
-                                    fontSize: 16.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primary,
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                              ],
-                              Text(
-                                statusTitle,
-                                style: const TextStyle(
-                                  fontSize: 16.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (statusSubtext != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              statusSubtext,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? AppColors.darkTextSecondary
-                                    : const Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-
-                    // Premium badge + Chevron
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeBgColor,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6.5,
-                            height: 6.5,
-                            decoration: BoxDecoration(
-                              color: badgeDotColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            badgeLabel,
-                            style: TextStyle(
-                              color: badgeTextColor,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: AppColors.primary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // ===== 3. FEATURE GRID (2-Column) =====
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: quickAccessCards.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 2.25,
-              ),
-              itemBuilder: (ctx, index) {
-                final card = quickAccessCards[index];
-                return InkWell(
-                  onTap: card.onTap,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.darkBgSurface
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.darkBorder
-                            : const Color(0xFFE2E8F0),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: isDark ? 0.15 : 0.025,
-                          ),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
+                const SizedBox(height: AppSpacing.m),
+                if (profile != null) ...[
+                  _AccessStatusCard(profile: profile, isSw: isSw, formatDate: _formatDate),
+                  const SizedBox(height: AppSpacing.l),
+                ] else
+                  const SizedBox(height: AppSpacing.m),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Phones keep the compact 2-column tiles; tablets get the
+                    // grouped cards with descriptions, like the web's desktop view.
+                    if (constraints.maxWidth < 600) {
+                      return FeatureGrid(
+                        cards: [...study, ...practise, ...community].map((c) => c.asCompact()).toList(),
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF1E293B)
-                                : const Color(0xFFEDF5FF),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            card.icon,
-                            color: AppColors.primary,
-                            size: 19,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            card.title,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? AppColors.darkTextPrimary
-                                  : const Color(0xFF0F172A),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 15,
-                          color: isDark
-                              ? AppColors.darkTextMuted
-                              : const Color(0xFF94A3B8),
-                        ),
+                        SectionLabel(t('Study', 'Masomo')),
+                        FeatureGrid(cards: study),
+                        const SizedBox(height: AppSpacing.xl),
+                        SectionLabel(t('Practise and exams', 'Mazoezi na mitihani')),
+                        FeatureGrid(cards: practise),
+                        const SizedBox(height: AppSpacing.xl),
+                        SectionLabel(t('Community', 'Jumuiya')),
+                        FeatureGrid(cards: community),
                       ],
-                    ),
-                  ),
-                );
-              },
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _QuickCardData {
-  final String title;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _QuickCardData({
-    required this.title,
-    required this.icon,
-    required this.onTap,
-  });
-}
-
-/// Compact, clean Hero Card matching the reference design:
-/// - "Hi, [name]" with navy circular avatar
-/// - "Learn." on first line
-/// - "Practice, Excel." on second line ("Excel." in Royal Scholar Blue #0058BE)
-/// - "Continue Learning →" pill button
-/// - High-clarity academic tablet illustration displaying plant cell diagram on right
-class _DashboardHeroBanner extends StatelessWidget {
-  final bool isDark;
-  final String displayName;
+/// Greeting, headline, Continue learning and the same student photo as the web.
+class _HeroCard extends StatelessWidget {
+  final String name;
+  final bool isSw;
   final VoidCallback onContinue;
 
-  const _DashboardHeroBanner({
-    required this.isDark,
-    required this.displayName,
-    required this.onContinue,
-  });
+  const _HeroCard({required this.name, required this.isSw, required this.onContinue});
 
   @override
   Widget build(BuildContext context) {
-    final cardBg = isDark
-        ? const Color(0xFF0F1D32)
-        : const Color(0xFFEDF5FF);
-    final borderColor = isDark
-        ? const Color(0xFF1E3A5F)
-        : const Color(0xFFD0E2FF);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? Colors.white : AppColors.heroNavyDark;
+    final accent = isDark ? AppColors.primaryLight : AppColors.primary;
+    final words = isSw ? ['Jifunze.', 'Jizoeze.', 'Fanikiwa.'] : ['Learn.', 'Practice.', 'Excel.'];
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-        // Responsive tablet width allocation (~44% of width clamped)
-        final tabletWidth = (totalWidth * 0.44).clamp(135.0, 185.0);
-        final initial = displayName.isNotEmpty ? displayName[0].toLowerCase() : 'a';
+        final width = constraints.maxWidth;
+        final headlineSize = width < 340 ? 22.0 : (width < 420 ? 25.0 : 30.0);
+        final photoWidth = (width * 0.42).clamp(120.0, 300.0);
 
         return Container(
-          width: double.infinity,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: borderColor,
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            color: isDark ? AppColors.heroBannerBgDark : AppColors.heroBannerBgLight,
+            borderRadius: BorderRadius.circular(AppRadius.hero),
+            border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
           ),
-          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Left Content: Greeting, Headline, CTA button
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Hi, [Name] Row with initial avatar
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.l + 2, AppSpacing.l + 2, AppSpacing.s, AppSpacing.l + 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF0B1A36), // Navy Circle
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              initial,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 13,
+                              backgroundColor: AppColors.primary,
+                              child: Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : 'S',
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
                               ),
+                            ),
+                            const SizedBox(width: AppSpacing.s),
+                            Flexible(
+                              child: Text(
+                                isSw ? 'Habari, $name' : 'Hi, $name',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: ink),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.m),
+                        Semantics(
+                          header: true,
+                          child: Text.rich(
+                            TextSpan(children: [
+                              TextSpan(text: '${words[0]}\n${words[1]}\n', style: TextStyle(color: ink)),
+                              TextSpan(text: words[2], style: TextStyle(color: accent)),
+                            ]),
+                            style: TextStyle(
+                              fontSize: headlineSize,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              height: 1.08,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            'Hi, $displayName',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? AppColors.darkTextPrimary
-                                  : const Color(0xFF0F172A),
-                            ),
+                        const SizedBox(height: AppSpacing.l),
+                        ElevatedButton(
+                          key: const Key('home-continue-learning'),
+                          onPressed: onContinue,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDark ? AppColors.primaryLight : AppColors.primary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(0, 44),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
+                            elevation: 0,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  isSw ? 'Endelea kujifunza' : 'Continue learning',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.arrow_forward_rounded, size: 16),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-
-                    // "Learn."
-                    Text(
-                      'Learn.',
-                      style: TextStyle(
-                        fontSize: totalWidth < 360 ? 22 : 25,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                        height: 1.05,
-                        color: isDark
-                            ? Colors.white
-                            : const Color(0xFF0B1A36),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-
-                    // "Practice, Excel."
-                    RichText(
-                      text: TextSpan(
-                        style: TextStyle(
-                          fontSize: totalWidth < 360 ? 22 : 25,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                          height: 1.05,
-                          fontFamily: 'Inter',
-                        ),
-                        children: [
-                          TextSpan(
-                            text: 'Practice, ',
-                            style: TextStyle(
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF0B1A36),
-                            ),
-                          ),
-                          const TextSpan(
-                            text: 'Excel.',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // "Continue Learning →" CTA Button
-                    ElevatedButton(
-                      onPressed: onContinue,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark
-                            ? AppColors.primary
-                            : const Color(0xFF0B1A36),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 9,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        elevation: 0,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Continue Learning',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(width: 5),
-                          Icon(Icons.arrow_forward_rounded, size: 13),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-
-              const SizedBox(width: 8),
-
-              // Right Content: Tablet illustration with plant cell diagram
-              SizedBox(
-                width: tabletWidth,
-                child: const PlantCellTabletWidget(),
-              ),
-            ],
+                SizedBox(
+                  width: photoWidth,
+                  child: Image.asset(
+                    'assets/images/hero-student-v2.png',
+                    fit: BoxFit.cover,
+                    alignment: const Alignment(0.35, -0.3),
+                    excludeFromSemantics: true,
+                    errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+}
+
+/// Days left in the trial or subscription, with a status pill.
+/// Taps through to the Subscription screen.
+class _AccessStatusCard extends StatelessWidget {
+  final UserProfile profile;
+  final bool isSw;
+  final String Function(DateTime?) formatDate;
+
+  const _AccessStatusCard({required this.profile, required this.isSw, required this.formatDate});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isPaid = profile.isPremium;
+    final isTrial = !isPaid && profile.isTrialActive;
+
+    final int? days;
+    final String title;
+    final String? subtitle;
+    final String pill;
+    final Color tone;
+    if (isPaid) {
+      days = profile.subscriptionDaysRemaining;
+      title = isSw ? 'Siku Zilizobaki' : 'Days Remaining';
+      final end = formatDate(profile.subscriptionExpiresAt);
+      subtitle = end.isEmpty ? null : (isSw ? 'Inaisha tarehe $end' : 'Expires $end');
+      pill = 'Premium';
+      tone = AppColors.success;
+    } else if (isTrial) {
+      days = profile.trialDaysLeft;
+      title = isSw ? 'Siku Zilizobaki' : 'Days Remaining';
+      final end = formatDate(profile.createdAt?.add(const Duration(days: 6)));
+      subtitle = end.isEmpty ? null : (isSw ? 'Inaisha tarehe $end' : 'Expires $end');
+      pill = isSw ? 'Jaribio la Bure' : 'Free Trial';
+      tone = AppColors.warning;
+    } else {
+      days = null;
+      title = isSw ? 'Usajili Umeisha' : 'Subscription Expired';
+      subtitle = isSw ? 'Lipia TSh 2,500 kwa mwezi uendelee kusoma.' : 'Subscribe for TSh 2,500 a month to keep learning.';
+      pill = isSw ? 'Umeisha' : 'Expired';
+      tone = AppColors.error;
+    }
+
+    final titleColor = days == null ? AppColors.error : (isDark ? AppColors.primaryLight : AppColors.primary);
+
+    final pillWidget = StatusPill(label: pill, color: tone);
+
+    return CardSurface(
+      key: const Key('home-access-status'),
+      onTap: () => context.push('/subscription'),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l, vertical: AppSpacing.m + 2),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // On narrow phones the pill moves under the title instead of beside it.
+          final narrow = constraints.maxWidth < 300;
+          return Row(
+            children: [
+              IconTile(days == null ? Icons.lock_clock_outlined : Icons.calendar_month_outlined, size: 42, danger: days == null),
+              const SizedBox(width: AppSpacing.m),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (days != null)
+                          Text('$days ', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: titleColor)),
+                        Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: titleColor)),
+                      ],
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                      ),
+                    ],
+                    if (narrow) ...[
+                      const SizedBox(height: AppSpacing.s),
+                      pillWidget,
+                    ],
+                  ],
+                ),
+              ),
+              if (!narrow) ...[
+                const SizedBox(width: AppSpacing.s),
+                pillWidget,
+              ],
+              Icon(Icons.chevron_right_rounded, color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+            ],
+          );
+        },
+      ),
     );
   }
 }

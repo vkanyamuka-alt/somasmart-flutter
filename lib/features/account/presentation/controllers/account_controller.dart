@@ -116,7 +116,10 @@ class UserProfile {
     final now = DateTime.now().toUtc();
     final trialEnd = createdAt!.add(const Duration(days: 6));
     final diff = trialEnd.difference(now);
-    return diff.isNegative ? 0 : diff.inDays + 1;
+    if (diff.isNegative) return 0;
+    // Part of a day still counts as a day: 6 at sign-up, 1 on the last day
+    // (inDays + 1 showed 7 for a brand-new account).
+    return (diff.inMicroseconds / Duration.microsecondsPerDay).ceil();
   }
 
   /// Whether the user's trial and subscription are both expired/locked.
