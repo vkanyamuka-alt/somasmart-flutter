@@ -30,6 +30,10 @@ Future<bool> _loadDeviceLikeFont() async {
   return false;
 }
 
+/// The app's Inter comes from google_fonts, which cannot load in tests; use
+/// the device-like font loaded above so widths are realistic.
+ThemeData _deviceFont(ThemeData t) => t.copyWith(textTheme: t.textTheme.apply(fontFamily: 'Roboto'));
+
 final _trialStudent = UserProfile(
   id: 'trial',
   email: '255711000000@phone.somasmart.com',
@@ -55,7 +59,7 @@ void main() {
           languageProvider.overrideWith((ref) => _TestLanguageNotifier(lang)),
           userProfileProvider.overrideWith(() => _MockProfileNotifier(profile ?? _trialStudent)),
         ],
-        child: MaterialApp(theme: theme ?? AppTheme.lightTheme, home: home),
+        child: MaterialApp(theme: _deviceFont(theme ?? AppTheme.lightTheme), home: home),
       );
 
   group('Trial day count (same rule as the web)', () {
@@ -80,18 +84,22 @@ void main() {
   });
 
   group('Home dashboard', () {
-    testWidgets('groups features into Study, Practise and exams, and Community', (tester) async {
+    testWidgets('shows all seven tiles, with the forum tile across the full width', (tester) async {
       await tester.pumpWidget(app(const HomeScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('Hi, Rehema'), findsOneWidget);
-      expect(find.text('STUDY'), findsOneWidget);
-      expect(find.text('PRACTISE AND EXAMS'), findsOneWidget);
-      expect(find.text('COMMUNITY'), findsOneWidget);
       for (final key in ['o-level', 'a-level', 'syllabus', 'practicals', 'past-papers', 'quiz-exams', 'forum']) {
         expect(find.byKey(Key('home-card-$key')), findsOneWidget, reason: key);
       }
       expect(find.text('Free Trial'), findsOneWidget);
+
+      final forum = tester.getRect(find.byKey(const Key('home-card-forum')));
+      final oLevel = tester.getRect(find.byKey(const Key('home-card-o-level')));
+      final aLevel = tester.getRect(find.byKey(const Key('home-card-a-level')));
+      expect(forum.left, moreOrLessEquals(oLevel.left));
+      expect(forum.right, moreOrLessEquals(aLevel.right));
+      expect(forum.height, moreOrLessEquals(oLevel.height, epsilon: 0.5));
     });
 
     testWidgets('speaks Swahili, including the headline', (tester) async {
@@ -99,8 +107,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Habari, Rehema'), findsOneWidget);
-      expect(find.textContaining('Fanikiwa.', findRichText: true), findsOneWidget);
-      expect(find.text('MASOMO'), findsOneWidget);
+      expect(find.text('Jifunze.'), findsOneWidget);
+      expect(find.text('Jukwaa la Majadiliano'), findsOneWidget);
       expect(find.text('Jaribio la Bure'), findsOneWidget);
     });
 
