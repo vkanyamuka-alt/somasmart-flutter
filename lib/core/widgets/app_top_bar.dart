@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/announcements_service.dart';
 import '../theme/app_colors.dart';
 import 'notification_drawer.dart';
 import 'soma_smart_logo.dart';
 
-/// Top header matching React SomaSmart desktop & mobile header with Logo, Notifications badge, and Menu.
-class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
-  final int unreadNotificationsCount;
-
-  const AppTopBar({
-    super.key,
-    this.unreadNotificationsCount = 2,
-  });
+/// Top header: logo and the announcements bell, whose badge counts the
+/// announcements the student has not opened yet (same as the web).
+class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
+  const AppTopBar({super.key});
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unreadNotificationsCount = ref.watch(unreadAnnouncementsCountProvider);
 
     return Container(
       padding: EdgeInsets.only(
