@@ -15,6 +15,11 @@ class QuizModel {
   final DateTime? createdAt;
   final String? subjectNameSw;
   final String? subjectNameEn;
+  /// 'topic' | 'exam' | 'past_paper' | 'timed', set by admins in the admin panel.
+  final String quizType;
+  /// Year of a past paper.
+  final int? examYear;
+  final bool isPublished;
 
   const QuizModel({
     required this.id,
@@ -29,6 +34,9 @@ class QuizModel {
     this.createdAt,
     this.subjectNameSw,
     this.subjectNameEn,
+    this.quizType = 'topic',
+    this.examYear,
+    this.isPublished = true,
   });
 
   factory QuizModel.fromJson(Map<String, dynamic> json) {
@@ -61,6 +69,9 @@ class QuizModel {
           : null,
       subjectNameSw: subSw ?? json['subject_name_sw']?.toString(),
       subjectNameEn: subEn ?? json['subject_name_en']?.toString(),
+      quizType: json['quiz_type']?.toString() ?? 'topic',
+      examYear: json['exam_year'] is int ? json['exam_year'] as int : int.tryParse(json['exam_year']?.toString() ?? ''),
+      isPublished: json['is_published'] != false,
     );
   }
 

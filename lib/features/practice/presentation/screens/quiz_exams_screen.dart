@@ -29,7 +29,9 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
     super.initState();
     if (widget.initialTab != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(quizTabFilterProvider.notifier).state = widget.initialTab!;
+        // "practice" is the old name of the past-papers tab.
+        ref.read(quizTabFilterProvider.notifier).state =
+            widget.initialTab == 'practice' ? 'past_paper' : widget.initialTab!;
       });
     }
   }
@@ -173,7 +175,7 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
     final tabs = [
       {'key': 'topic', 'label_sw': 'Mada (Topic)', 'label_en': 'Topic Quizzes', 'icon': Icons.menu_book_rounded},
       {'key': 'exam', 'label_sw': 'Mitihani (Exams)', 'label_en': 'Subject Exams', 'icon': Icons.description_outlined},
-      {'key': 'practice', 'label_sw': 'Mazoezi (Practice)', 'label_en': 'Practice Tests', 'icon': Icons.check_circle_outline_rounded},
+      {'key': 'past_paper', 'label_sw': 'Mitihani ya Zamani', 'label_en': 'Past Papers', 'icon': Icons.check_circle_outline_rounded},
       {'key': 'timed', 'label_sw': 'Muda (Timed)', 'label_en': 'Timed Drills', 'icon': Icons.timer_outlined},
     ];
 
@@ -343,43 +345,10 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
             // Quizzes List
             quizzesAsync.when(
               data: (allQuizzes) {
-                // Apply Tab categorization logic matching React getQuizzesByType
-                List<QuizModel> tabQuizzes;
-                if (activeTab == 'topic') {
-                  tabQuizzes = allQuizzes
-                      .asMap()
-                      .entries
-                      .where((e) => e.key % 4 == 0 || e.key % 4 == 1)
-                      .map((e) => e.value)
-                      .toList();
-                } else if (activeTab == 'exam') {
-                  tabQuizzes = allQuizzes
-                      .asMap()
-                      .entries
-                      .where((e) => e.key % 4 == 2)
-                      .map((e) => e.value)
-                      .toList();
-                } else if (activeTab == 'practice') {
-                  tabQuizzes = allQuizzes
-                      .asMap()
-                      .entries
-                      .where((e) => e.key % 4 == 3 && e.key != 3)
-                      .map((e) => e.value)
-                      .toList();
-                } else {
-                  // timed tab
-                  tabQuizzes = allQuizzes
-                      .asMap()
-                      .entries
-                      .where((e) => e.key == 3)
-                      .map((e) => e.value)
-                      .toList();
-                }
-
-                // If tab filter results in empty list but allQuizzes has items, show allQuizzes
-                if (tabQuizzes.isEmpty && allQuizzes.isNotEmpty) {
-                  tabQuizzes = allQuizzes;
-                }
+                // Each quiz's type is set by admins in the admin panel.
+                var tabQuizzes = allQuizzes
+                    .where((q) => q.isPublished && q.quizType == activeTab)
+                    .toList();
 
                 // Apply text search
                 if (_searchQuery.isNotEmpty) {

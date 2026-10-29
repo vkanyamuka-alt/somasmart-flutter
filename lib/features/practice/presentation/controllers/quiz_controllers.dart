@@ -4,7 +4,7 @@ import '../../data/repositories/quiz_repository.dart';
 import '../../domain/models/quiz_models.dart';
 
 /// Filter provider for the active Quiz discovery tab.
-/// Values: 'topic' | 'exam' | 'practice' | 'timed'
+/// Values: 'topic' | 'exam' | 'past_paper' | 'timed' (the quiz's quiz_type)
 final quizTabFilterProvider = StateProvider<String>((ref) => 'topic');
 
 /// Filter provider for selected subject ID in quiz discovery (null means all).

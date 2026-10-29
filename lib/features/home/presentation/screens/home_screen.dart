@@ -65,7 +65,7 @@ class HomeScreen extends ConsumerWidget {
         title: isSwahili ? 'Mitihani ya Zamani' : 'Past Papers',
         icon: Icons.assignment_turned_in_outlined,
         onTap: () {
-          context.push('/quiz-exams?tab=practice');
+          context.push('/quiz-exams?tab=past_paper');
         },
       ),
       _QuickCardData(
