@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:somasmart_flutter/core/services/support_contact_service.dart';
 import 'package:somasmart_flutter/core/theme/app_theme.dart';
 import 'package:somasmart_flutter/core/theme/theme_provider.dart';
 import 'package:somasmart_flutter/features/account/presentation/controllers/account_controller.dart';
@@ -53,8 +54,9 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  Widget app(Widget home, {String lang = 'en', ThemeData? theme, UserProfile? profile}) => ProviderScope(
+  Widget app(Widget home, {String lang = 'en', ThemeData? theme, UserProfile? profile, SupportContact contact = const SupportContact()}) => ProviderScope(
         overrides: [
+          supportContactProvider.overrideWith((ref) async => contact),
           sharedPreferencesProvider.overrideWithValue(prefs),
           languageProvider.overrideWith((ref) => _TestLanguageNotifier(lang)),
           userProfileProvider.overrideWith(() => _MockProfileNotifier(profile ?? _trialStudent)),
@@ -155,17 +157,66 @@ void main() {
   });
 
   group('Settings', () {
-    testWidgets('shows the same groups as the web Settings page', (tester) async {
+    testWidgets('shows the same groups as the web Settings page, each feature once', (tester) async {
       await tester.pumpWidget(app(const SettingsScreen()));
       await tester.pumpAndSettle();
 
-      for (final label in ['ACCOUNT', 'APPEARANCE', 'NOTIFICATIONS', 'SUPPORT', 'LEGAL', 'DELETE ACCOUNT']) {
+      for (final label in ['APPEARANCE', 'NOTIFICATIONS', 'SUPPORT', 'LEGAL', 'DELETE ACCOUNT']) {
         await tester.ensureVisible(find.text(label));
         expect(find.text(label), findsOneWidget, reason: label);
       }
-      expect(find.text('Rehema Hassan'), findsOneWidget);
+      // The profile lives on the Account tab, not here.
+      expect(find.text('ACCOUNT'), findsNothing);
+      expect(find.text('Rehema Hassan'), findsNothing);
       expect(find.byKey(const Key('settings-theme-system')), findsOneWidget);
+      expect(find.byKey(const Key('settings-share')), findsOneWidget);
+      expect(find.byKey(const Key('settings-row-feedback')), findsOneWidget);
       expect(find.byKey(const Key('settings-sign-out')), findsOneWidget);
+    });
+
+    testWidgets('Share copies the real link', (tester) async {
+      final copied = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') copied.add((call.arguments as Map)['text'] as String);
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+
+      await tester.pumpWidget(app(const SettingsScreen()));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('settings-share')));
+      await tester.tap(find.byKey(const Key('settings-share')));
+      await tester.pump();
+      expect(copied, ['https://meek-marzipan-3fc8ef.netlify.app']);
+    });
+
+    testWidgets('feedback says so honestly when no support contact is set', (tester) async {
+      await tester.pumpWidget(app(const SettingsScreen()));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('settings-row-feedback')));
+      await tester.tap(find.byKey(const Key('settings-row-feedback')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('once SomaSmart has added its support contact'), findsOneWidget);
+      expect(find.byKey(const Key('settings-feedback-whatsapp')), findsNothing);
+    });
+
+    testWidgets('feedback sends through the admin-set contact once written', (tester) async {
+      await tester.pumpWidget(app(
+        const SettingsScreen(),
+        contact: const SupportContact(phone: '+255712345678', email: 'help@example.co.tz'),
+      ));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('settings-row-feedback')));
+      await tester.tap(find.byKey(const Key('settings-row-feedback')));
+      await tester.pumpAndSettle();
+
+      FilledButton whatsapp() => tester.widget<FilledButton>(find.byKey(const Key('settings-feedback-whatsapp')));
+      expect(whatsapp().onPressed, isNull, reason: 'nothing to send yet');
+      await tester.enterText(find.byKey(const Key('settings-feedback-text')), 'Great notes');
+      await tester.pump();
+      expect(whatsapp().onPressed, isNotNull);
+      expect(find.byKey(const Key('settings-feedback-email')), findsOneWidget);
     });
 
     testWidgets('choosing System saves it', (tester) async {

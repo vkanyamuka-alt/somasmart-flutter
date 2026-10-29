@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'notification_drawer.dart';
-import 'side_menu_drawer.dart';
 import 'soma_smart_logo.dart';
 
 /// Top header matching React SomaSmart desktop & mobile header with Logo, Notifications badge, and Menu.
@@ -103,31 +102,6 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
                 ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Hamburger Menu Button
-          InkWell(
-            onTap: () => SideMenuDrawer.show(context),
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBgContainer : AppColors.lightBgContainer,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                ),
-              ),
-              child: Icon(
-                Icons.menu_rounded,
-                size: 20,
-                color: isDark
-                    ? AppColors.darkTextPrimary
-                    : AppColors.lightTextPrimary,
               ),
             ),
           ),

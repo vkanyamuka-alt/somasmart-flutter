@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/config/app_constants.dart';
+import '../../../../core/services/support_contact_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/section_widgets.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
 import '../controllers/settings_controller.dart';
 
-/// Settings, grouped the same way as the web Settings page:
-/// Account, Appearance, Notifications, Support, Legal, Sign out and
-/// Request account deletion. Only settings that work are shown.
+/// Settings, grouped the same way as the web Settings page: Appearance,
+/// Notifications, Support, Legal, Sign out and Request account deletion.
+/// Each feature lives in one place: the profile is the Account tab, and
+/// Share, Feedback, Help, About and Sign out are only here.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -18,8 +23,33 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  // One expandable row open at a time: about, privacy, terms or delete.
+  // One expandable row open at a time: feedback, about, privacy, terms or delete.
   String? _open;
+  final _feedback = TextEditingController();
+
+  @override
+  void dispose() {
+    _feedback.dispose();
+    super.dispose();
+  }
+
+  Future<void> _share(bool isSw) async {
+    await Clipboard.setData(const ClipboardData(text: AppConstants.webAppUrl));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(isSw ? 'Kiungo cha SomaSmart kimenakiliwa!' : 'SomaSmart link copied!'),
+        behavior: SnackBarBehavior.floating,
+      ));
+  }
+
+  Future<void> _launch(Uri uri) async {
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(uri.toString())));
+    }
+  }
 
   void _toggle(String id) => setState(() => _open = _open == id ? null : id);
 
@@ -52,13 +82,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final notificationsEnabled = ref.watch(notificationsEnabledProvider);
     final lang = ref.watch(languageProvider);
     final isSw = lang == 'sw';
-    final profile = ref.watch(userProfileProvider).valueOrNull;
+    final contact = ref.watch(supportContactProvider).valueOrNull;
     String t(String en, String sw) => isSw ? sw : en;
-
-    final name = (profile?.fullName.trim().isNotEmpty ?? false) && profile!.fullName != 'User'
-        ? profile.fullName
-        : t('Student', 'Mwanafunzi');
-    final initials = name.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).map((w) => w[0]).take(2).join().toUpperCase();
     final bodyStyle = TextStyle(
       fontSize: 14,
       height: 1.6,
@@ -82,49 +107,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.l + 4),
-
-                SettingsGroup(label: t('Account', 'Akaunti'), children: [
-                  InkWell(
-                    key: const Key('settings-account'),
-                    onTap: () => context.go('/account'),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l, vertical: AppSpacing.m + 2),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: isDark ? AppColors.primaryLight.withValues(alpha: 0.14) : AppColors.primarySoft,
-                            child: Text(
-                              initials.isEmpty ? 'S' : initials,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                color: isDark ? AppColors.primaryLight : AppColors.primary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.m),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                                if ((profile?.phone ?? '').isNotEmpty || (profile?.email ?? '').isNotEmpty)
-                                  Text(
-                                    (profile!.phone.isNotEmpty ? profile.phone : profile.email),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.chevron_right_rounded, color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
-                        ],
-                      ),
-                    ),
-                  ),
-                ]),
 
                 SettingsGroup(label: t('Appearance', 'Mwonekano'), children: [
                   _Block(
@@ -184,6 +166,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     icon: Icons.help_outline_rounded,
                     title: t('Help and support', 'Msaada'),
                     onTap: () => context.push('/contact-support'),
+                  ),
+                  SettingsRow(
+                    key: const Key('settings-share'),
+                    icon: Icons.share_outlined,
+                    title: t('Share SomaSmart', 'Shiriki SomaSmart'),
+                    subtitle: t('Copies the link to SomaSmart', 'Inanakili kiungo cha SomaSmart'),
+                    onTap: () => _share(isSw),
+                  ),
+                  _ExpandRow(
+                    id: 'feedback',
+                    open: _open == 'feedback',
+                    onToggle: _toggle,
+                    icon: Icons.chat_bubble_outline_rounded,
+                    title: t('Send feedback', 'Toa maoni'),
+                    body: (contact != null && contact.isEmpty)
+                        ? Text(
+                            t('Feedback can be sent once SomaSmart has added its support contact.',
+                                'Kutuma maoni kutawezekana pindi SomaSmart itakapoweka mawasiliano yake ya msaada.'),
+                            style: bodyStyle,
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t('Write your feedback, then send it by WhatsApp or email.',
+                                    'Andika maoni yako, kisha uyatume kwa WhatsApp au email.'),
+                                style: bodyStyle,
+                              ),
+                              const SizedBox(height: AppSpacing.s),
+                              TextField(
+                                key: const Key('settings-feedback-text'),
+                                controller: _feedback,
+                                minLines: 3,
+                                maxLines: 6,
+                                maxLength: 1000,
+                                onChanged: (_) => setState(() {}),
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
+                                ),
+                              ),
+                              Wrap(
+                                spacing: AppSpacing.s,
+                                runSpacing: AppSpacing.s,
+                                children: [
+                                  if (contact?.feedbackWhatsapp('x') != null)
+                                    FilledButton(
+                                      key: const Key('settings-feedback-whatsapp'),
+                                      onPressed: _feedback.text.trim().isEmpty
+                                          ? null
+                                          : () => _launch(contact!.feedbackWhatsapp(_feedback.text)!),
+                                      child: Text(t('Send by WhatsApp', 'Tuma kwa WhatsApp')),
+                                    ),
+                                  if (contact?.feedbackMail('x') != null)
+                                    FilledButton(
+                                      key: const Key('settings-feedback-email'),
+                                      onPressed: _feedback.text.trim().isEmpty
+                                          ? null
+                                          : () => _launch(contact!.feedbackMail(_feedback.text)!),
+                                      child: Text(t('Send by email', 'Tuma kwa email')),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
                   ),
                   _ExpandRow(
                     id: 'about',
