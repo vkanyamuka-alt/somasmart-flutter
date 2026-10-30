@@ -84,9 +84,7 @@ class _PracticalLevelScreenState extends ConsumerState<PracticalLevelScreen> {
               for (final bench in _benches) ...[
                 _BenchCard(
                   bench: bench,
-                  count: repo
-                      .getPracticalsByLevelAndSubject(level: PracticalLevel.oLevel, subject: bench.subject)
-                      .length,
+                  practicals: repo.getPracticalsByLevelAndSubject(level: PracticalLevel.oLevel, subject: bench.subject),
                   isDark: isDark,
                   textPrimary: textPrimary,
                   textSecondary: textSecondary,
@@ -310,7 +308,7 @@ class _LevelSwitch extends StatelessWidget {
 
 class _BenchCard extends StatelessWidget {
   final _Bench bench;
-  final int count;
+  final List<PracticalModel> practicals;
   final bool isDark;
   final Color textPrimary;
   final Color textSecondary;
@@ -318,7 +316,7 @@ class _BenchCard extends StatelessWidget {
 
   const _BenchCard({
     required this.bench,
-    required this.count,
+    required this.practicals,
     required this.isDark,
     required this.textPrimary,
     required this.textSecondary,
@@ -349,7 +347,7 @@ class _BenchCard extends StatelessWidget {
                     Text(bench.name, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: textPrimary)),
                     const SizedBox(height: 2),
                     Text(
-                      '$count practicals',
+                      _countLabel(practicals),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -369,6 +367,13 @@ class _BenchCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "3 open, 6 coming soon": practicals with a simulation, and the rest.
+String _countLabel(List<PracticalModel> practicals) {
+  final open = practicals.where((p) => p.hasSimulationEngine).length;
+  final soon = practicals.length - open;
+  return soon > 0 ? '$open open, $soon coming soon' : '$open open';
 }
 
 /// A close-up of the subject's apparatus standing on a strip of the same table.

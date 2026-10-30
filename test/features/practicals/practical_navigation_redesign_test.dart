@@ -40,9 +40,9 @@ void main() {
       expect(find.text('Chemistry'), findsOneWidget);
       expect(find.text('Physics'), findsOneWidget);
       expect(find.text('Biology'), findsOneWidget);
-      expect(find.text('9 practicals'), findsOneWidget);
-      expect(find.text('3 practicals'), findsOneWidget);
-      expect(find.text('2 practicals'), findsOneWidget);
+      expect(find.text('3 open, 6 coming soon'), findsOneWidget);
+      expect(find.text('3 open'), findsOneWidget);
+      expect(find.text('2 open'), findsOneWidget);
 
       // A-Level shows that its practicals are still being built.
       await tester.tap(find.text('A-Level'));

@@ -322,7 +322,7 @@ class PracticalRepositoryImpl implements PracticalRepository {
       learningObjectivesSw: 'Pata kiwango sawa cha osmosis (isotonic point) kwa kuchora grafu ya mabadiliko ya uzito.',
       requiredEquipment: ['Cork Borer (Size 4)', 'Electronic Balance (0.01g)', 'Test Tubes & Rack', 'Petri Dishes', 'Scalpel'],
       requiredReagents: ['Fresh Irish Potatoes', '0.0M, 0.2M, 0.4M, 0.6M, 0.8M, 1.0M Sucrose Solutions'],
-      simulationEngineId: null,
+      simulationEngineId: 'osmosis',
       isCompleted: false,
       progressPercent: 0,
       thumbnailType: 'osmosis',

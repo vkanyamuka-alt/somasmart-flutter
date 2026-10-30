@@ -6,6 +6,7 @@ import '../../data/models/pendulum_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/pendulum_controller.dart';
 import '../widgets/pendulum_bench_painter.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/pendulum_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
 import '../../../../core/utils/learning_language.dart';
@@ -130,7 +131,7 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  widget.mode.name.toUpperCase(),
+                  widget.mode.id.toUpperCase(),
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 10.5,
@@ -199,22 +200,15 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
               // Workflow Step Bar
               _buildStepTabBar(state, notifier, isSwahili ? stepTitlesSw : stepTitlesEn, isDark),
 
-              // Main Interactive Body
+              // Bench and step controls: stacked on phones, side by side when wide.
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
+                child: PracticalSplitLayout(
+                  bench: _buildLaboratoryWorkbench(state, isDark, isSwahili),
+                  controls: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Virtual Apparatus Lab Bench (Always visible, animated)
-                      _buildLaboratoryWorkbench(state, isDark, isSwahili),
-                      const SizedBox(height: 12),
-
-                      // Step-specific interaction workspace
                       _buildStepWorkspace(state, notifier, isDark, isSwahili),
                       const SizedBox(height: 16),
-
-                      // Bottom Step Navigation Bar
                       _buildBottomStepNavigation(state, notifier, isDark, isSwahili),
                       const SizedBox(height: 24),
                     ],
@@ -323,9 +317,16 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
               size: Size.infinite,
               painter: PendulumBenchPainter(
                 lengthCm: state.pendulumLengthCm,
-                angleDeg: state.currentAngleDeg,
+                // While setting the release angle, show the bob held out at it.
+                angleDeg: state.currentStepIndex == 2 && !state.isOscillating
+                    ? state.deflectionAngleDeg
+                    : state.currentAngleDeg,
+                releaseAngleDeg: state.deflectionAngleDeg,
                 isOscillating: state.isOscillating,
                 isDark: isDark,
+                stopwatchSeconds: state.stopwatchElapsedSec,
+                oscillations: state.currentOscillations,
+                targetOscillations: state.targetOscillations,
                 inspectedItemKey: state.selectedInspectItemKey,
               ),
             ),
@@ -366,41 +367,6 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
             ),
           ),
 
-          // Live Oscillation & Period Pill
-          if (state.isOscillating || state.stopwatchElapsedSec > 0)
-            Positioned(
-              bottom: 10,
-              right: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: (isDark ? const Color(0xFF1E293B) : Colors.white).withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: state.isOscillating ? const Color(0xFF06B6D4) : AppColors.primary,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      state.isOscillating ? Icons.vibration_rounded : Icons.check_circle_outline,
-                      size: 14,
-                      color: state.isOscillating ? const Color(0xFF06B6D4) : const Color(0xFF10B981),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${state.currentOscillations} / ${state.targetOscillations} | ${state.stopwatchElapsedSec.toStringAsFixed(2)}s',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.heroNavyDark,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );

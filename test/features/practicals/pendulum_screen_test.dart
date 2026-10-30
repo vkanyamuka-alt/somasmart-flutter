@@ -7,6 +7,7 @@ import 'package:somasmart_flutter/features/practicals/data/models/practical_mode
 import 'package:somasmart_flutter/features/practicals/domain/pendulum_engine.dart';
 import 'package:somasmart_flutter/features/practicals/domain/practical_engine_registry.dart';
 import 'package:somasmart_flutter/features/practicals/presentation/screens/pendulum_screen.dart';
+import 'package:somasmart_flutter/features/practicals/presentation/widgets/pendulum_bench_painter.dart';
 
 void main() {
   setUp(() {
@@ -30,6 +31,23 @@ void main() {
   }
 
   group('Pendulum Screen Widget Tests', () {
+    testWidgets('puts the bench beside the controls on a wide screen without overflow', (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      SharedPreferences.setMockInitialValues({'somasmart_language': 'en'});
+      final prefs = await SharedPreferences.getInstance();
+
+      await tester.pumpWidget(buildTestableWidget(prefs: prefs));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(tester.takeException(), isNull);
+      final bench = tester.getRect(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is PendulumBenchPainter));
+      final controls = tester.getRect(find.text('Laboratory Apparatus'));
+      expect(controls.left, greaterThan(bench.right - 1), reason: 'controls sit to the right of the bench');
+    });
+
     testWidgets('renders workbench, header, step bar, and apparatus cards', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 1.0;
@@ -41,7 +59,7 @@ void main() {
       await tester.pumpWidget(buildTestableWidget(prefs: prefs, mode: PracticalMode.guidedPractice));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('GUIDEDPRACTICE'), findsOneWidget);
+      expect(find.text('GUIDED PRACTICE'), findsOneWidget);
       expect(find.text('Simple Pendulum (g)'), findsOneWidget);
       expect(find.text('1. Inspect Apparatus'), findsWidgets);
       expect(find.text('Laboratory Apparatus'), findsOneWidget);
