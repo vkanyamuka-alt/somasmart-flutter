@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -110,8 +111,14 @@ void main() {
 
       expect(find.text('Habari, Rehema'), findsOneWidget);
       expect(find.text('Jifunze.'), findsOneWidget);
-      expect(find.text('Jukwaa la Majadiliano'), findsOneWidget);
+      expect(find.text('Jukwaa la majadiliano'), findsOneWidget);
       expect(find.text('Jaribio la Bure'), findsOneWidget);
+
+      // Long tile names wrap to a second line instead of being cut off.
+      for (final name in ['Mitihani ya zamani', 'Majaribio na mitihani']) {
+        final text = tester.renderObject<RenderParagraph>(find.text(name));
+        expect(text.didExceedMaxLines, isFalse, reason: name);
+      }
     });
 
     testWidgets('never falls back to a made-up name', (tester) async {

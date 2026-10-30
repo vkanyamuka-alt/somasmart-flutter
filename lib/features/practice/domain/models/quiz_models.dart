@@ -152,19 +152,27 @@ class QuizQuestionModel {
   });
 
   factory QuizQuestionModel.fromJson(Map<String, dynamic> json) {
+    // Options are saved as [{text, correct}]; some older rows hold plain
+    // strings, and then the right one is the question's correct_answer.
+    final correctAnswer = json['correct_answer']?.toString();
+    QuizQuestionOption parseOption(dynamic o) {
+      if (o is String) {
+        final isRight = correctAnswer != null &&
+            o.trim().toLowerCase() == correctAnswer.trim().toLowerCase();
+        return QuizQuestionOption(text: o, correct: isRight);
+      }
+      return QuizQuestionOption.fromJson(o);
+    }
+
     List<QuizQuestionOption> parsedOptions = [];
     final rawOptions = json['options'];
     if (rawOptions is List) {
-      parsedOptions = rawOptions
-          .map((o) => QuizQuestionOption.fromJson(o))
-          .toList();
+      parsedOptions = rawOptions.map(parseOption).toList();
     } else if (rawOptions is String && rawOptions.isNotEmpty) {
       try {
         final decoded = jsonDecode(rawOptions);
         if (decoded is List) {
-          parsedOptions = decoded
-              .map((o) => QuizQuestionOption.fromJson(o))
-              .toList();
+          parsedOptions = decoded.map(parseOption).toList();
         }
       } catch (_) {}
     }
@@ -175,7 +183,7 @@ class QuizQuestionModel {
       questionText: json['question_text']?.toString() ?? '',
       questionType: json['question_type']?.toString().toLowerCase() ?? 'mcq',
       options: parsedOptions,
-      correctAnswer: json['correct_answer']?.toString(),
+      correctAnswer: correctAnswer,
       explanation: json['explanation']?.toString(),
       difficulty: json['difficulty']?.toString().toLowerCase() ?? 'medium',
       orderNum: (json['order_num'] is int)

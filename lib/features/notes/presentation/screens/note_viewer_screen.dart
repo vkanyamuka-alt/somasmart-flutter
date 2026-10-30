@@ -8,6 +8,8 @@ import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../../subjects/domain/models/syllabus_topic_model.dart';
+import '../../../subjects/presentation/controllers/subjects_controller.dart';
+import '../widgets/note_diagrams.dart';
 
 // ---------------------------------------------------------------------------
 // Provider: fetches a single note's full content by note ID.
@@ -220,38 +222,33 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
             ),
             overflow: TextOverflow.ellipsis,
           ),
-          bottom: TabBar(
-            controller: _tabController,
-            labelColor: AppColors.primary,
-            unselectedLabelColor: textSecondary,
-            indicatorColor: AppColors.primary,
-            indicatorWeight: 3,
-            labelStyle: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-            tabs: [
-              Tab(
-                icon: const Icon(Icons.description_outlined, size: 16),
-                text: lang == 'sw' ? 'Muhtasari' : 'Notes',
-              ),
-              Tab(
-                icon:
-                    const Icon(Icons.lightbulb_outline_rounded, size: 16),
-                text: lang == 'sw' ? 'Elewa' : 'Understand',
-              ),
-              Tab(
-                icon: const Icon(Icons.psychology_outlined, size: 16),
-                text: lang == 'sw' ? 'Kumbuka' : 'Memorize',
-              ),
-            ],
-          ),
         ),
         body: Column(
           children: [
-            // Note Header Card
+            // Where the note belongs, then the three views in one row
+            // (same order as the web note page).
             _buildHeaderCard(
                 context, isDark, lang, note, bgColor, borderColor),
+            Container(
+              color: bgColor,
+              child: TabBar(
+                controller: _tabController,
+                labelColor: isDark ? AppColors.primaryLight : AppColors.primary,
+                unselectedLabelColor: textSecondary,
+                indicatorColor: isDark ? AppColors.primaryLight : AppColors.primary,
+                indicatorWeight: 3,
+                dividerColor: borderColor,
+                labelStyle: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+                tabs: [
+                  Tab(text: lang == 'sw' ? 'Muhtasari' : 'Notes'),
+                  Tab(text: lang == 'sw' ? 'Elewa na Miliki' : 'Understand'),
+                  Tab(text: lang == 'sw' ? 'Kumbuka' : 'Memorize'),
+                ],
+              ),
+            ),
             // Tab content
             Expanded(
               child: TabBarView(
@@ -297,60 +294,51 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
     final textMuted =
         isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
 
+    final subjectName = _subjectName(note.subjectId, lang);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        border: Border(
-          bottom: BorderSide(color: borderColor),
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      color: bgColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Badges
-          Row(
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
             children: [
+              if (subjectName != null)
+                _Badge(
+                  text: subjectName,
+                  color: isDark ? AppColors.primaryLight : AppColors.primary,
+                ),
               _Badge(
-                text: note.language == 'both'
-                    ? 'SW + EN'
-                    : note.language.toUpperCase(),
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 8),
-              _Badge(
-                text: 'Form ${note.formLevel}',
-                color: AppColors.secondary,
+                text: lang == 'sw'
+                    ? 'Kidato cha ${note.formLevel}'
+                    : 'Form ${note.formLevel}',
+                color: textMuted,
               ),
             ],
           ),
           const SizedBox(height: 8),
-          // Author + view count
-          Row(
-            children: [
-              Icon(Icons.person_outline_rounded,
-                  size: 13, color: textMuted),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  note.authorName,
-                  style: TextStyle(fontSize: 12, color: textSecondary),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.visibility_outlined, size: 13, color: textMuted),
-              const SizedBox(width: 4),
-              Text(
-                '${note.downloads} ${lang == 'sw' ? 'wamesoma' : 'views'}',
-                style: TextStyle(fontSize: 12, color: textSecondary),
-              ),
-            ],
+          Text(
+            '${lang == 'sw' ? 'Mwandishi' : 'Author'}: ${note.authorName}',
+            style: TextStyle(fontSize: 12.5, color: textSecondary),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
+  }
+
+  /// The note's subject in the chosen language, from the app's catalogue.
+  String? _subjectName(String subjectId, String lang) {
+    final key = subjectMap[subjectId];
+    for (final s in initialSubjects) {
+      if (s.id == subjectId || (key != null && subjectMap[s.id] == key)) {
+        return lang == 'sw' ? s.nameSw : s.nameEn;
+      }
+    }
+    return null;
   }
 
   // ---------------------------------------------------------------------------
@@ -404,13 +392,22 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
       );
     }
 
-    // Render: Markdown with inline LaTeX support
+    // Markdown with inline LaTeX; diagram blocks are drawn in place
+    // (never shown as raw data).
+    final segments = splitNoteContent(content);
     return Scrollbar(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-        child: _SomaNoteMarkdown(
-          data: content,
-          isDark: isDark,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final seg in segments)
+              switch (seg) {
+                NoteMarkdown(:final text) =>
+                  _SomaNoteMarkdown(data: text, isDark: isDark),
+                NoteDiagramBlock() => NoteDiagram(block: seg, lang: lang),
+              },
+          ],
         ),
       ),
     );

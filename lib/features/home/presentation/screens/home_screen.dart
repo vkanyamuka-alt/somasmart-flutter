@@ -27,7 +27,7 @@ class HomeScreen extends ConsumerWidget {
     final quickAccessCards = [
       _QuickCardData(
         id: 'o-level',
-        title: 'O-level',
+        title: 'O-Level',
         icon: Icons.school_rounded,
         onTap: () {
           context.push('/subjects?level=o-level');
@@ -35,7 +35,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       _QuickCardData(
         id: 'a-level',
-        title: 'A-level',
+        title: 'A-Level',
         icon: Icons.menu_book_rounded,
         onTap: () {
           context.push('/subjects?level=a-level');
@@ -59,7 +59,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       _QuickCardData(
         id: 'past-papers',
-        title: isSwahili ? 'Mitihani ya Zamani' : 'Past Papers',
+        title: isSwahili ? 'Mitihani ya zamani' : 'Past papers',
         icon: Icons.assignment_turned_in_outlined,
         onTap: () {
           context.push('/quiz-exams?tab=past_paper');
@@ -67,7 +67,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       _QuickCardData(
         id: 'quiz-exams',
-        title: isSwahili ? 'Majaribio & Mitihani' : 'Quiz & Exams',
+        title: isSwahili ? 'Majaribio na mitihani' : 'Quizzes and exams',
         icon: Icons.fact_check_outlined,
         onTap: () {
           context.push('/quiz-exams');
@@ -75,7 +75,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       _QuickCardData(
         id: 'forum',
-        title: isSwahili ? 'Jukwaa la Majadiliano' : 'Discussion Forum',
+        title: isSwahili ? 'Jukwaa la majadiliano' : 'Discussion forum',
         icon: Icons.chat_bubble_outline_rounded,
         onTap: () {
           context.push('/forum');
@@ -113,9 +113,9 @@ class HomeScreen extends ConsumerWidget {
           ? (isSwahili ? 'Inaisha tarehe $expiryStr' : 'Expires $expiryStr')
           : null;
       badgeLabel = 'Premium';
-      badgeTextColor = const Color(0xFF059669);
-      badgeBgColor = isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5);
-      badgeDotColor = const Color(0xFF10B981);
+      badgeTextColor = isDark ? const Color(0xFF2FA866) : AppColors.success;
+      badgeBgColor = AppColors.success.withValues(alpha: isDark ? 0.16 : 0.12);
+      badgeDotColor = badgeTextColor;
     } else if (isTrialActive) {
       daysCount = profile.trialDaysLeft;
       statusTitle = isSwahili ? 'Siku Zilizobaki' : 'Days Remaining';
@@ -125,9 +125,11 @@ class HomeScreen extends ConsumerWidget {
           ? (isSwahili ? 'Inaisha tarehe $expiryStr' : 'Expires $expiryStr')
           : null;
       badgeLabel = isSwahili ? 'Jaribio la Bure' : 'Free Trial';
-      badgeTextColor = const Color(0xFFD97706);
-      badgeBgColor = isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7);
-      badgeDotColor = const Color(0xFFF59E0B);
+      badgeTextColor = isDark ? const Color(0xFFE0AA4F) : AppColors.warning;
+      badgeBgColor = isDark
+          ? AppColors.brandGold.withValues(alpha: 0.14)
+          : AppColors.brandGoldSoft;
+      badgeDotColor = isDark ? const Color(0xFFE0AA4F) : AppColors.brandGold;
     } else {
       daysCount = null;
       statusTitle = isSwahili ? 'Usajili Umeisha' : 'Subscription Expired';
@@ -136,7 +138,7 @@ class HomeScreen extends ConsumerWidget {
           : 'Upgrade to continue';
       badgeLabel = isSwahili ? 'Umeisha' : 'Expired';
       badgeTextColor = AppColors.error;
-      badgeBgColor = isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2);
+      badgeBgColor = AppColors.error.withValues(alpha: isDark ? 0.16 : 0.10);
       badgeDotColor = AppColors.error;
     }
 
@@ -172,14 +174,10 @@ class HomeScreen extends ConsumerWidget {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF0F1D32)
-                      : const Color(0xFFF0F7FF),
+                  color: isDark ? AppColors.darkBgSurface : Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF1E3A5F)
-                        : const Color(0xFFD0E2FF),
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                     width: 1,
                   ),
                   boxShadow: [
@@ -200,14 +198,14 @@ class HomeScreen extends ConsumerWidget {
                       height: 44,
                       decoration: BoxDecoration(
                         color: isDark
-                            ? const Color(0xFF1E293B)
-                            : const Color(0xFFDCEBFF),
+                            ? AppColors.primaryLight.withValues(alpha: 0.16)
+                            : AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.calendar_month_rounded,
                         size: 24,
-                        color: AppColors.primary,
+                        color: isDark ? AppColors.primaryLight : AppColors.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -224,20 +222,24 @@ class HomeScreen extends ConsumerWidget {
                               if (daysCount != null) ...[
                                 Text(
                                   '$daysCount ',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16.5,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.primary,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.lightTextPrimary,
                                     letterSpacing: -0.3,
                                   ),
                                 ),
                               ],
                               Text(
                                 statusTitle,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16.5,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
+                                  color: isDark
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.lightTextPrimary,
                                   letterSpacing: -0.3,
                                 ),
                               ),
@@ -294,10 +296,10 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
                       size: 20,
-                      color: AppColors.primary,
+                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                     ),
                   ],
                 ),
@@ -390,12 +392,13 @@ Widget _buildTile(_QuickCardData card, bool isDark) {
               card.title,
               style: TextStyle(
                 fontSize: 13.5,
+                height: 1.2,
                 fontWeight: FontWeight.w700,
                 color: isDark
                     ? AppColors.darkTextPrimary
                     : const Color(0xFF0F172A),
               ),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -511,8 +514,7 @@ class _DashboardHeroBanner extends StatelessWidget {
                             isSwahili
                                 ? 'Habari, $displayName'
                                 : 'Hi, $displayName',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
                             style: TextStyle(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w600,

@@ -163,6 +163,7 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
           final memorize = data.memorizeItems;
           final topics = data.topics;
           final hasAccess = data.hasAccess;
+          final accent = isDark ? AppColors.primaryLight : AppColors.primary;
 
           return NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -220,8 +221,8 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
                                     const SizedBox(height: 3),
                                     Text(
                                       lang == 'sw'
-                                          ? 'Kidato cha $selectedForm • Maudhui yako ya kujifunza'
-                                          : 'Form $selectedForm • Your learning resources',
+                                          ? 'Kidato cha $selectedForm${topics.isEmpty ? '' : ', mada ${topics.length}'}'
+                                          : 'Form $selectedForm${topics.isEmpty ? '' : ', ${topics.length} topics'}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: isDark
@@ -315,30 +316,21 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
                   delegate: _SliverTabBarDelegate(
                     TabBar(
                       controller: _tabController,
-                      labelColor: AppColors.primary,
+                      labelColor: accent,
                       unselectedLabelColor: isDark
                           ? AppColors.darkTextSecondary
                           : AppColors.lightTextSecondary,
-                      indicatorColor: AppColors.primary,
+                      indicatorColor: accent,
                       indicatorWeight: 3,
                       labelStyle: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
                       tabs: [
-                        Tab(
-                          icon: const Icon(Icons.description_outlined, size: 18),
-                          text: lang == 'sw' ? 'Muhtasari' : 'Notes',
-                        ),
-                        Tab(
-                          icon: const Icon(Icons.play_circle_outline_rounded,
-                              size: 18),
-                          text: lang == 'sw' ? 'Elewa na Miliki' : 'Understand',
-                        ),
-                        Tab(
-                          icon: const Icon(Icons.psychology_outlined, size: 18),
-                          text: lang == 'sw' ? 'Kumbuka' : 'Memorize',
-                        ),
+                        // Text only, so the three views stay one short row.
+                        Tab(text: lang == 'sw' ? 'Muhtasari' : 'Notes'),
+                        Tab(text: lang == 'sw' ? 'Elewa na Miliki' : 'Understand'),
+                        Tab(text: lang == 'sw' ? 'Kumbuka' : 'Memorize'),
                       ],
                     ),
                     isDark: isDark,
@@ -407,7 +399,9 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-/// 1. Notes Tab Content
+/// 1. Notes Tab Content: the subject's syllabus topics as one list, in order
+/// (same as the web subject page). A topic with notes lists them under its
+/// name; a topic without is a single quiet "Inakuja" line.
 class _NotesTabContent extends StatelessWidget {
   final List<SyllabusTopic> topics;
   final List<SubjectNoteItem> notes;
@@ -421,8 +415,19 @@ class _NotesTabContent extends StatelessWidget {
     required this.isDark,
   });
 
+  static bool _belongsTo(SubjectNoteItem n, SyllabusTopic topic) {
+    final text = '${n.title} ${n.description} ${n.topic ?? ""}'.toLowerCase();
+    return text.contains(topic.en.toLowerCase()) ||
+        text.contains(topic.sw.toLowerCase());
+  }
+
+  String _count(int n) =>
+      lang == 'sw' ? 'Muhtasari $n' : '$n ${n == 1 ? 'note' : 'notes'}';
+
   @override
   Widget build(BuildContext context) {
+    final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
     if (topics.isEmpty && notes.isEmpty) {
       return Center(
         child: Padding(
@@ -456,194 +461,222 @@ class _NotesTabContent extends StatelessWidget {
     }
 
     if (topics.isEmpty) {
-      return ListView.separated(
+      return ListView(
         padding: const EdgeInsets.all(16),
-        itemCount: notes.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 10),
-        itemBuilder: (ctx, index) => _NoteCard(note: notes[index], lang: lang),
+        children: [_NoteLinks(notes: notes, lang: lang)],
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: topics.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
-      itemBuilder: (ctx, index) {
-        final topic = topics[index];
-        final topicNotes = notes.where((n) {
-          final tEn = topic.en.toLowerCase();
-          final tSw = topic.sw.toLowerCase();
-          final text = '${n.title} ${n.description} ${n.topic ?? ""}'.toLowerCase();
-          return text.contains(tEn) || text.contains(tSw);
-        }).toList();
+    final perTopic = [
+      for (final t in topics) notes.where((n) => _belongsTo(n, t)).toList(),
+    ];
+    final extra =
+        notes.where((n) => !perTopic.any((list) => list.contains(n))).toList();
 
-        return Container(
-          padding: const EdgeInsets.all(14),
+    final rows = <Widget>[
+      for (var i = 0; i < topics.length; i++)
+        _TopicRow(
+          number: '${i + 1}',
+          name: lang == 'sw' ? topics[i].sw : topics[i].en,
+          status: perTopic[i].isEmpty
+              ? (lang == 'sw' ? 'Inakuja' : 'Coming soon')
+              : _count(perTopic[i].length),
+          isEmpty: perTopic[i].isEmpty,
+          isDark: isDark,
+          child: perTopic[i].isEmpty
+              ? null
+              : _NoteLinks(notes: perTopic[i], lang: lang),
+        ),
+      if (extra.isNotEmpty)
+        _TopicRow(
+          number: '+',
+          name: lang == 'sw' ? 'Maudhui ya ziada' : 'More resources',
+          status: _count(extra.length),
+          isEmpty: false,
+          isDark: isDark,
+          child: _NoteLinks(notes: extra, lang: lang),
+        ),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: [
+        Container(
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkBgSurface : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-            ),
+            border: Border.all(color: border),
           ),
+          clipBehavior: Clip.antiAlias,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '${index + 1}. ${lang == 'sw' ? topic.sw : topic.en}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (topicNotes.isEmpty)
-                Text(
-                  lang == 'sw'
-                      ? 'Bado hakuna muhtasari (Study Notes) wa mada hii.'
-                      : 'No study notes available for this topic yet.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: isDark
-                        ? AppColors.darkTextMuted
-                        : AppColors.lightTextMuted,
-                  ),
-                )
-              else
-                ...topicNotes.map(
-                  (note) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _NoteCard(note: note, lang: lang),
-                  ),
-                ),
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0) Divider(height: 1, thickness: 1, color: border),
+                rows[i],
+              ],
             ],
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
 
-class _NoteCard extends StatelessWidget {
-  final SubjectNoteItem note;
+/// One syllabus topic: number, name and how much it holds, then its notes.
+class _TopicRow extends StatelessWidget {
+  final String number;
+  final String name;
+  final String status;
+  final bool isEmpty;
+  final bool isDark;
+  final Widget? child;
+
+  const _TopicRow({
+    required this.number,
+    required this.name,
+    required this.status,
+    required this.isEmpty,
+    required this.isDark,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
+    final secondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    // Navy is lifted in dark mode so it stays readable (as on the web).
+    final accent = isDark ? AppColors.primaryLight : AppColors.primary;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14, 12, 14, child == null ? 12 : 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isEmpty
+                      ? muted.withValues(alpha: 0.12)
+                      : accent.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  number,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: isEmpty ? muted : accent,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    height: 1.3,
+                    fontWeight: isEmpty ? FontWeight.w500 : FontWeight.w700,
+                    color: isEmpty ? secondary : null,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                status,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isEmpty ? FontWeight.w500 : FontWeight.w600,
+                  color: isEmpty ? muted : accent,
+                ),
+              ),
+            ],
+          ),
+          if (child != null) ...[
+            const SizedBox(height: 10),
+            child!,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A topic's notes: one row each, the whole row opens the note.
+class _NoteLinks extends StatelessWidget {
+  final List<SubjectNoteItem> notes;
   final String lang;
 
-  const _NoteCard({required this.note, required this.lang});
+  const _NoteLinks({required this.notes, required this.lang});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final accent = isDark ? AppColors.primaryLight : AppColors.primary;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkBgBase : AppColors.lightBgContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  note.language == 'both'
-                      ? 'SW + EN'
-                      : note.language.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
+    return Column(
+      children: [
+        for (final note in notes)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Material(
+              color: isDark ? AppColors.darkBgBase : AppColors.lightBgContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: border),
               ),
-              Row(
-                children: [
-                  Icon(Icons.visibility_outlined,
-                      size: 13,
-                      color: isDark
-                          ? AppColors.darkTextMuted
-                          : AppColors.lightTextMuted),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${note.downloads} ${lang == 'sw' ? 'wamesoma' : 'views'}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark
-                          ? AppColors.darkTextMuted
-                          : AppColors.lightTextMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            note.title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          if (note.description.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              note.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary,
-                height: 1.35,
-              ),
-            ),
-          ],
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // Navigate to the Note Viewer, passing the note directly
-                // to avoid a redundant Supabase round-trip.
-                Navigator.push(
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                // Pass the note straight to the viewer (no second fetch).
+                onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => NoteViewerScreen(note: note),
                   ),
-                );
-              },
-              icon: const Icon(Icons.menu_book_rounded, size: 14),
-              label: Text(
-                lang == 'sw' ? 'Soma Muhtasari' : 'Read Notes',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
                 ),
-                elevation: 0,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Row(
+                      children: [
+                        Icon(Icons.description_outlined,
+                            size: 18, color: accent),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            note.title,
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          lang == 'sw' ? 'Soma' : 'Read',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: accent,
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_rounded,
+                            size: 18, color: accent),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
