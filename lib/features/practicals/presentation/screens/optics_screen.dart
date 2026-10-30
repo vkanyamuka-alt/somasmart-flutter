@@ -7,6 +7,7 @@ import '../../data/models/optics_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/optics_controller.dart';
 import '../widgets/optics_bench_painter.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/optics_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
 import '../../../../core/utils/learning_language.dart';
@@ -36,21 +37,21 @@ class OpticsScreen extends ConsumerWidget {
             _buildStepTabBar(ref, state, isDark, isSwahili),
 
             // Main Laboratory Viewport & Step Content
+            // Bench and step controls: stacked on phones, side by side when wide.
             Expanded(
-              child: SingleChildScrollView(
+              child: PracticalSplitLayout(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Column(
+                bench: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Dynamic Hint Banner
                     _buildHintBanner(state, isDark, isSwahili),
                     const SizedBox(height: 10),
-
-                    // Virtual Optics Laboratory Bench
                     _buildOpticsBench(context, ref, state, isDark, isSwahili),
-                    const SizedBox(height: 12),
-
-                    // Active Step Interactive Controls Card
+                  ],
+                ),
+                controls: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     _buildStepContentCard(context, ref, state, isDark, isSwahili),
                     const SizedBox(height: 16),
                   ],

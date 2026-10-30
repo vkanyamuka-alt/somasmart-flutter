@@ -38,6 +38,29 @@ class LabPaint {
     canvas.restore();
   }
 
+  /// A drawing board seen from above (ray tracing): soft wood filling the
+  /// canvas with a sheet of white paper held by drawing pins, the 700 x 380
+  /// box scaled evenly and centred. [draw] works in board units.
+  static void paintBoard(Canvas canvas, Size size, void Function() draw) {
+    final scale = math.min(size.width / 700.0, size.height / 380.0);
+    final dx = (size.width - 700 * scale) / 2;
+    final dy = (size.height - 380 * scale) / 2;
+    final all = Offset.zero & size;
+    canvas.drawRect(all, wood(all));
+    canvas.save();
+    canvas.translate(dx, dy);
+    canvas.scale(scale);
+    const paper = Rect.fromLTWH(24, 18, 652, 344);
+    canvas.drawRect(paper, Paint()..color = const Color(0xFFFDFDFB));
+    canvas.drawRect(paper, stroke(const Color(0xFFD9D4C7), 1));
+    for (final c in const [Offset(34, 28), Offset(666, 28), Offset(34, 352), Offset(666, 352)]) {
+      final r = Rect.fromCircle(center: c, radius: 5);
+      canvas.drawOval(r, radial(r, const [Color(0xFFFFFFFF), Color(0xFFB7C1CB), Color(0xFF5F6B77)], stops: const [0, 0.5, 1]));
+    }
+    draw();
+    canvas.restore();
+  }
+
   static void _wall(Canvas canvas, Size size, double scale, bool isDark) {
     final line = Paint()
       ..color = isDark ? const Color(0x1294A3B8) : const Color(0x10184E78)

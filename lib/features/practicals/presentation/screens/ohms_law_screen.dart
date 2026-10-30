@@ -6,6 +6,7 @@ import '../../data/models/practical_model.dart';
 import '../../data/models/ohms_law_state.dart';
 import '../controllers/ohms_law_controller.dart';
 import '../widgets/circuit_bench_painter.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/ohms_law_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
 import '../../../../core/utils/learning_language.dart';
@@ -95,9 +96,10 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                   onFinish: () => context.pop(),
                 ),
               )
-            : SingleChildScrollView(
+            // Bench and step controls: stacked on phones, side by side when wide.
+            : PracticalSplitLayout(
                 padding: const EdgeInsets.all(14),
-                child: Column(
+                bench: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Mode & Time Status Bar
@@ -112,8 +114,11 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
 
                     // Circuit Workspace Canvas
                     _buildCircuitCanvas(ohmsState, controller, isDark, isSwahili),
-                    const SizedBox(height: 14),
-
+                  ],
+                ),
+                controls: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     // Contextual Action Card according to Current Step
                     _buildStepControls(ohmsState, controller, isDark, isSwahili),
                     const SizedBox(height: 14),
@@ -357,9 +362,9 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
             AnimatedBuilder(
               animation: _animController,
               builder: (context, _) {
-                return SizedBox(
-                  height: 240,
-                  width: double.infinity,
+                // The bench drawing is 700 x 380; the box takes its shape.
+                return AspectRatio(
+                  aspectRatio: 700 / 380,
                   child: CustomPaint(
                     painter: CircuitBenchPainter(
                       isConnected: state.circuitConnected,
@@ -368,6 +373,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                       measuredCurrent: state.measuredCurrent,
                       animationProgress: _animController.value,
                       isDarkMode: isDark,
+                      supplyVoltage: state.voltageSetting,
                     ),
                   ),
                 );
