@@ -60,7 +60,7 @@ void main() {
       expect(find.text('DE-ENERGIZED'), findsOneWidget);
     });
 
-    testWidgets('Renders initial UI components in Kiswahili', (tester) async {
+    testWidgets('stays in English when the app is in Swahili', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -72,10 +72,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Title & Status in Swahili
-      expect(find.text("Uhakiki wa Sheria ya Ohm"), findsOneWidget);
-      expect(find.text('Mazoezi Yaliyoongozwa'), findsOneWidget);
-      expect(find.text('Vifaa'), findsOneWidget);
-      expect(find.text('Unganisha'), findsOneWidget);
+      expect(find.text("Ohm's Law Verification"), findsOneWidget);
+      expect(find.text('Connect'), findsOneWidget);
+      expect(find.text('Unganisha'), findsNothing);
     });
 
     testWidgets('Inspecting apparatus unlocks step advancement', (tester) async {

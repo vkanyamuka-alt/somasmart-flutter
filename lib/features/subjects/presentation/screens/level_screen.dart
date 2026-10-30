@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/section_widgets.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/models/subject_model.dart';
 import '../controllers/subjects_controller.dart';
+import '../../../../core/utils/learning_language.dart';
 
 /// O-Level / A-Level screen: first a card per form (or stream), then the
 /// chosen form's subjects as medium cards, several to a row. Same layout as
@@ -55,7 +55,7 @@ class _LevelScreenState extends ConsumerState<LevelScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sw = ref.watch(languageProvider) == 'sw';
+    final sw = learningLanguage() == 'sw';
     final counts = ref.watch(lessonCountsProvider).value ?? const <String, int>{};
     final choices = _choices(sw);
     final current = choices.where((c) => c.key == _selected).firstOrNull;

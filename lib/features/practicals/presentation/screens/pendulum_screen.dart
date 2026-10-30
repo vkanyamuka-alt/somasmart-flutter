@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/pendulum_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/pendulum_controller.dart';
 import '../widgets/pendulum_bench_painter.dart';
 import '../widgets/pendulum_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
+import '../../../../core/utils/learning_language.dart';
 
 class PendulumScreen extends ConsumerStatefulWidget {
   final PracticalMode mode;
@@ -80,7 +80,7 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(pendulumControllerProvider(widget.mode));
     final notifier = ref.read(pendulumControllerProvider(widget.mode).notifier);
-    final language = ref.watch(languageProvider);
+    final language = learningLanguage();
     final isSwahili = language == 'sw';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

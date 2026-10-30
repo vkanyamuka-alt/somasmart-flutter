@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:markdown/markdown.dart' as md;
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../../subjects/domain/models/syllabus_topic_model.dart';
 import '../../../subjects/presentation/controllers/subjects_controller.dart';
 import '../widgets/note_diagrams.dart';
+import '../../../../core/utils/learning_language.dart';
 
 // ---------------------------------------------------------------------------
 // Provider: fetches a single note's full content by note ID.
@@ -79,7 +79,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lang = ref.watch(languageProvider);
+    final lang = learningLanguage(widget.note?.subjectId);
 
     // If a note was passed directly, use it; otherwise fetch.
     if (widget.note != null) {
@@ -154,7 +154,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
             ),
           );
         }
-        return _buildScaffold(context, isDark, lang, note, isLoaded: true);
+        return _buildScaffold(context, isDark, learningLanguage(note.subjectId), note, isLoaded: true);
       },
     );
   }

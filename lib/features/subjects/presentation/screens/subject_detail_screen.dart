@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../notes/presentation/screens/note_viewer_screen.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/models/syllabus_topic_model.dart';
 import '../controllers/subjects_controller.dart';
+import '../../../../core/utils/learning_language.dart';
 
 /// Subject Detail Screen with 3 Tabs (Notes, Understand & Master, Memorize).
 /// Fully aligned with React `SubjectDetail.jsx`.
@@ -41,7 +41,7 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lang = ref.watch(languageProvider);
+    final lang = learningLanguage(widget.subjectId);
     final selectedForm = ref.watch(selectedFormLevelProvider);
     final detailAsync = ref.watch(subjectDetailProvider(widget.subjectId));
 

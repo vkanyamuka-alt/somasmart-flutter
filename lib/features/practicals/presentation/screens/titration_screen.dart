@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/practical_model.dart';
 import '../../data/models/titration_state.dart';
 import '../controllers/titration_controller.dart';
@@ -10,6 +9,7 @@ import '../widgets/burette_reading_lens.dart';
 import '../widgets/titration_bench_painter.dart';
 import '../widgets/titration_completion_card.dart';
 import '../widgets/workflow_step_bar.dart';
+import '../../../../core/utils/learning_language.dart';
 
 class TitrationScreen extends ConsumerStatefulWidget {
   final PracticalMode mode;
@@ -60,7 +60,7 @@ class _TitrationScreenState extends ConsumerState<TitrationScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final language = ref.watch(languageProvider);
+    final language = learningLanguage();
     final isSwahili = language == 'sw';
 
     final titrationState = ref.watch(titrationControllerProvider(widget.mode));

@@ -54,22 +54,23 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('O-Level opens on four form cards; a form shows its subjects as medium cards, two to a row', (tester) async {
+  testWidgets('O-Level opens on four form cards in English even when the app is in Swahili; a form shows its subjects two to a row', (tester) async {
     await pump(tester, 'o-level');
     for (final f in [1, 2, 3, 4]) {
-      expect(find.text('Kidato cha $f'), findsOneWidget);
+      expect(find.text('Form $f'), findsOneWidget);
     }
-    expect(find.text('Hisabati'), findsNothing, reason: 'no subjects until a form is chosen');
+    expect(find.text('Mathematics'), findsNothing, reason: 'no subjects until a form is chosen');
 
-    await tester.tap(find.text('Kidato cha 1'));
+    await tester.tap(find.text('Form 1'));
     await tester.pumpAndSettle();
     expect(container.read(selectedFormLevelProvider), 1, reason: 'the subject page reads the chosen form');
-    expect(find.text('Hisabati'), findsOneWidget);
-    expect(find.text('Maudhui 5'), findsWidgets, reason: 'real lesson counts (Biology, and the Form 1 card)');
-    expect(find.text('Inakuja'), findsWidgets, reason: 'subjects with no lessons yet say so');
+    expect(find.text('Mathematics'), findsOneWidget);
+    expect(find.text('Hisabati'), findsNothing, reason: 'learning screens are in English');
+    expect(find.text('5 lessons'), findsWidgets, reason: 'real lesson counts (Biology, and the Form 1 card)');
+    expect(find.text('Coming soon'), findsWidgets, reason: 'subjects with no lessons yet say so');
 
-    final maths = tester.getRect(find.text('Hisabati'));
-    final physics = tester.getRect(find.text('Fizikia'));
+    final maths = tester.getRect(find.text('Mathematics'));
+    final physics = tester.getRect(find.text('Physics'));
     expect((maths.top - physics.top).abs(), lessThan(2), reason: 'two subjects share a row on a phone');
     expect(tester.takeException(), isNull, reason: 'no overflow');
   });
@@ -90,10 +91,10 @@ void main() {
 
   testWidgets('wider screens fit more subjects to a row and still do not overflow', (tester) async {
     await pump(tester, 'o-level', width: 1024);
-    await tester.tap(find.text('Kidato cha 2'));
+    await tester.tap(find.text('Form 2'));
     await tester.pumpAndSettle();
-    final a = tester.getRect(find.text('Hisabati'));
-    final d = tester.getRect(find.text('Biolojia'));
+    final a = tester.getRect(find.text('Mathematics'));
+    final d = tester.getRect(find.text('Biology'));
     expect((a.top - d.top).abs(), lessThan(2), reason: 'four to a row at 1024px');
     expect(tester.takeException(), isNull);
   });

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/osmosis_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/osmosis_controller.dart';
 import '../widgets/osmosis_bench_painter.dart';
 import '../widgets/osmosis_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
+import '../../../../core/utils/learning_language.dart';
 
 class OsmosisScreen extends ConsumerStatefulWidget {
   final PracticalMode mode;
@@ -47,7 +47,7 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
   Widget build(BuildContext context) {
     final state = ref.watch(osmosisControllerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isSwahili = ref.watch(languageProvider) == 'sw';
+    final isSwahili = learningLanguage() == 'sw';
 
     return PopScope(
       canPop: false,

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/practical_model.dart';
 import '../../data/repositories/practical_repository_impl.dart';
 import '../widgets/practical_thumbnail_widget.dart';
+import '../../../../core/utils/learning_language.dart';
 
 class PracticalSubjectScreen extends ConsumerWidget {
   final PracticalLevel level;
@@ -20,7 +20,7 @@ class PracticalSubjectScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final language = ref.watch(languageProvider);
+    final language = learningLanguage();
     final isSwahili = language == 'sw';
     final repo = ref.watch(practicalRepositoryProvider);
 

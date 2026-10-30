@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/card_surface.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/models/quiz_models.dart';
 import '../controllers/quiz_controllers.dart';
+import '../../../../core/utils/learning_language.dart';
 
 /// Active interactive Quiz Session screen.
 /// Directly mirrors React `Quiz.jsx` state machine, instant feedback, timer, and attempt submission.
@@ -87,12 +87,12 @@ class _QuizSessionScreenState extends ConsumerState<QuizSessionScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lang = ref.watch(languageProvider);
     final userProfileAsync = ref.watch(userProfileProvider);
     final studentId = userProfileAsync.value?.id ?? '';
 
     // Fetch quiz & questions
     final quizAsync = ref.watch(quizDetailProvider(widget.quizId));
+    final lang = learningLanguage(quizAsync.value?.subjectId);
     final questionsAsync = ref.watch(quizQuestionsProvider(widget.quizId));
 
     // Handle initial state setup once data is loaded

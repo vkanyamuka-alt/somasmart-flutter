@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/practical_model.dart';
 import '../../data/models/rates_of_reaction_state.dart';
 import '../controllers/rates_of_reaction_controller.dart';
 import '../widgets/rates_of_reaction_bench_painter.dart';
 import '../widgets/rates_of_reaction_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
+import '../../../../core/utils/learning_language.dart';
 
 class RatesOfReactionScreen extends ConsumerStatefulWidget {
   final PracticalMode mode;
@@ -48,7 +48,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(ratesOfReactionControllerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isSwahili = ref.watch(languageProvider) == 'sw';
+    final isSwahili = learningLanguage() == 'sw';
 
     return PopScope(
       canPop: false,

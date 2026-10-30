@@ -32,11 +32,27 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Welcome to the'), findsOneWidget);
       expect(find.text('SomaSmart Simulation Laboratory'), findsOneWidget);
-      expect(find.text('Master Practical Science'), findsOneWidget);
-      expect(find.text('Select Academic Level'), findsOneWidget);
-      expect(find.text('O-Level Secondary'), findsOneWidget);
-      expect(find.text('A-Level Advanced'), findsOneWidget);
+      expect(find.text('O-Level'), findsOneWidget);
+      expect(find.text('A-Level'), findsOneWidget);
+      expect(find.text('Choose a bench'), findsOneWidget);
+      expect(find.text('Chemistry'), findsOneWidget);
+      expect(find.text('Physics'), findsOneWidget);
+      expect(find.text('Biology'), findsOneWidget);
+      expect(find.text('9 practicals'), findsOneWidget);
+      expect(find.text('3 practicals'), findsOneWidget);
+      expect(find.text('2 practicals'), findsOneWidget);
+
+      // A-Level shows that its practicals are still being built.
+      await tester.tap(find.text('A-Level'));
+      await tester.pumpAndSettle();
+      expect(find.text('A-Level practicals are on the way'), findsOneWidget);
+      expect(find.text('Chemistry'), findsNothing);
+
+      await tester.tap(find.text('Show O-Level practicals'));
+      await tester.pumpAndSettle();
+      expect(find.text('Choose a bench'), findsOneWidget);
     });
 
     testWidgets('2. PracticalSubjectSelectScreen renders Chemistry, Physics, Biology subject cards', (tester) async {
@@ -127,7 +143,7 @@ void main() {
       expect(find.text('Start Practical'), findsOneWidget);
     });
 
-    testWidgets('5. Kiswahili UI renders across all redesign screens', (tester) async {
+    testWidgets('5. The lab stays in English when the app is in Swahili', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -148,9 +164,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Maabara ya Vitendo ya SomaSmart'), findsOneWidget);
-      expect(find.text('Jifunze Sayansi kwa Vitendo'), findsOneWidget);
-      expect(find.text('Kidato cha 1–4 (O-Level)'), findsOneWidget);
+      expect(find.text('SomaSmart Simulation Laboratory'), findsOneWidget);
+      expect(find.text('Choose a bench'), findsOneWidget);
 
       // Subject Select in Swahili
       await tester.pumpWidget(
@@ -165,11 +180,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Masomo ya O-Level'), findsOneWidget);
-      expect(find.text('Chagua Somo la Sayansi'), findsOneWidget);
-      expect(find.text('Kemia'), findsOneWidget);
-      expect(find.text('Fizikia'), findsOneWidget);
-      expect(find.text('Biolojia'), findsOneWidget);
+      expect(find.text('O-Level Laboratory'), findsOneWidget);
+      expect(find.text('Chemistry'), findsOneWidget);
+      expect(find.text('Kemia'), findsNothing);
 
       // Mode Screen in Swahili
       await tester.pumpWidget(
@@ -184,11 +197,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Njia ya Jaribio'), findsOneWidget);
-      expect(find.text('Mazoezi Yenye Muongozo'), findsOneWidget);
-      expect(find.text('Hali ya Mtihani'), findsOneWidget);
-      expect(find.text('Ugunduzi Huria'), findsOneWidget);
-      expect(find.text('Anza Jaribio la Vitendo'), findsOneWidget);
+      expect(find.text('Guided Practice'), findsOneWidget);
+      expect(find.text('Start Practical'), findsOneWidget);
+      expect(find.text('Anza Jaribio la Vitendo'), findsNothing);
     });
   });
 }

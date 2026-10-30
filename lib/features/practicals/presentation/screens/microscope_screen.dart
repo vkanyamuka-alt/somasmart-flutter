@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/microscope_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/microscope_controller.dart';
 import '../widgets/microscope_viewfinder_painter.dart';
 import '../widgets/titration_completion_card.dart';
+import '../../../../core/utils/learning_language.dart';
 
 class MicroscopeScreen extends ConsumerStatefulWidget {
   final PracticalMode mode;
@@ -42,7 +42,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(microscopeControllerProvider(widget.mode));
     final controller = ref.read(microscopeControllerProvider(widget.mode).notifier);
-    final language = ref.watch(languageProvider);
+    final language = learningLanguage();
     debugPrint('BUILDING MicroscopeScreen with mode: ${widget.mode}');
     final isSwahili = language == 'sw';
     final isDark = Theme.of(context).brightness == Brightness.dark;

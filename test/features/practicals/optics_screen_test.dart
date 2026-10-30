@@ -94,7 +94,7 @@ void main() {
       expect(find.text('i = 30.0°'), findsOneWidget);
     });
 
-    testWidgets('renders Swahili bilingual UI properly', (tester) async {
+    testWidgets('stays in English when the app is in Swahili', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -105,10 +105,9 @@ void main() {
       await tester.pumpWidget(buildTestableWidget(prefs: prefs, mode: PracticalMode.guidedPractice));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Mche wa Kioo (Optics)'), findsOneWidget);
-      expect(find.text('1. Kagua Vifaa'), findsWidgets);
-      expect(find.text('Kagua Vifaa vya Maabara'), findsOneWidget);
-      expect(find.text('Mche wa Kioo wa Pembe Tatu'), findsOneWidget);
+      expect(find.text('Refraction & Prism'), findsOneWidget);
+      expect(find.text('1. Inspect Apparatus'), findsWidgets);
+      expect(find.text('1. Kagua Vifaa'), findsNothing);
     });
 
     testWidgets('opens Lab Notebook bottom sheet with event logs', (tester) async {

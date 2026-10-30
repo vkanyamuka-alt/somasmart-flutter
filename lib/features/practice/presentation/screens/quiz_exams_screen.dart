@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/card_surface.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/models/quiz_models.dart';
 import '../controllers/quiz_controllers.dart';
+import '../../../../core/utils/learning_language.dart';
 
 /// Screen representing the Quiz & Exams Discovery Hub.
 /// Faithfully mirrors React `QuizExams.jsx` functionality, tabs, filters, and access rules.
@@ -164,7 +164,7 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lang = ref.watch(languageProvider);
+    final lang = learningLanguage();
     final activeTab = ref.watch(quizTabFilterProvider);
     final selectedForm = ref.watch(quizFormFilterProvider);
     final quizzesAsync = ref.watch(quizListProvider);

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../../subjects/domain/models/syllabus_topic_model.dart';
 import '../../presentation/screens/note_viewer_screen.dart';
+import '../../../../core/utils/learning_language.dart';
 
 // ---------------------------------------------------------------------------
 // Provider: global notes search across all subjects
@@ -66,7 +66,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lang = ref.watch(languageProvider);
+    final lang = learningLanguage();
     final notesAsync = ref.watch(_allNotesProvider);
 
     return Scaffold(

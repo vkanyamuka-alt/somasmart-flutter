@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/card_surface.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/models/quiz_models.dart';
 import '../controllers/quiz_controllers.dart';
+import '../../../../core/utils/learning_language.dart';
 
 /// Results and Answer Review screen.
 /// Faithfully reproduces React `QuizResults.jsx` scoring, metrics, trophy display, and question-by-question review.
@@ -34,7 +34,7 @@ class QuizResultsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lang = ref.watch(languageProvider);
+    final lang = learningLanguage();
 
     final isOffline = attemptId == 'offline';
 

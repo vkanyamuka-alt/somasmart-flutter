@@ -1,381 +1,460 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/practical_model.dart';
 import '../../data/repositories/practical_repository_impl.dart';
 
-class PracticalLevelScreen extends ConsumerWidget {
+// The lab welcome: a lab table under a tiled wall, then an O-Level / A-Level
+// switch and one bench per subject. The lab is a learning screen, so it stays
+// in English whatever language the app is set to.
+
+const _labWallLight = Color(0xFFEEF3F8);
+const _labWallDark = Color(0xFF0F2134);
+const _tableTop = [Color(0xFFF3F6F9), Color(0xFFD2DBE4)];
+const _tableEdge = [Color(0xFF9DAEBF), Color(0xFF6F8399)];
+
+class _Bench {
+  final PracticalSubject subject;
+  final String name;
+  final String what;
+  final String picture;
+
+  const _Bench(this.subject, this.name, this.what, this.picture);
+}
+
+const _benches = [
+  _Bench(PracticalSubject.chemistry, 'Chemistry',
+      'Titration, gas preparation, rates of reaction, salts, electrolysis', 'assets/images/lab_chemistry.png'),
+  _Bench(PracticalSubject.physics, 'Physics', "Simple pendulum, Ohm's law, refraction through a prism",
+      'assets/images/lab_physics.png'),
+  _Bench(PracticalSubject.biology, 'Biology', 'Plant cells under the microscope, osmosis in potato',
+      'assets/images/lab_biology.png'),
+];
+
+class PracticalLevelScreen extends ConsumerStatefulWidget {
   const PracticalLevelScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final language = ref.watch(languageProvider);
-    final isSwahili = language == 'sw';
-    final repo = ref.watch(practicalRepositoryProvider);
+  ConsumerState<PracticalLevelScreen> createState() => _PracticalLevelScreenState();
+}
 
-    final allPracticals = repo.getAllPracticals();
-    final oLevelPracticals = allPracticals.where((p) => p.level == PracticalLevel.oLevel).toList();
-    final aLevelPracticals = allPracticals.where((p) => p.level == PracticalLevel.aLevel).toList();
+class _PracticalLevelScreenState extends ConsumerState<PracticalLevelScreen> {
+  PracticalLevel _level = PracticalLevel.oLevel;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final repo = ref.watch(practicalRepositoryProvider);
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          isSwahili ? 'Maabara ya Vitendo ya SomaSmart' : 'SomaSmart Simulation Laboratory',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
+        title: const Text('Laboratory', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back',
           onPressed: () => context.pop(),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Lab Hero Intro Banner
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
-                      : [AppColors.heroNavyDark, const Color(0xFF0058BE)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            _LabHero(isDark: isDark, textPrimary: textPrimary, textSecondary: textSecondary),
+            const SizedBox(height: 18),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: _LevelSwitch(
+                  level: _level,
+                  isDark: isDark,
+                  onChanged: (level) => setState(() => _level = level),
                 ),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.science_rounded, size: 14, color: Color(0xFF38BDF8)),
-                              const SizedBox(width: 4),
-                              Text(
-                                isSwahili ? 'SIMULIZI ZA MAABARA' : 'VIRTUAL SIMULATIONS',
-                                style: const TextStyle(
-                                  color: Color(0xFF38BDF8),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          isSwahili ? 'Jifunze Sayansi kwa Vitendo' : 'Master Practical Science',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.4,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          isSwahili
-                              ? 'Fanya majaribio halisi ya Kemia, Fizikia na Biolojia kwa kiwango cha NECTA.'
-                              : 'Interactive simulations aligned with NECTA O-Level & A-Level syllabi.',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.biotech_rounded,
-                      color: Color(0xFF38BDF8),
-                      size: 30,
-                    ),
-                  ),
-                ],
               ),
             ),
-            const SizedBox(height: 22),
-
-            // Select Level Heading
-            Text(
-              isSwahili ? 'Chagua Ngazi ya Masomo' : 'Select Academic Level',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white : AppColors.heroNavyDark,
+            const SizedBox(height: 18),
+            if (_level == PracticalLevel.oLevel) ...[
+              Text('Choose a bench', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary)),
+              const SizedBox(height: 12),
+              for (final bench in _benches) ...[
+                _BenchCard(
+                  bench: bench,
+                  count: repo
+                      .getPracticalsByLevelAndSubject(level: PracticalLevel.oLevel, subject: bench.subject)
+                      .length,
+                  isDark: isDark,
+                  textPrimary: textPrimary,
+                  textSecondary: textSecondary,
+                  onTap: () => context.push('/practical/o-level/${bench.subject.id}'),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ] else
+              _ALevelComing(
+                isDark: isDark,
+                textPrimary: textPrimary,
+                textSecondary: textSecondary,
+                onShowOLevel: () => setState(() => _level = PracticalLevel.oLevel),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              isSwahili
-                  ? 'Chagua darasa lako ili kuona majaribio yanayolingana na silabasi yako.'
-                  : 'Choose your academic tier to explore subject-specific laboratory practicals.',
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // O-Level Level Card
-            _LevelCard(
-              level: PracticalLevel.oLevel,
-              titleEn: 'O-Level Secondary',
-              titleSw: 'Kidato cha 1–4 (O-Level)',
-              subtitleEn: 'Standard Secondary Science Curriculum (Form 1–4)',
-              subtitleSw: 'Mtaala wa Sayansi wa Sekondari (Kidato cha 1–4)',
-              icon: Icons.school_rounded,
-              isAvailable: true,
-              availableCount: oLevelPracticals.length,
-              isDark: isDark,
-              isSwahili: isSwahili,
-              onTap: () => context.push('/practical/o-level'),
-            ),
-            const SizedBox(height: 14),
-
-            // A-Level Level Card
-            _LevelCard(
-              level: PracticalLevel.aLevel,
-              titleEn: 'A-Level Advanced',
-              titleSw: 'Kidato cha 5–6 (A-Level)',
-              subtitleEn: 'Advanced High School Science (Form 5–6)',
-              subtitleSw: 'Sayansi ya Ngazi ya Juu (Kidato cha 5–6)',
-              icon: Icons.workspace_premium_rounded,
-              isAvailable: false,
-              availableCount: aLevelPracticals.length,
-              isDark: isDark,
-              isSwahili: isSwahili,
-              onTap: () {
-                _showALevelNoticeDialog(context, isDark, isSwahili);
-              },
-            ),
           ],
         ),
       ),
     );
   }
+}
 
-  void _showALevelNoticeDialog(BuildContext context, bool isDark, bool isSwahili) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkBgSurface : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 20),
+class _LabHero extends StatelessWidget {
+  final bool isDark;
+  final Color textPrimary;
+  final Color textSecondary;
+
+  const _LabHero({required this.isDark, required this.textPrimary, required this.textSecondary});
+
+  @override
+  Widget build(BuildContext context) {
+    final wall = isDark ? _labWallDark : _labWallLight;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: wall,
+          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: CustomPaint(
+          painter: _TilePainter(isDark ? const Color(0x0F9CC3E4) : const Color(0x0F184E78)),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 26),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Welcome to the',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textSecondary),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'SomaSmart Simulation Laboratory',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 26,
+                          height: 1.12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.6,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Do your school science practicals on screen: titrate an acid, focus a microscope, '
+                        'time a pendulum. Each one follows the NECTA syllabus.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, height: 1.5, color: textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    // The drawing is never wider than 860; the table under it
+                    // runs the full width of the panel.
+                    final imageWidth = math.min(constraints.maxWidth, 860.0);
+                    final tableHeight = imageWidth * 62 / 1200;
+                    return SizedBox(
+                      width: constraints.maxWidth,
+                      height: imageWidth * 480 / 1200,
+                      child: Stack(
+                        alignment: Alignment.bottomCenter,
+                        children: [
+                          Positioned(left: 0, right: 0, bottom: 0, height: tableHeight, child: const _TableBand()),
+                          Image.asset(
+                            'assets/images/lab_bench.png',
+                            width: imageWidth,
+                            fit: BoxFit.fitWidth,
+                            semanticLabel:
+                                'A lab table with a burette over a conical flask, test tubes in a rack, a microscope, '
+                                'a Bunsen burner, a pendulum, a stopwatch and an ammeter',
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                isSwahili ? 'A-Level Inatengenezwa' : 'A-Level in Development',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : AppColors.heroNavyDark,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The lab table front: a light worktop over a darker edge, in the drawing's
+/// proportions (36 and 26 of 62 units).
+class _TableBand extends StatelessWidget {
+  const _TableBand();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          flex: 36,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: _tableTop),
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 26,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: _tableEdge),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TilePainter extends CustomPainter {
+  final Color color;
+
+  _TilePainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    for (double x = 0; x < size.width; x += 26) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y < size.height; y += 26) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_TilePainter oldDelegate) => oldDelegate.color != color;
+}
+
+class _LevelSwitch extends StatelessWidget {
+  final PracticalLevel level;
+  final bool isDark;
+  final ValueChanged<PracticalLevel> onChanged;
+
+  const _LevelSwitch({required this.level, required this.isDark, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = isDark ? AppColors.primaryLight : AppColors.primary;
+    Widget option(PracticalLevel value, String name, String forms) {
+      final selected = level == value;
+      final color = selected ? Colors.white : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary);
+      return Expanded(
+        child: Semantics(
+          selected: selected,
+          button: true,
+          child: Material(
+            color: selected ? accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(9),
+              onTap: () => onChanged(value),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 52),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(name, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: color)),
+                    Text(forms, style: TextStyle(fontSize: 11.5, color: color)),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-        content: Text(
-          isSwahili
-              ? 'Simulizi za maabara za A-Level (Kidato cha 5 na 6) bado zipo katika hatua ya utengenezaji na zitapatikana hivi karibuni.'
-              : 'Advanced Level practical simulations (Form 5 & 6) are currently in active development and will be released in an upcoming update.',
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              isSwahili ? 'Sawa, Nimeelewa' : 'Got It',
-              style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
-            ),
-          ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBgSurface : Colors.white,
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          option(PracticalLevel.oLevel, 'O-Level', 'Forms 1 to 4'),
+          const SizedBox(width: 2),
+          option(PracticalLevel.aLevel, 'A-Level', 'Forms 5 and 6'),
         ],
       ),
     );
   }
 }
 
-class _LevelCard extends StatelessWidget {
-  final PracticalLevel level;
-  final String titleEn;
-  final String titleSw;
-  final String subtitleEn;
-  final String subtitleSw;
-  final IconData icon;
-  final bool isAvailable;
-  final int availableCount;
+class _BenchCard extends StatelessWidget {
+  final _Bench bench;
+  final int count;
   final bool isDark;
-  final bool isSwahili;
+  final Color textPrimary;
+  final Color textSecondary;
   final VoidCallback onTap;
 
-  const _LevelCard({
-    required this.level,
-    required this.titleEn,
-    required this.titleSw,
-    required this.subtitleEn,
-    required this.subtitleSw,
-    required this.icon,
-    required this.isAvailable,
-    required this.availableCount,
+  const _BenchCard({
+    required this.bench,
+    required this.count,
     required this.isDark,
-    required this.isSwahili,
+    required this.textPrimary,
+    required this.textSecondary,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: isDark ? AppColors.darkBgSurface : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkBgSurface : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isAvailable
-                  ? (isDark ? AppColors.primary.withValues(alpha: 0.5) : AppColors.primary.withValues(alpha: 0.3))
-                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-              width: isAvailable ? 1.5 : 1.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
           child: Row(
             children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: isAvailable
-                      ? AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.1)
-                      : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: isAvailable
-                      ? AppColors.primary
-                      : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
-                  size: 26,
-                ),
-              ),
-              const SizedBox(width: 14),
+              _BenchPicture(asset: bench.picture, isDark: isDark),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            isSwahili ? titleSw : titleEn,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: isDark ? Colors.white : AppColors.heroNavyDark,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isAvailable
-                                ? (isDark ? const Color(0xFF065F46).withValues(alpha: 0.3) : const Color(0xFFECFDF5))
-                                : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: isAvailable
-                                  ? (isDark ? const Color(0xFF059669) : const Color(0xFFA7F3D0))
-                                  : Colors.transparent,
-                            ),
-                          ),
-                          child: Text(
-                            isAvailable
-                                ? (isSwahili ? '$availableCount Majaribio' : '$availableCount Practicals')
-                                : (isSwahili ? 'Inatengenezwa' : 'In Development'),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: isAvailable
-                                  ? (isDark ? const Color(0xFF34D399) : const Color(0xFF065F46))
-                                  : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
+                    Text(bench.name, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: textPrimary)),
+                    const SizedBox(height: 2),
                     Text(
-                      isSwahili ? subtitleSw : subtitleEn,
+                      '$count practicals',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                        height: 1.3,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.primaryLight : AppColors.primary,
                       ),
                     ),
+                    const SizedBox(height: 2),
+                    Text(bench.what, style: TextStyle(fontSize: 13, height: 1.4, color: textSecondary)),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
-                size: 22,
-              ),
+              const SizedBox(width: 6),
+              Icon(Icons.chevron_right_rounded, color: textSecondary, size: 22),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A close-up of the subject's apparatus standing on a strip of the same table.
+class _BenchPicture extends StatelessWidget {
+  final String asset;
+  final bool isDark;
+
+  const _BenchPicture({required this.asset, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    // The close-ups are 460 units tall; the table takes the bottom 62.
+    const height = 84.0;
+    const tableHeight = height * 62 / 460;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 76,
+        height: height,
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Positioned.fill(child: ColoredBox(color: isDark ? _labWallDark : _labWallLight)),
+            const Positioned(left: 0, right: 0, bottom: 0, height: tableHeight, child: _TableBand()),
+            Image.asset(asset, height: height, fit: BoxFit.fitHeight, excludeFromSemantics: true),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ALevelComing extends StatelessWidget {
+  final bool isDark;
+  final Color textPrimary;
+  final Color textSecondary;
+  final VoidCallback onShowOLevel;
+
+  const _ALevelComing({
+    required this.isDark,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.onShowOLevel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = isDark ? AppColors.primaryLight : AppColors.primary;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 28),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBgSurface : Colors.white,
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: isDark ? 0.18 : 0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(Icons.science_outlined, color: accent),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'A-Level practicals are on the way',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Chemistry, physics and biology practicals for Forms 5 and 6 are being built. '
+            'The O-Level practicals are open now.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, height: 1.45, color: textSecondary),
+          ),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: onShowOLevel,
+            style: FilledButton.styleFrom(backgroundColor: accent, minimumSize: const Size(0, 44)),
+            child: const Text('Show O-Level practicals'),
+          ),
+        ],
       ),
     );
   }

@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/optics_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/optics_controller.dart';
 import '../widgets/optics_bench_painter.dart';
 import '../widgets/optics_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
+import '../../../../core/utils/learning_language.dart';
 
 class OpticsScreen extends ConsumerWidget {
   final PracticalMode mode;
@@ -23,7 +23,7 @@ class OpticsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(opticsControllerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentLocale = ref.watch(languageProvider);
+    final currentLocale = learningLanguage();
     final isSwahili = currentLocale == 'sw';
 
     return Scaffold(

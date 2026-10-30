@@ -126,7 +126,7 @@ void main() {
       expect(find.text('Start Oscillations'), findsOneWidget);
     });
 
-    testWidgets('renders Swahili bilingual UI properly', (tester) async {
+    testWidgets('stays in English when the app is in Swahili', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -137,10 +137,9 @@ void main() {
       await tester.pumpWidget(buildTestableWidget(prefs: prefs, mode: PracticalMode.guidedPractice));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Penduli Rahisi (g)'), findsOneWidget);
-      expect(find.text('1. Kagua Vifaa'), findsWidgets);
-      expect(find.text('Vifaa vya Maabara'), findsOneWidget);
-      expect(find.text('Standi na Kishikio cha Chuma'), findsOneWidget);
+      expect(find.text('Simple Pendulum (g)'), findsOneWidget);
+      expect(find.text('1. Inspect Apparatus'), findsWidgets);
+      expect(find.text('1. Kagua Vifaa'), findsNothing);
     });
 
     testWidgets('opens Lab Notebook bottom sheet with event logs', (tester) async {
