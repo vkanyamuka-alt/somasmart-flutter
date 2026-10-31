@@ -12,8 +12,8 @@ import '../../../../core/theme/app_colors.dart';
 /// ```
 ///
 /// The web draws them interactively. Here circuits and geometry are drawn as
-/// still pictures from the same data; any other kind shows a card with its
-/// title. The raw data is never shown to the student.
+/// still pictures from the same data and images are shown; any other kind
+/// shows a card with its title. The raw data is never shown to the student.
 
 /// A piece of a note: plain markdown, or one diagram block.
 sealed class NoteSegment {
@@ -76,6 +76,17 @@ class NoteDiagram extends StatelessWidget {
     final ink = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final strong = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final muted = isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
+
+    final src = config?['src']?.toString().trim() ?? '';
+    if (block.type == 'image' && src.startsWith('http')) {
+      return NoteImage(
+        src: src,
+        alt: config?['alt']?.toString() ?? '',
+        caption: config?['caption']?.toString() ?? '',
+        width: config?['width']?.toString() ?? '100%',
+        lang: lang,
+      );
+    }
 
     Widget? drawing;
     if (config != null && block.type == 'circuit' && (config['components'] is List || config['wires'] is List)) {
@@ -152,6 +163,98 @@ class NoteDiagram extends StatelessWidget {
       default:
         return Icons.insights_rounded;
     }
+  }
+}
+
+/// An image added with the admin's Insert > Image: the picture at the width
+/// the admin chose, with its caption underneath (as on the website).
+class NoteImage extends StatelessWidget {
+  final String src;
+  final String alt;
+  final String caption;
+
+  /// "100%", "60%", "320px" or "320"; anything else means full width.
+  final String width;
+  final String lang;
+
+  const NoteImage({
+    super.key,
+    required this.src,
+    this.alt = '',
+    this.caption = '',
+    this.width = '100%',
+    required this.lang,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final muted = isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
+    final placeholder = isDark ? AppColors.darkBgSurface : const Color(0xFFF1F5F9);
+
+    Widget box(Widget child) => Container(
+          height: 180,
+          color: placeholder,
+          alignment: Alignment.center,
+          child: child,
+        );
+
+    Widget picture = Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Image.network(
+        src,
+        fit: BoxFit.contain,
+        semanticLabel: alt.isNotEmpty ? alt : (caption.isNotEmpty ? caption : null),
+        // A grey box with a spinner until the first frame arrives.
+        frameBuilder: (context, child, frame, sync) => sync || frame != null
+            ? child
+            : box(const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
+        errorBuilder: (context, error, stack) => box(Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.broken_image_outlined, color: muted),
+            const SizedBox(height: 6),
+            Text(
+              lang == 'sw' ? 'Picha haikuweza kupakuliwa' : 'The image could not load',
+              style: TextStyle(fontSize: 12.5, color: muted),
+            ),
+          ],
+        )),
+      ),
+    );
+
+    final w = width.trim();
+    final percent = RegExp(r'^(\d+(?:\.\d+)?)%$').firstMatch(w);
+    final pixels = RegExp(r'^(\d+(?:\.\d+)?)(px)?$').firstMatch(w);
+    if (percent != null) {
+      final f = (double.parse(percent[1]!) / 100).clamp(0.1, 1.0);
+      picture = FractionallySizedBox(widthFactor: f, child: picture);
+    } else if (pixels != null) {
+      picture = ConstrainedBox(constraints: BoxConstraints(maxWidth: double.parse(pixels[1]!)), child: picture);
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 14),
+      child: Column(
+        children: [
+          picture,
+          if (caption.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                caption,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: muted),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 

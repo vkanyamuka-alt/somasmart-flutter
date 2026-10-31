@@ -88,4 +88,32 @@ void main() {
     expect(find.textContaining('"type"'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('an inserted image shows the picture at its width, with its caption', (tester) async {
+    // As written by the admin's Insert > Image.
+    const note = 'Before\n\n```somasmart-image\n'
+        '{"src":"https://example.com/notes/images/slope.png","alt":"Ball on a slope",'
+        '"caption":"Figure 1: Forces on a slope","width":"60%"}\n```\n\nAfter';
+    final block = splitNoteContent(note).whereType<NoteDiagramBlock>().single;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: SingleChildScrollView(child: NoteDiagram(block: block, lang: 'en'))),
+    ));
+    await tester.pump();
+
+    final image = tester.widget<Image>(find.byType(Image));
+    expect((image.image as NetworkImage).url, 'https://example.com/notes/images/slope.png');
+    expect(image.semanticLabel, 'Ball on a slope');
+    expect(find.text('Figure 1: Forces on a slope'), findsOneWidget);
+    expect(tester.widget<FractionallySizedBox>(find.byType(FractionallySizedBox)).widthFactor, 0.6);
+    // Not the "shown on the website" card, and no raw data.
+    expect(find.textContaining('SomaSmart website'), findsNothing);
+    expect(find.textContaining('"src"'), findsNothing);
+  });
+
+  testWidgets('an image block without a picture address falls back to the card', (tester) async {
+    final block = splitNoteContent('```somasmart-image\n{"title":"Photo","src":""}\n```').single as NoteDiagramBlock;
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: NoteDiagram(block: block, lang: 'en'))));
+    expect(find.byType(Image), findsNothing);
+    expect(find.text('Photo'), findsOneWidget);
+  });
 }
