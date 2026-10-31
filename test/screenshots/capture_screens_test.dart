@@ -22,7 +22,6 @@ import 'package:somasmart_flutter/features/account/presentation/controllers/acco
 import 'package:somasmart_flutter/features/home/presentation/screens/home_screen.dart';
 import 'package:somasmart_flutter/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:somasmart_flutter/features/settings/presentation/screens/settings_screen.dart';
-import 'package:somasmart_flutter/features/subjects/presentation/controllers/subjects_controller.dart';
 import 'package:somasmart_flutter/features/subjects/presentation/screens/level_screen.dart';
 
 const _captureDir = String.fromEnvironment('CAPTURE_DIR');
@@ -95,7 +94,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           languageProvider.overrideWith((ref) => _Lang(lang)),
           userProfileProvider.overrideWith(() => _Profile(student)),
-          lessonCountsProvider.overrideWith((ref) async => {'mathematics|1': 1, 'physics|1': 1, 'chemistry|1': 2, 'biology|1': 5}),
+    
         ],
         child: MaterialApp(
           debugShowCheckedModeBanner: false,

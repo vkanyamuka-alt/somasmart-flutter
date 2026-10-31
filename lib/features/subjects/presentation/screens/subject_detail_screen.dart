@@ -157,7 +157,6 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
           ),
         ),
         data: (data) {
-          final subject = data.subject;
           final notes = data.notes;
           final materials = data.materials;
           final memorize = data.memorizeItems;
@@ -170,73 +169,12 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
               return [
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                    // Only the Premium banner sits here; no gap without it.
+                    padding: hasAccess ? EdgeInsets.zero : const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Subject Header Info Box
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color:
-                                isDark ? AppColors.darkBgSurface : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.darkBorder
-                                  : AppColors.lightBorder,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 52,
-                                height: 52,
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Icon(
-                                  subject.iconData,
-                                  color: AppColors.primary,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      lang == 'sw'
-                                          ? subject.nameSw
-                                          : subject.nameEn,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      lang == 'sw'
-                                          ? 'Kidato cha $selectedForm${topics.isEmpty ? '' : ', mada ${topics.length}'}'
-                                          : 'Form $selectedForm${topics.isEmpty ? '' : ', ${topics.length} topics'}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isDark
-                                            ? AppColors.darkTextSecondary
-                                            : AppColors.lightTextSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
+                        // The app bar already names the subject and form.
                         // Subscription Paywall Banner
                         if (!hasAccess) ...[
                           const SizedBox(height: 12),
@@ -399,9 +337,9 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-/// 1. Notes Tab Content: the subject's syllabus topics as one list, in order
-/// (same as the web subject page). A topic with notes lists them under its
-/// name; a topic without is a single quiet "Inakuja" line.
+/// 1. Notes Tab Content: the subject's syllabus topics in order, each its own
+/// card (same as the web subject page). A topic with notes lists them under
+/// its name; a topic without is a quiet card.
 class _NotesTabContent extends StatelessWidget {
   final List<SyllabusTopic> topics;
   final List<SubjectNoteItem> notes;
@@ -421,13 +359,9 @@ class _NotesTabContent extends StatelessWidget {
         text.contains(topic.sw.toLowerCase());
   }
 
-  String _count(int n) =>
-      lang == 'sw' ? 'Muhtasari $n' : '$n ${n == 1 ? 'note' : 'notes'}';
 
   @override
   Widget build(BuildContext context) {
-    final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
-
     if (topics.isEmpty && notes.isEmpty) {
       return Center(
         child: Padding(
@@ -478,9 +412,6 @@ class _NotesTabContent extends StatelessWidget {
         _TopicRow(
           number: '${i + 1}',
           name: lang == 'sw' ? topics[i].sw : topics[i].en,
-          status: perTopic[i].isEmpty
-              ? (lang == 'sw' ? 'Inakuja' : 'Coming soon')
-              : _count(perTopic[i].length),
           isEmpty: perTopic[i].isEmpty,
           isDark: isDark,
           child: perTopic[i].isEmpty
@@ -491,42 +422,26 @@ class _NotesTabContent extends StatelessWidget {
         _TopicRow(
           number: '+',
           name: lang == 'sw' ? 'Maudhui ya ziada' : 'More resources',
-          status: _count(extra.length),
           isEmpty: false,
           isDark: isDark,
           child: _NoteLinks(notes: extra, lang: lang),
         ),
     ];
 
-    return ListView(
+    return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkBgSurface : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: border),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0) Divider(height: 1, thickness: 1, color: border),
-                rows[i],
-              ],
-            ],
-          ),
-        ),
-      ],
+      itemCount: rows.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      itemBuilder: (_, i) => rows[i],
     );
   }
 }
 
-/// One syllabus topic: number, name and how much it holds, then its notes.
+/// One syllabus topic as a card: number and name, then its notes. A topic
+/// without notes yet is a quiet card with no fill.
 class _TopicRow extends StatelessWidget {
   final String number;
   final String name;
-  final String status;
   final bool isEmpty;
   final bool isDark;
   final Widget? child;
@@ -534,7 +449,6 @@ class _TopicRow extends StatelessWidget {
   const _TopicRow({
     required this.number,
     required this.name,
-    required this.status,
     required this.isEmpty,
     required this.isDark,
     this.child,
@@ -548,7 +462,12 @@ class _TopicRow extends StatelessWidget {
     // Navy is lifted in dark mode so it stays readable (as on the web).
     final accent = isDark ? AppColors.primaryLight : AppColors.primary;
 
-    return Padding(
+    return Container(
+      decoration: BoxDecoration(
+        color: isEmpty ? null : (isDark ? AppColors.darkBgSurface : Colors.white),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+      ),
       padding: EdgeInsets.fromLTRB(14, 12, 14, child == null ? 12 : 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -584,15 +503,6 @@ class _TopicRow extends StatelessWidget {
                     fontWeight: isEmpty ? FontWeight.w500 : FontWeight.w700,
                     color: isEmpty ? secondary : null,
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                status,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isEmpty ? FontWeight.w500 : FontWeight.w600,
-                  color: isEmpty ? muted : accent,
                 ),
               ),
             ],

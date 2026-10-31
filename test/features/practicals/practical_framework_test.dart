@@ -141,7 +141,7 @@ void main() {
       final repo = PracticalRepositoryImpl();
       final titration = repo.getPracticalById('titration');
       expect(titration, isNotNull);
-      expect(titration?.title, equals('Acid–Base Titration (HCl vs NaOH)'));
+      expect(titration?.title, equals('Acid–Base Titration'));
       expect(titration?.hasSimulationEngine, isTrue);
       expect(titration?.simulationEngineId, equals('acid_base_titration'));
 

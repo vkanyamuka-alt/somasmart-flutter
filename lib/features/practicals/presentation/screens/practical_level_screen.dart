@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/practical_model.dart';
-import '../../data/repositories/practical_repository_impl.dart';
 
 // The lab welcome: a lab table under a tiled wall, then an O-Level / A-Level
 // switch and one bench per subject. The lab is a learning screen, so it stays
@@ -19,19 +18,16 @@ const _tableEdge = [Color(0xFF9DAEBF), Color(0xFF6F8399)];
 class _Bench {
   final PracticalSubject subject;
   final String name;
-  final String what;
   final String picture;
 
-  const _Bench(this.subject, this.name, this.what, this.picture);
+  const _Bench(this.subject, this.name, this.picture);
 }
 
+// One bench per subject, shown by its apparatus and name.
 const _benches = [
-  _Bench(PracticalSubject.chemistry, 'Chemistry',
-      'Titration, gas preparation, rates of reaction, salts, electrolysis', 'assets/images/lab_chemistry.png'),
-  _Bench(PracticalSubject.physics, 'Physics', "Simple pendulum, Ohm's law, refraction through a prism",
-      'assets/images/lab_physics.png'),
-  _Bench(PracticalSubject.biology, 'Biology', 'Plant cells under the microscope, osmosis in potato',
-      'assets/images/lab_biology.png'),
+  _Bench(PracticalSubject.chemistry, 'Chemistry', 'assets/images/lab_chemistry.png'),
+  _Bench(PracticalSubject.physics, 'Physics', 'assets/images/lab_physics.png'),
+  _Bench(PracticalSubject.biology, 'Biology', 'assets/images/lab_biology.png'),
 ];
 
 class PracticalLevelScreen extends ConsumerStatefulWidget {
@@ -47,7 +43,6 @@ class _PracticalLevelScreenState extends ConsumerState<PracticalLevelScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final repo = ref.watch(practicalRepositoryProvider);
     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
@@ -79,12 +74,11 @@ class _PracticalLevelScreenState extends ConsumerState<PracticalLevelScreen> {
             ),
             const SizedBox(height: 18),
             if (_level == PracticalLevel.oLevel) ...[
-              Text('Choose a bench', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary)),
+              Text('Choose a subject', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary)),
               const SizedBox(height: 12),
               for (final bench in _benches) ...[
                 _BenchCard(
                   bench: bench,
-                  practicals: repo.getPracticalsByLevelAndSubject(level: PracticalLevel.oLevel, subject: bench.subject),
                   isDark: isDark,
                   textPrimary: textPrimary,
                   textSecondary: textSecondary,
@@ -259,7 +253,7 @@ class _LevelSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = isDark ? AppColors.primaryLight : AppColors.primary;
-    Widget option(PracticalLevel value, String name, String forms) {
+    Widget option(PracticalLevel value, String name) {
       final selected = level == value;
       final color = selected ? Colors.white : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary);
       return Expanded(
@@ -273,13 +267,9 @@ class _LevelSwitch extends StatelessWidget {
               borderRadius: BorderRadius.circular(9),
               onTap: () => onChanged(value),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 52),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(name, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: color)),
-                    Text(forms, style: TextStyle(fontSize: 11.5, color: color)),
-                  ],
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Center(
+                  child: Text(name, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: color)),
                 ),
               ),
             ),
@@ -297,9 +287,9 @@ class _LevelSwitch extends StatelessWidget {
       ),
       child: Row(
         children: [
-          option(PracticalLevel.oLevel, 'O-Level', 'Forms 1 to 4'),
+          option(PracticalLevel.oLevel, 'O-Level'),
           const SizedBox(width: 2),
-          option(PracticalLevel.aLevel, 'A-Level', 'Forms 5 and 6'),
+          option(PracticalLevel.aLevel, 'A-Level'),
         ],
       ),
     );
@@ -308,7 +298,6 @@ class _LevelSwitch extends StatelessWidget {
 
 class _BenchCard extends StatelessWidget {
   final _Bench bench;
-  final List<PracticalModel> practicals;
   final bool isDark;
   final Color textPrimary;
   final Color textSecondary;
@@ -316,7 +305,6 @@ class _BenchCard extends StatelessWidget {
 
   const _BenchCard({
     required this.bench,
-    required this.practicals,
     required this.isDark,
     required this.textPrimary,
     required this.textSecondary,
@@ -341,23 +329,7 @@ class _BenchCard extends StatelessWidget {
               _BenchPicture(asset: bench.picture, isDark: isDark),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(bench.name, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: textPrimary)),
-                    const SizedBox(height: 2),
-                    Text(
-                      _countLabel(practicals),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.primaryLight : AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(bench.what, style: TextStyle(fontSize: 13, height: 1.4, color: textSecondary)),
-                  ],
-                ),
+                child: Text(bench.name, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: textPrimary)),
               ),
               const SizedBox(width: 6),
               Icon(Icons.chevron_right_rounded, color: textSecondary, size: 22),
@@ -367,13 +339,6 @@ class _BenchCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// "3 open, 6 coming soon": practicals with a simulation, and the rest.
-String _countLabel(List<PracticalModel> practicals) {
-  final open = practicals.where((p) => p.hasSimulationEngine).length;
-  final soon = practicals.length - open;
-  return soon > 0 ? '$open open, $soon coming soon' : '$open open';
 }
 
 /// A close-up of the subject's apparatus standing on a strip of the same table.

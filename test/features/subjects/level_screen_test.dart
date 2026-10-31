@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:somasmart_flutter/core/theme/app_theme.dart';
 import 'package:somasmart_flutter/core/theme/theme_provider.dart';
@@ -31,7 +32,8 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  Future<void> pump(WidgetTester tester, String level, {double width = 390, String lang = 'sw'}) async {
+  // The level screens inside the app's routes, starting at [location].
+  Future<void> pump(WidgetTester tester, String location, {double width = 390, String lang = 'sw'}) async {
     tester.view.physicalSize = Size(width, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -39,60 +41,83 @@ void main() {
       sharedPreferencesProvider.overrideWithValue(prefs),
       languageProvider.overrideWith((ref) => _Lang(lang)),
       userProfileProvider.overrideWith(() => _Profile()),
-      // Form 1 Biology has 5 notes/lessons; everything else is still empty.
-      lessonCountsProvider.overrideWith((ref) async => {'biology|1': 5}),
     ]);
     addTearDown(container.dispose);
+    final router = GoRouter(initialLocation: location, routes: [
+      GoRoute(path: '/subjects', builder: (c, s) => LevelScreen(level: s.uri.queryParameters['level'] ?? 'o-level')),
+      GoRoute(
+        path: '/subjects/:level/:choice',
+        builder: (c, s) => LevelScreen(level: s.pathParameters['level']!, choice: s.pathParameters['choice']),
+      ),
+      GoRoute(path: '/subjects/:id', builder: (c, s) => Scaffold(body: Text('subject ${s.pathParameters['id']}'))),
+    ]);
     final theme = AppTheme.lightTheme;
     await tester.pumpWidget(UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(
+      child: MaterialApp.router(
         theme: theme.copyWith(textTheme: theme.textTheme.apply(fontFamily: 'Roboto')),
-        home: LevelScreen(level: level),
+        routerConfig: router,
       ),
     ));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('O-Level opens on four form cards in English even when the app is in Swahili; a form shows its subjects two to a row', (tester) async {
-    await pump(tester, 'o-level');
+  testWidgets('O-Level shows four form cards, names only, in English even when the app is in Swahili', (tester) async {
+    await pump(tester, '/subjects?level=o-level');
     for (final f in [1, 2, 3, 4]) {
       expect(find.text('Form $f'), findsOneWidget);
     }
-    expect(find.text('Mathematics'), findsNothing, reason: 'no subjects until a form is chosen');
+    expect(find.textContaining('subjects'), findsNothing, reason: 'no counts on form cards');
+    expect(find.textContaining('lesson'), findsNothing);
+    expect(find.text('Mathematics'), findsNothing, reason: 'subjects are on the form screen');
+    expect(tester.takeException(), isNull);
+  });
 
+  testWidgets('a form opens its own screen with its subjects, two to a row, and Back returns to the forms', (tester) async {
+    await pump(tester, '/subjects?level=o-level');
     await tester.tap(find.text('Form 1'));
     await tester.pumpAndSettle();
-    expect(container.read(selectedFormLevelProvider), 1, reason: 'the subject page reads the chosen form');
+
+    expect(find.widgetWithText(AppBar, 'Form 1'), findsOneWidget, reason: 'the form is its own screen');
+    expect(find.text('Form 2'), findsNothing);
     expect(find.text('Mathematics'), findsOneWidget);
     expect(find.text('Hisabati'), findsNothing, reason: 'learning screens are in English');
-    expect(find.text('5 lessons'), findsWidgets, reason: 'real lesson counts (Biology, and the Form 1 card)');
-    expect(find.text('Coming soon'), findsWidgets, reason: 'subjects with no lessons yet say so');
-
+    expect(find.text('Coming soon'), findsNothing, reason: 'subject cards carry a name only');
     final maths = tester.getRect(find.text('Mathematics'));
     final physics = tester.getRect(find.text('Physics'));
     expect((maths.top - physics.top).abs(), lessThan(2), reason: 'two subjects share a row on a phone');
-    expect(tester.takeException(), isNull, reason: 'no overflow');
+
+    await tester.tap(find.text('Biology'));
+    await tester.pumpAndSettle();
+    expect(container.read(selectedFormLevelProvider), 1, reason: 'the subject page reads the chosen form');
+    expect(find.text('subject 4'), findsOneWidget);
+
+    tester.state<NavigatorState>(find.byType(Navigator).last).pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Form 3'), findsOneWidget, reason: 'Back returns to the form cards');
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('A-Level opens on two stream cards with the same subjects as the web', (tester) async {
-    await pump(tester, 'a-level', lang: 'en');
+  testWidgets('A-Level streams open with the same subjects as the web', (tester) async {
+    await pump(tester, '/subjects?level=a-level', lang: 'en');
     expect(find.text('Science'), findsOneWidget);
     expect(find.text('Arts & Business'), findsOneWidget);
 
     await tester.tap(find.text('Arts & Business'));
     await tester.pumpAndSettle();
-    expect(container.read(selectedFormLevelProvider), 5);
     for (final name in ['History', 'Economics', 'Commerce', 'English Language', 'Kiswahili', 'Geography']) {
       expect(find.text(name), findsOneWidget, reason: name);
     }
+    await tester.tap(find.text('Economics'));
+    await tester.pumpAndSettle();
+    expect(container.read(selectedFormLevelProvider), 5);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('wider screens fit more subjects to a row and still do not overflow', (tester) async {
-    await pump(tester, 'o-level', width: 1024);
-    await tester.tap(find.text('Form 2'));
-    await tester.pumpAndSettle();
+    await pump(tester, '/subjects/o-level/2', width: 1024);
     final a = tester.getRect(find.text('Mathematics'));
     final d = tester.getRect(find.text('Biology'));
     expect((a.top - d.top).abs(), lessThan(2), reason: 'four to a row at 1024px');

@@ -263,31 +263,3 @@ final subjectDetailProvider =
     hasAccess: hasAccess,
   );
 });
-
-/// Notes and lessons published per subject and form, keyed
-/// `'<subject key>|<form>'` (subject key from [subjectMap]). The level screen
-/// shows these counts on its form and subject cards, as the web does.
-final lessonCountsProvider = FutureProvider<Map<String, int>>((ref) async {
-  final client = ref.watch(supabaseClientProvider);
-  final counts = <String, int>{};
-  void add(List<dynamic> rows) {
-    for (final row in rows) {
-      final key = subjectMap[row['subject_id']?.toString()];
-      final form = row['form_level'];
-      if (key == null || form is! int) continue;
-      counts['$key|$form'] = (counts['$key|$form'] ?? 0) + 1;
-    }
-  }
-
-  try {
-    add(await client.from('notes').select('subject_id, form_level').eq('status', 'approved'));
-  } catch (_) {}
-  try {
-    add(await client.from('learning_materials').select('subject_id, form_level').eq('status', 'published'));
-  } catch (_) {}
-  return counts;
-});
-
-/// Lessons for one subject (any id: route id or database id) and form.
-int lessonCountFor(Map<String, int> counts, String subjectId, int form) =>
-    counts['${subjectMap[subjectId]}|$form'] ?? 0;

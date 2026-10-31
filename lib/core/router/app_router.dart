@@ -24,7 +24,7 @@ import '../../features/syllabus/presentation/screens/syllabus_library_screen.dar
 import '../../features/tutor/presentation/screens/ask_me_screen.dart';
 import '../../features/practicals/data/models/practical_model.dart';
 import '../../features/practicals/presentation/screens/practical_level_screen.dart';
-import '../../features/practicals/presentation/screens/practical_subject_select_screen.dart';
+import '../../features/practicals/presentation/screens/practical_theory_screen.dart';
 import '../../features/practicals/presentation/screens/practical_subject_screen.dart';
 import '../../features/practicals/presentation/screens/practical_mode_screen.dart';
 import '../../features/practicals/presentation/screens/microscope_screen.dart';
@@ -262,6 +262,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             LevelScreen(level: state.uri.queryParameters['level'] ?? 'o-level'),
       ),
       GoRoute(
+        // A form's (or stream's) own screen: /subjects/o-level/2, /subjects/a-level/arts.
+        path: '/subjects/:level/:choice',
+        name: 'level-choice',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => LevelScreen(
+          level: state.pathParameters['level'] ?? 'o-level',
+          choice: state.pathParameters['choice'],
+        ),
+      ),
+      GoRoute(
         path: '/subjects/:id',
         name: 'subject-detail',
         parentNavigatorKey: rootNavigatorKey,
@@ -378,6 +388,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/practical/theory/:practicalId',
+        name: 'practical-theory',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => PracticalTheoryScreen(practicalId: state.pathParameters['practicalId'] ?? 'titration'),
+      ),
+      GoRoute(
         path: '/practical/simulation/:practicalId',
         name: 'practical-simulation',
         parentNavigatorKey: rootNavigatorKey,
@@ -425,11 +441,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/practical/:level',
         name: 'practical-level',
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) {
-          final levelStr = state.pathParameters['level'] ?? 'o-level';
-          final level = PracticalLevelExtension.fromId(levelStr);
-          return PracticalSubjectSelectScreen(level: level);
-        },
+        // The lab home lists the subjects (one place for it, as on the web).
+        builder: (context, state) => const PracticalLevelScreen(),
       ),
     ],
   );
