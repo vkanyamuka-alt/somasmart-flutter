@@ -166,8 +166,9 @@ class NoteDiagram extends StatelessWidget {
   }
 }
 
-/// An image added with the admin's Insert > Image: the picture at the width
-/// the admin chose, with its caption underneath (as on the website).
+/// An image added with the admin's Insert > Image, set like a figure in a
+/// book (as on the website): the picture on the page with no frame, at the
+/// width the admin chose, and its caption underneath.
 class NoteImage extends StatelessWidget {
   final String src;
   final String alt;
@@ -189,42 +190,29 @@ class NoteImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
     final muted = isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
-    final placeholder = isDark ? AppColors.darkBgSurface : const Color(0xFFF1F5F9);
+    final secondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
-    Widget box(Widget child) => Container(
-          height: 180,
-          color: placeholder,
-          alignment: Alignment.center,
-          child: child,
-        );
-
-    Widget picture = Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Image.network(
-        src,
-        fit: BoxFit.contain,
-        semanticLabel: alt.isNotEmpty ? alt : (caption.isNotEmpty ? caption : null),
-        // A grey box with a spinner until the first frame arrives.
-        frameBuilder: (context, child, frame, sync) => sync || frame != null
-            ? child
-            : box(const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
-        errorBuilder: (context, error, stack) => box(Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.broken_image_outlined, color: muted),
-            const SizedBox(height: 6),
-            Text(
-              lang == 'sw' ? 'Picha haikuweza kupakuliwa' : 'The image could not load',
-              style: TextStyle(fontSize: 12.5, color: muted),
+    Widget picture = Image.network(
+      src,
+      fit: BoxFit.contain,
+      semanticLabel: alt.isNotEmpty ? alt : (caption.isNotEmpty ? caption : null),
+      // Space with a small spinner until the first frame arrives.
+      frameBuilder: (context, child, frame, sync) => sync || frame != null
+          ? child
+          : const SizedBox(
+              height: 160,
+              child: Center(
+                child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
             ),
-          ],
-        )),
+      errorBuilder: (context, error, stack) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          lang == 'sw' ? 'Picha haikuweza kupakuliwa' : 'The image could not load',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: muted),
+        ),
       ),
     );
 
@@ -238,18 +226,18 @@ class NoteImage extends StatelessWidget {
       picture = ConstrainedBox(constraints: BoxConstraints(maxWidth: double.parse(pixels[1]!)), child: picture);
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 14),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         children: [
           picture,
           if (caption.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: 6),
               child: Text(
                 caption,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: muted),
+                style: TextStyle(fontSize: 13, height: 1.4, color: secondary),
               ),
             ),
         ],

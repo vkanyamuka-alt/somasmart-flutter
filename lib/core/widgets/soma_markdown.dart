@@ -36,6 +36,19 @@ class SomaMarkdown extends StatelessWidget {
       selectable: selectable,
       extensionSet: noteExtensionSet(),
       styleSheet: styleSheet,
+      // ![alt](url) images sit centred on the page like a book figure.
+      imageBuilder: (uri, title, alt) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: uri.scheme.startsWith('http')
+              ? Image.network(
+                  uri.toString(),
+                  semanticLabel: alt,
+                  errorBuilder: (_, _, _) => Text(alt ?? '', style: base.copyWith(color: errorColor)),
+                )
+              : Text(alt ?? '', style: base),
+        ),
+      ),
       builders: {
         'math': _MathBuilder(base: base, errorColor: errorColor),
         'mathBlock': _MathBuilder(

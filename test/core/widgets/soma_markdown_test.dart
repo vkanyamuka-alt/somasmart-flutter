@@ -66,6 +66,22 @@ void main() {
     });
   });
 
+  testWidgets('a Markdown image is centred on the page, without a frame', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SomaMarkdown(
+          data: 'Text\n\n![Ball on a slope](https://example.com/slope.png)\n\nMore',
+          styleSheet: MarkdownStyleSheet(),
+        ),
+      ),
+    ));
+    await tester.pump();
+    final image = find.byType(Image);
+    expect((tester.widget<Image>(image).image as NetworkImage).url, 'https://example.com/slope.png');
+    expect(find.ancestor(of: image, matching: find.byType(Center)), findsWidgets);
+    expect(find.ancestor(of: image, matching: find.byType(DecoratedBox)), findsNothing);
+  });
+
   group('convertMhchem', () {
     test('writes formulas, ions, states and arrows as plain TeX', () {
       expect(convertMhchem(r'\ce{2H2 + O2 -> 2H2O}'),
