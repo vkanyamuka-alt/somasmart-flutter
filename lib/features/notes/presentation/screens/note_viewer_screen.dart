@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:markdown/markdown.dart' as md;
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/soma_markdown.dart';
 import '../../../subjects/domain/models/syllabus_topic_model.dart';
 import '../../../subjects/presentation/controllers/subjects_controller.dart';
 import '../widgets/note_diagrams.dart';
@@ -754,7 +753,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
 
 // ---------------------------------------------------------------------------
 // Markdown + LaTeX renderer
-// Mirrors React: ReactMarkdown + remarkGfm + remarkMath + rehypeKatex
+// Parsing is shared with the website (core/utils/note_markdown.dart)
 // Also handles IMPORTANT:/NOTE:/TIP: callout paragraphs from React
 // ---------------------------------------------------------------------------
 class _SomaNoteMarkdown extends StatelessWidget {
@@ -774,17 +773,9 @@ class _SomaNoteMarkdown extends StatelessWidget {
     final codeBackground =
         isDark ? AppColors.darkBgBase : const Color(0xFFF3F4F6);
 
-    return MarkdownBody(
+    return SomaMarkdown(
       data: data,
-      selectable: false,
-      extensionSet: md.ExtensionSet(
-        [
-          ...md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-        ],
-        [
-          ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes,
-        ],
-      ),
+      errorColor: isDark ? Colors.amber : Colors.deepOrange,
       styleSheet: MarkdownStyleSheet(
         // Paragraphs
         p: TextStyle(
@@ -873,109 +864,7 @@ class _SomaNoteMarkdown extends StatelessWidget {
         em: TextStyle(
             fontStyle: FontStyle.italic, color: textSecondary),
       ),
-      builders: {
-        // Custom inline math builder: handles $...$ via flutter_math_fork
-        'math': _MathElementBuilder(isDark: isDark, display: false),
-        'mathBlock': _MathElementBuilder(isDark: isDark, display: true),
-      },
-      // Handle $...$ inline and $$...$$ display math
-      inlineSyntaxes: [_DollarInlineMathSyntax()],
-      blockSyntaxes: [_DollarDisplayMathSyntax()],
     );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Custom Markdown Builder for LaTeX math via flutter_math_fork
-// ---------------------------------------------------------------------------
-class _MathElementBuilder extends MarkdownElementBuilder {
-  final bool isDark;
-  final bool display;
-
-  _MathElementBuilder({required this.isDark, required this.display});
-
-  @override
-  Widget? visitElementAfterWithContext(
-    BuildContext context,
-    md.Element element,
-    TextStyle? preferredStyle,
-    TextStyle? parentStyle,
-  ) {
-    final tex = element.textContent;
-    final textColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-
-    if (display) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Math.tex(
-            tex,
-            mathStyle: MathStyle.display,
-            textStyle: TextStyle(fontSize: 16, color: textColor),
-            onErrorFallback: (err) => Text(
-              tex,
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 13,
-                color: isDark ? Colors.amber : Colors.deepOrange,
-              ),
-            ),
-          ),
-        ),
-      );
-    } else {
-      return Math.tex(
-        tex,
-        mathStyle: MathStyle.text,
-        textStyle: TextStyle(fontSize: 15, color: textColor),
-        onErrorFallback: (err) => Text(
-          tex,
-          style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 13,
-            color: isDark ? Colors.amber : Colors.deepOrange,
-          ),
-        ),
-      );
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Custom Markdown syntax for $...$ inline math
-// ---------------------------------------------------------------------------
-class _DollarInlineMathSyntax extends md.InlineSyntax {
-  _DollarInlineMathSyntax() : super(r'\$([^\$]+)\$');
-
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    final tex = match.group(1)!;
-    final el = md.Element.text('math', tex);
-    parser.addNode(el);
-    return true;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Custom Markdown syntax for $$...$$ display math
-// ---------------------------------------------------------------------------
-class _DollarDisplayMathSyntax extends md.BlockSyntax {
-  @override
-  RegExp get pattern => RegExp(r'^\$\$\s*$');
-
-  @override
-  md.Node? parse(md.BlockParser parser) {
-    parser.advance();
-    final lines = <String>[];
-    while (!parser.isDone && !parser.matches(pattern)) {
-      lines.add(parser.current.content);
-      parser.advance();
-    }
-    if (!parser.isDone) parser.advance(); // consume closing $$
-    final tex = lines.join('\n');
-    return md.Element('mathBlock', [md.Text(tex)]);
   }
 }
 

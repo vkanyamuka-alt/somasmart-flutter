@@ -40,10 +40,10 @@ dependencies:
   shared_preferences: ^2.5.2
   google_fonts: ^6.2.1
   intl: ^0.20.2
-  flutter_markdown: ^0.7.7
   flutter_math_fork: ^0.7.2
   markdown: ^7.3.1
   url_launcher: ^6.3.3
+  flutter_markdown_plus: ^1.0.12
 
 dev_dependencies:
   flutter_test:

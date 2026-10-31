@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
-import 'package:markdown/markdown.dart' as md;
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/soma_markdown.dart';
 
 /// Renders rich academic Markdown with LaTeX math notation for Ask Me messages.
 class AskMeMarkdown extends StatelessWidget {
@@ -32,9 +31,16 @@ class AskMeMarkdown extends StatelessWidget {
         ? Colors.black.withValues(alpha: 0.2)
         : (isDark ? AppColors.darkBgContainer : AppColors.lightBgContainer);
 
-    return MarkdownBody(
+    return SomaMarkdown(
       data: data,
       selectable: true,
+      errorColor: textColor,
+      displayMathDecoration: BoxDecoration(
+        color: isUser
+            ? Colors.white.withValues(alpha: 0.1)
+            : (isDark ? AppColors.darkBgContainer : AppColors.lightBgContainer),
+        borderRadius: BorderRadius.circular(8),
+      ),
       styleSheet: MarkdownStyleSheet(
         p: TextStyle(
           fontSize: 14,
@@ -106,123 +112,6 @@ class AskMeMarkdown extends StatelessWidget {
         strong: TextStyle(fontWeight: FontWeight.w800, color: textColor),
         em: TextStyle(fontStyle: FontStyle.italic, color: textSecondary),
       ),
-      builders: {
-        'math': _AskMeMathBuilder(isDark: isDark, isUser: isUser, display: false),
-        'mathBlock': _AskMeMathBuilder(isDark: isDark, isUser: isUser, display: true),
-      },
-      inlineSyntaxes: [_DollarInlineMathSyntax()],
-      blockSyntaxes: [_DollarDisplayMathSyntax()],
     );
-  }
-}
-
-class _AskMeMathBuilder extends MarkdownElementBuilder {
-  final bool isDark;
-  final bool isUser;
-  final bool display;
-
-  _AskMeMathBuilder({
-    required this.isDark,
-    required this.isUser,
-    required this.display,
-  });
-
-  @override
-  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    final latex = element.textContent.trim();
-    final mathColor = isUser
-        ? Colors.white
-        : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
-
-    try {
-      if (display) {
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isUser
-                ? Colors.white.withValues(alpha: 0.1)
-                : (isDark ? AppColors.darkBgContainer : AppColors.lightBgContainer),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Math.tex(
-              latex,
-              mathStyle: MathStyle.display,
-              textStyle: TextStyle(
-                fontSize: 15,
-                color: mathColor,
-              ),
-              onErrorFallback: (err) => Text(
-                latex,
-                style: TextStyle(fontFamily: 'monospace', color: mathColor, fontSize: 13),
-              ),
-            ),
-          ),
-        );
-      } else {
-        return Math.tex(
-          latex,
-          mathStyle: MathStyle.text,
-          textStyle: TextStyle(
-            fontSize: 14,
-            color: mathColor,
-          ),
-          onErrorFallback: (err) => Text(
-            latex,
-            style: TextStyle(fontFamily: 'monospace', color: mathColor, fontSize: 13),
-          ),
-        );
-      }
-    } catch (_) {
-      return Text(
-        latex,
-        style: TextStyle(fontFamily: 'monospace', color: mathColor, fontSize: 13),
-      );
-    }
-  }
-}
-
-class _DollarInlineMathSyntax extends md.InlineSyntax {
-  _DollarInlineMathSyntax() : super(r'\$([^\$\n]+)\$');
-
-  @override
-  bool onMatch(md.InlineParser parser, Match match) {
-    final raw = match.group(1) ?? '';
-    final el = md.Element.text('math', raw);
-    parser.addNode(el);
-    return true;
-  }
-}
-
-class _DollarDisplayMathSyntax extends md.BlockSyntax {
-  @override
-  RegExp get pattern => RegExp(r'^\$\$(.*?)\$\$', multiLine: true, dotAll: true);
-
-  @override
-  md.Node? parse(md.BlockParser parser) {
-    final childLines = <String>[];
-    final match = pattern.firstMatch(parser.current.content);
-
-    if (match != null) {
-      parser.advance();
-      return md.Element.text('mathBlock', match.group(1) ?? '');
-    }
-
-    parser.advance();
-    while (!parser.isDone) {
-      final current = parser.current.content;
-      if (current.contains(r'$$')) {
-        parser.advance();
-        break;
-      }
-      childLines.add(current);
-      parser.advance();
-    }
-
-    return md.Element.text('mathBlock', childLines.join('\n'));
   }
 }
