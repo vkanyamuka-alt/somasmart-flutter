@@ -2,192 +2,249 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'lab_apparatus.dart';
 
-/// Electrical apparatus for the bench painters: a bench power supply,
-/// analogue meters, a resistor on its board, a knife switch and connecting
-/// wires, in the same materials as [LabPaint]. The website draws the same
-/// pieces (components/laboratory/apparatus/Electrical.jsx). Positions are in
-/// the 700 x 380 bench box, standing on [LabPaint.tableY].
+/// Electrical apparatus as it lies on a school bench, seen from above
+/// ([LabPaint.paintTop]): dry cells in a cell holder, a plug key, moving-coil
+/// meters, a resistor on its board and the connecting wires. These are the
+/// pieces NECTA physics practicals provide ("a dry cell E, a key K, an
+/// ammeter A, a voltmeter V, connecting wires"), so the bench looks like the
+/// one learners use in school. The website draws the same pieces
+/// (components/laboratory/apparatus/Electrical.jsx).
 class LabElectrical {
   LabElectrical._();
 
-  static const double _t = LabPaint.tableY;
+  static const Color _label = Color(0xFF3B4B5C);
+  static const Color _dial = Color(0xFF2E3640);
 
-  /// A 4 mm terminal post: red (positive) or black (negative).
-  static void terminal(Canvas canvas, Offset c, {bool positive = false}) {
-    canvas.drawCircle(c, 6, Paint()..color = positive ? const Color(0xFFC8392F) : const Color(0xFF1F2731));
-    canvas.drawCircle(c, 6, LabPaint.stroke(positive ? const Color(0xFFE57368) : const Color(0xFF6B7784), 1.5));
-    final r = Rect.fromCircle(center: c, radius: 2.2);
-    canvas.drawOval(r, LabPaint.radial(r, const [Color(0xFFFFFFFF), Color(0xFFB7C1CB), Color(0xFF5F6B77)], stops: const [0, 0.5, 1]));
+  static Paint _brass(Rect r) =>
+      LabPaint.radial(r, const [Color(0xFFFFF1C9), Color(0xFFDBA94A), Color(0xFF8C6420)], stops: const [0, 0.45, 1]);
+  static Paint _chrome(Rect r) =>
+      LabPaint.radial(r, const [Color(0xFFFFFFFF), Color(0xFFB7C1CB), Color(0xFF5F6B77)], stops: const [0, 0.5, 1]);
+
+  /// SVG-style text: [baseline] is where the letters sit, as on the website.
+  static void _text(Canvas canvas, String s, double x, double baseline, double size, Color color,
+      {FontWeight weight = FontWeight.w700}) {
+    LabPaint.text(canvas, s, Offset(x, baseline - size * 0.36), size, color, weight: weight);
   }
 
-  /// Bench power supply (130 x 92), left edge at [x]. Terminals at x + 88 (+)
-  /// and x + 112 (-), y = tableY - 18.
-  static void powerSupply(Canvas canvas, {required double x, double volts = 0, bool on = false}) {
-    const y = _t - 92;
-    LabPaint.shadow(canvas, Offset(x + 65, _t + 2), 72, 4);
-    final body = RRect.fromRectAndRadius(Rect.fromLTWH(x, y, 130, 92), const Radius.circular(8));
-    canvas.drawRRect(body, Paint()..color = const Color(0xFFD9DEE4));
-    canvas.drawRRect(body, LabPaint.stroke(const Color(0xFF8C9BAA), 1));
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x, y, 130, 14), const Radius.circular(8)), Paint()..color = const Color(0xFFB9C2CC));
-    final display = RRect.fromRectAndRadius(Rect.fromLTWH(x + 10, y + 22, 70, 30), const Radius.circular(3));
-    canvas.drawRRect(display, Paint()..color = const Color(0xFF1D2A1E));
-    LabPaint.text(canvas, '${volts.toStringAsFixed(1)} V', Offset(x + 45, y + 37), 14,
-        on ? const Color(0xFF7CF29A) : const Color(0xFF365A3C), fontFamily: 'monospace');
-    final knob = Rect.fromCircle(center: Offset(x + 102, y + 37), radius: 13);
-    canvas.drawOval(knob, LabPaint.iron(knob));
-    final a = (-130 + (volts / 6) * 260) * math.pi / 180;
+  static void _shadowRect(Canvas canvas, Rect r, double radius, {double opacity = 0.12}) {
+    canvas.drawRRect(RRect.fromRectAndRadius(r, Radius.circular(radius)), Paint()..color = Colors.black.withValues(alpha: opacity));
+  }
+
+  /// A 4 mm terminal post seen from above: red (positive) or black (negative).
+  static void terminal(Canvas canvas, Offset c, {bool positive = false, double r = 7}) {
+    canvas.drawCircle(c, r, Paint()..color = positive ? const Color(0xFFC8392F) : const Color(0xFF1F2731));
+    canvas.drawCircle(c, r, LabPaint.stroke(positive ? const Color(0xFFE57368) : const Color(0xFF6B7784), 1.5));
+    final inner = Rect.fromCircle(center: c, radius: r * 0.4);
+    canvas.drawOval(inner, _chrome(inner));
+  }
+
+  static const double _cellW = 52;
+  static const double _cellH = 30;
+
+  /// Size D dry cells (1.5 V each) lying in a cell holder, left edge at [x]
+  /// and top at [y]. [inUse] cells, counted from the left, are in the circuit
+  /// and the crocodile clip sits after the last of them. Terminals at
+  /// [cellHolderTerminals].
+  static void cellHolder(Canvas canvas, {required double x, required double y, int cells = 4, int inUse = 1}) {
+    final t = cellHolderTerminals(x, y, inUse);
+    final width = cells * _cellW + 28;
+    _shadowRect(canvas, Rect.fromLTWH(x + 3, y + 5, width, _cellH + 22), 6);
+    final body = RRect.fromRectAndRadius(Rect.fromLTWH(x, y, width, _cellH + 22), const Radius.circular(6));
+    canvas.drawRRect(body, Paint()..color = const Color(0xFF2A3440));
+    canvas.drawRRect(body, LabPaint.stroke(const Color(0xFF4A5562), 1));
+    for (int i = 0; i < cells; i++) {
+      final cx = x + 14 + i * _cellW;
+      final used = i < inUse;
+      final cellRect = Rect.fromLTWH(cx, y + 11, _cellW - 6, _cellH);
+      if (!used) canvas.saveLayer(cellRect.inflate(8), Paint()..color = const Color(0x8C000000));
+      final cell = RRect.fromRectAndRadius(cellRect, const Radius.circular(4));
+      canvas.drawRRect(cell, LabPaint.iron(cellRect));
+      canvas.drawRRect(cell, LabPaint.stroke(used ? const Color(0xFFDB9E3D) : const Color(0xFF55616D), used ? 1.6 : 1));
+      final nub = Rect.fromLTWH(cx + _cellW - 6, y + 11 + _cellH / 2 - 5, 5, 10);
+      canvas.drawRRect(RRect.fromRectAndRadius(nub, const Radius.circular(1.5)), _chrome(nub));
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(cx + 6, y + 15, _cellW - 18, 5), const Radius.circular(2)),
+          Paint()..color = const Color(0x1FFFFFFF));
+      _text(canvas, '1.5 V', cx + (_cellW - 6) / 2, y + 11 + _cellH / 2 + 4, 10, const Color(0xFFF4F7FA));
+      if (!used) canvas.restore();
+    }
+    terminal(canvas, t.negative);
+    // crocodile clip on the + end of the last cell in use
+    final px = t.positive.dx;
+    final clip = RRect.fromRectAndRadius(Rect.fromLTWH(px - 6, y - 6, 12, 20), const Radius.circular(3));
+    canvas.drawRRect(clip, Paint()..color = const Color(0xFFC8392F));
+    canvas.drawRRect(clip, LabPaint.stroke(const Color(0xFF8E2A22), 1));
+    final jaw = Path()
+      ..moveTo(px - 4, y + 13)
+      ..lineTo(px, y + 22)
+      ..lineTo(px + 4, y + 13);
+    canvas.drawPath(jaw, LabPaint.metal(Rect.fromLTWH(px - 4, y + 13, 8, 9)));
+    canvas.drawPath(jaw, LabPaint.stroke(const Color(0xFF55616D), 0.8));
+  }
+
+  /// Where the wires join a cell holder drawn at [x], [y] with [inUse] cells:
+  /// the − terminal, and the + (the crocodile clip, which moves).
+  static ({Offset negative, Offset positive}) cellHolderTerminals(double x, double y, int inUse) =>
+      (negative: Offset(x + 7, y + 26), positive: Offset(x + 12 + inUse * _cellW, y - 6));
+
+  /// A plug key (K) on its black base, left edge at [x], top at [y] (90 x
+  /// 44): two brass blocks and the brass plug, pushed in between them when
+  /// closed and lying beside them when open. [plugOut] (0 in .. 1 out) lets
+  /// the plug move as the hand pushes it. Terminals at x + 12 and x + 78, y + 22.
+  static void plugKey(Canvas canvas, {required double x, required double y, required double plugOut}) {
+    _shadowRect(canvas, Rect.fromLTWH(x + 3, y + 4, 90, 44), 5);
+    final base = RRect.fromRectAndRadius(Rect.fromLTWH(x, y, 90, 44), const Radius.circular(5));
+    canvas.drawRRect(base, Paint()..color = const Color(0xFF1F2731));
+    canvas.drawRRect(base, LabPaint.stroke(const Color(0xFF4A5562), 1));
+    for (final bx in [x + 22, x + 48]) {
+      final block = Rect.fromLTWH(bx, y + 10, 20, 24);
+      canvas.drawRRect(RRect.fromRectAndRadius(block, const Radius.circular(2)), _brass(block));
+      canvas.drawRRect(RRect.fromRectAndRadius(block, const Radius.circular(2)), LabPaint.stroke(const Color(0xFF8C6420), 0.8));
+    }
+    terminal(canvas, Offset(x + 12, y + 22), r: 6);
+    terminal(canvas, Offset(x + 78, y + 22), r: 6);
+    final plug = Offset(x + 45, y + 22 + 30 * plugOut.clamp(0.0, 1.0));
+    canvas.drawCircle(plug, 9, Paint()..color = const Color(0xFF1F2731));
+    canvas.drawCircle(plug, 9, LabPaint.stroke(const Color(0xFF6B7784), 1.2));
+    final head = Rect.fromCircle(center: plug, radius: 4);
+    canvas.drawOval(head, _brass(head));
+    _text(canvas, 'K', x + 45, y - 6, 11, _label);
+  }
+
+  static String _number(double v) {
+    final s = v.toStringAsFixed(2);
+    return s.contains('.') ? s.replaceFirst(RegExp(r'\.?0+$'), '') : s;
+  }
+
+  /// A moving-coil meter seen face-on (150 x 120), left edge at [x], top at
+  /// [y]: a white scale from 0 to [max] with a division every [minor],
+  /// numbers every [major], the unit letter, and a red needle at [value].
+  /// Terminals along the top: − at x + 30 and + at x + 120, y + 4.
+  static void meterFace(Canvas canvas,
+      {required double x,
+      required double y,
+      required double value,
+      required double max,
+      required double major,
+      required double minor,
+      required String unit,
+      String? label,
+      Color labelColor = _label}) {
+    final cx = x + 75;
+    final cy = y + 104;
+    const r = 70.0;
+    const sweep = 116.0; // degrees, -58 to +58
+    double at(double v) => (-sweep / 2 + (v.clamp(0.0, max) / max) * sweep) * math.pi / 180;
+    Offset onDial(double a, double radius) => Offset(cx + radius * math.sin(a), cy - radius * math.cos(a));
+
+    _shadowRect(canvas, Rect.fromLTWH(x + 3, y + 5, 150, 120), 10, opacity: 0.14);
+    final caseRect = Rect.fromLTWH(x, y, 150, 120);
+    canvas.drawRRect(RRect.fromRectAndRadius(caseRect, const Radius.circular(10)), LabPaint.iron(caseRect));
+    canvas.drawRRect(RRect.fromRectAndRadius(caseRect, const Radius.circular(10)), LabPaint.stroke(const Color(0xFF5B6878), 1));
+    final face = RRect.fromRectAndRadius(Rect.fromLTWH(x + 8, y + 16, 134, 96), const Radius.circular(6));
+    canvas.drawRRect(face, Paint()..color = const Color(0xFFFBFBF7));
+    canvas.drawRRect(face, LabPaint.stroke(const Color(0xFFB4BEC8), 1));
+    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r), at(0) - math.pi / 2, at(max) - at(0), false,
+        LabPaint.stroke(_dial, 1.2));
+    final divisions = (max / minor).round();
+    for (int k = 0; k <= divisions; k++) {
+      final v = k * minor;
+      final a = at(v);
+      final isMajor = (v / major - (v / major).round()).abs() < 1e-6;
+      canvas.drawLine(onDial(a, isMajor ? r - 10 : r - 5), onDial(a, r), LabPaint.stroke(_dial, isMajor ? 1.3 : 0.7));
+      if (isMajor) {
+        final n = onDial(a, r - 20);
+        _text(canvas, _number(v), n.dx, n.dy - 1, 10.5, _dial, weight: FontWeight.w600);
+      }
+    }
+    _text(canvas, unit, x + 24, y + 104, 18, const Color(0xFF184E78), weight: FontWeight.w800);
     canvas.drawLine(
-      Offset(x + 102, y + 37),
-      Offset(x + 102 + 9 * math.sin(a), y + 37 - 9 * math.cos(a)),
+      Offset(cx, cy),
+      onDial(at(value), r - 3),
       Paint()
-        ..color = const Color(0xFFF4F7FA)
+        ..color = const Color(0xFFD0342C)
         ..strokeWidth = 2
         ..strokeCap = StrokeCap.round,
     );
-    LabPaint.text(canvas, 'VOLTAGE', Offset(x + 102, y + 58), 6.5, const Color(0xFF3B4B5C), weight: FontWeight.w400);
-    LabPaint.text(canvas, 'DC 0–6 V', Offset(x + 30, y + 62), 7, const Color(0xFF3B4B5C));
-    canvas.drawCircle(Offset(x + 20, y + 78), 3.5, Paint()..color = on ? const Color(0xFF2F9E5B) : const Color(0xFF6B7784));
-    terminal(canvas, Offset(x + 88, _t - 18), positive: true);
-    terminal(canvas, Offset(x + 112, _t - 18));
+    canvas.drawCircle(Offset(cx, cy), 5, Paint()..color = _dial);
+    terminal(canvas, Offset(x + 30, y + 4), r: 6);
+    terminal(canvas, Offset(x + 120, y + 4), r: 6, positive: true);
+    _text(canvas, '−', x + 30, y + 22, 9, _dial);
+    _text(canvas, '+', x + 120, y + 22, 9, const Color(0xFFC8392F));
+    if (label != null) _text(canvas, label, cx, y + 136, 11, labelColor);
   }
 
-  /// Analogue meter (100 x 84), left edge at [x], dial 0 to [max] with a red
-  /// needle at [value]. Terminals at x + 26 and x + 74, y = tableY - 12; +
-  /// on the right unless [positiveLeft].
-  static void analogMeter(Canvas canvas,
-      {required double x, required double value, required double max, required String unit, required List<String> ticks, bool positiveLeft = false}) {
-    const y = _t - 84;
-    final cx = x + 50;
-    const cy = y + 58;
-    const r = 34.0;
-    LabPaint.shadow(canvas, Offset(x + 50, _t + 2), 56, 4);
-    final body = Path()
-      ..moveTo(x + 4, _t)
-      ..lineTo(x + 96, _t)
-      ..lineTo(x + 100, y + 8)
-      ..quadraticBezierTo(x + 100, y, x + 92, y)
-      ..lineTo(x + 8, y)
-      ..quadraticBezierTo(x, y, x, y + 8)
-      ..close();
-    canvas.drawPath(body, LabPaint.iron(Rect.fromLTWH(x, y, 100, 84)));
-    canvas.drawPath(body, LabPaint.stroke(const Color(0xFF5B6878), 1));
-    final dial = RRect.fromRectAndRadius(Rect.fromLTWH(x + 10, y + 8, 80, 52), const Radius.circular(4));
-    canvas.drawRRect(dial, Paint()..color = const Color(0xFFFBFBF7));
-    final arc = Rect.fromCircle(center: Offset(cx, cy), radius: r);
-    canvas.drawArc(arc, (-90 - 50) * math.pi / 180, 100 * math.pi / 180, false, LabPaint.stroke(const Color(0xFF2E3640), 1));
-    for (int i = 0; i <= 10; i++) {
-      final a = (-50 + i * 10) * math.pi / 180;
-      final inner = i % 5 == 0 ? r - 6 : r - 3.5;
-      canvas.drawLine(Offset(cx + inner * math.sin(a), cy - inner * math.cos(a)), Offset(cx + r * math.sin(a), cy - r * math.cos(a)),
-          LabPaint.stroke(const Color(0xFF2E3640), i % 5 == 0 ? 1 : 0.6));
-    }
-    for (int i = 0; i < ticks.length; i++) {
-      final a = (-50 + (i / (ticks.length - 1)) * 100) * math.pi / 180;
-      LabPaint.text(canvas, ticks[i], Offset(cx + (r - 12) * math.sin(a), cy - (r - 12) * math.cos(a)), 6.5, const Color(0xFF2E3640),
-          weight: FontWeight.w400);
-    }
-    LabPaint.text(canvas, unit, Offset(cx, cy - 10), 10, const Color(0xFF2E3640));
-    final a = (-50 + (value.clamp(0.0, max) / max) * 100) * math.pi / 180;
-    canvas.drawLine(
-      Offset(cx, cy),
-      Offset(cx + (r - 2) * math.sin(a), cy - (r - 2) * math.cos(a)),
-      Paint()
-        ..color = const Color(0xFFD0342C)
-        ..strokeWidth = 1.6
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawCircle(Offset(cx, cy), 2.6, Paint()..color = const Color(0xFF2E3640));
-    terminal(canvas, Offset(x + 26, _t - 12), positive: positiveLeft);
-    terminal(canvas, Offset(x + 74, _t - 12), positive: !positiveLeft);
-  }
-
-  /// A 10 Ω carbon resistor between brass posts on a wooden board (120 wide),
-  /// left edge at [x]. Posts at x + 14 and x + 106, y = tableY - 22. [warm]
-  /// (0..1) tints it as current flows.
-  static void resistorBoard(Canvas canvas, {required double x, double warm = 0, String label = '10 Ω', Color labelColor = const Color(0xFF64748B)}) {
-    LabPaint.shadow(canvas, Offset(x + 60, _t + 2), 64, 3.5);
-    final board = Rect.fromLTWH(x, _t - 14, 120, 14);
-    canvas.drawRRect(RRect.fromRectAndRadius(board, const Radius.circular(3)), LabPaint.wood(board));
-    for (final px in [x + 14, x + 106]) {
-      final post = Rect.fromLTWH(px - 4, _t - 30, 8, 18);
-      canvas.drawRRect(RRect.fromRectAndRadius(post, const Radius.circular(2)),
-          LabPaint.radial(post, const [Color(0xFFFFF1C9), Color(0xFFDBA94A), Color(0xFF8C6420)], stops: const [0, 0.45, 1]));
-      final cap = Rect.fromCircle(center: Offset(px, _t - 22), radius: 5);
-      canvas.drawOval(cap, LabPaint.radial(cap, const [Color(0xFFFFF1C9), Color(0xFFDBA94A), Color(0xFF8C6420)], stops: const [0, 0.45, 1]));
-    }
-    canvas.drawLine(Offset(x + 14, _t - 24), Offset(x + 106, _t - 24), LabPaint.stroke(const Color(0xFF9AA5B1), 1.6));
+  /// A carbon resistor between two brass terminals on a wooden board (140 x
+  /// 40), left edge at [x], top at [y]. Terminals at x + 16 and x + 124,
+  /// y + 20. [warm] (0..1) tints it when current flows.
+  static void resistorBoard(Canvas canvas, {required double x, required double y, double warm = 0, String label = 'R', Color labelColor = _label}) {
+    _shadowRect(canvas, Rect.fromLTWH(x + 3, y + 4, 140, 40), 4);
+    final board = Rect.fromLTWH(x, y, 140, 40);
+    canvas.drawRRect(RRect.fromRectAndRadius(board, const Radius.circular(4)), LabPaint.wood(board));
+    canvas.drawRRect(RRect.fromRectAndRadius(board, const Radius.circular(4)), LabPaint.stroke(const Color(0xFFA9783E), 1));
+    canvas.drawLine(Offset(x + 16, y + 20), Offset(x + 124, y + 20), LabPaint.stroke(const Color(0xFF9AA5B1), 2));
     final w = warm.clamp(0.0, 1.0);
-    final body = RRect.fromRectAndRadius(Rect.fromLTWH(x + 38, _t - 31, 44, 14), const Radius.circular(7));
+    final body = RRect.fromRectAndRadius(Rect.fromLTWH(x + 45, y + 12, 50, 16), const Radius.circular(8));
     canvas.drawRRect(body, Paint()..color = Color.fromARGB(255, (222 + 20 * w).round(), (196 - 40 * w).round(), (150 - 60 * w).round()));
     canvas.drawRRect(body, LabPaint.stroke(const Color(0xFFA07D4A), 1));
     const bands = [Color(0xFF7A4A1E), Color(0xFF1F1F1F), Color(0xFF1F1F1F)];
     for (int i = 0; i < 3; i++) {
-      canvas.drawRect(Rect.fromLTWH(x + 46 + i * 8, _t - 31, 4, 14), Paint()..color = bands[i]);
+      canvas.drawRect(Rect.fromLTWH(x + 54 + i * 9, y + 12, 5, 16), Paint()..color = bands[i]);
     }
-    canvas.drawRect(Rect.fromLTWH(x + 72, _t - 31, 4, 14), Paint()..color = const Color(0xFFC9A227));
-    LabPaint.text(canvas, label, Offset(x + 60, _t - 41), 8, labelColor);
+    canvas.drawRect(Rect.fromLTWH(x + 83, y + 12, 5, 16), Paint()..color = const Color(0xFFC9A227));
+    for (final px in [x + 16, x + 124]) {
+      final post = Rect.fromCircle(center: Offset(px, y + 20), radius: 7);
+      canvas.drawOval(post, _brass(post));
+      canvas.drawOval(post, LabPaint.stroke(const Color(0xFF8C6420), 0.8));
+    }
+    _text(canvas, label, x + 70, y - 6, 11, labelColor);
   }
 
-  /// Knife switch on a wooden base (70 wide), left edge at [x]. Contacts at
-  /// x + 12 and x + 58, y = tableY - 18.
-  static void knifeSwitch(Canvas canvas, {required double x, required bool closed}) {
-    const py = _t - 18;
-    LabPaint.shadow(canvas, Offset(x + 35, _t + 2), 40, 3);
-    final base = Rect.fromLTWH(x, _t - 10, 70, 10);
-    canvas.drawRRect(RRect.fromRectAndRadius(base, const Radius.circular(2)), LabPaint.wood(base));
-    final post = Rect.fromLTWH(x + 8, py - 4, 8, 12);
-    canvas.drawRRect(RRect.fromRectAndRadius(post, const Radius.circular(1.5)), LabPaint.metal(post));
-    final clip = Rect.fromLTWH(x + 52, py - 6, 12, 14);
-    canvas.drawRRect(RRect.fromRectAndRadius(clip, const Radius.circular(1.5)), LabPaint.metal(clip));
-    canvas.save();
-    canvas.translate(x + 12, py);
-    canvas.rotate(closed ? 0 : -55 * math.pi / 180);
-    final blade = Rect.fromLTWH(-2, -2.5, 50, 5);
-    canvas.drawRRect(RRect.fromRectAndRadius(blade, const Radius.circular(2)), LabPaint.metalV(blade));
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(42, -9, 7, 12), const Radius.circular(3)),
-        Paint()..color = const Color(0xFF1F2731));
-    canvas.restore();
-  }
-
-  static Offset _bezier(Offset a, Offset c1, Offset c2, Offset b, double t) {
-    final u = 1 - t;
-    return a * (u * u * u) + c1 * (3 * u * u * t) + c2 * (3 * u * t * t) + b * (t * t * t);
-  }
-
-  /// A connecting wire lying on the bench, sagging by [sag] below its lower
-  /// end. With [flow] (0..1, animated) current shows as dots moving along it.
-  static void wire(Canvas canvas, Offset from, Offset to, {Color color = const Color(0xFFC8392F), double sag = 14, double? flow}) {
-    final my = math.max(from.dy, to.dy) + sag;
-    final c1 = Offset(from.dx, my);
-    final c2 = Offset(to.dx, my);
-    final path = Path()
-      ..moveTo(from.dx, from.dy)
-      ..cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, to.dx, to.dy);
-    canvas.save();
-    canvas.translate(0, 2);
-    canvas.drawPath(path, LabPaint.stroke(const Color(0x2E000000), 5));
-    canvas.restore();
+  /// A connecting wire lying on the bench top between two terminals, bowed
+  /// sideways by [bow] so wires do not lie on top of each other, or laid
+  /// along two [controls] points to route it round other apparatus. With
+  /// [flow] (0..1, animated) current shows as dots moving along it, from
+  /// [from] to [to]. [opacity] fades it in as the hand joins it.
+  static void wire(Canvas canvas, Offset from, Offset to,
+      {Color color = const Color(0xFFC8392F), double bow = 0, List<Offset>? controls, double? flow, double opacity = 1}) {
+    final path = Path()..moveTo(from.dx, from.dy);
+    if (controls != null) {
+      path.cubicTo(controls[0].dx, controls[0].dy, controls[1].dx, controls[1].dy, to.dx, to.dy);
+    } else {
+      final mid = (from + to) / 2;
+      final d = to - from;
+      final len = d.distance == 0 ? 1.0 : d.distance;
+      final c = mid + Offset(-d.dy / len, d.dx / len) * bow;
+      path.quadraticBezierTo(c.dx, c.dy, to.dx, to.dy);
+    }
+    if (opacity <= 0) return;
+    if (opacity < 1) canvas.saveLayer(null, Paint()..color = Color.fromRGBO(0, 0, 0, opacity));
+    canvas.drawPath(path.shift(const Offset(2, 3)), LabPaint.stroke(const Color(0x29000000), 6));
     canvas.drawPath(
         path,
-        Paint()
-          ..color = color
-          ..strokeWidth = 3.6
-          ..strokeCap = StrokeCap.round
-          ..style = PaintingStyle.stroke);
-    canvas.drawPath(path, LabPaint.stroke(const Color(0x40FFFFFF), 1));
+        LabPaint.stroke(color, 4)
+          ..strokeCap = StrokeCap.round);
+    canvas.drawPath(path, LabPaint.stroke(const Color(0x40FFFFFF), 1.2)..strokeCap = StrokeCap.round);
     if (flow != null) {
       final dot = Paint()..color = const Color(0xFFFFE7A3);
-      for (int k = 0; k < 8; k++) {
-        final t = ((k + flow) / 8) % 1.0;
-        canvas.drawCircle(_bezier(from, c1, c2, to, t), 1.3, dot);
+      for (final metric in path.computeMetrics()) {
+        for (double s = (flow % 1.0) * 12; s < metric.length; s += 12) {
+          final tangent = metric.getTangentForOffset(s);
+          if (tangent != null) canvas.drawCircle(tangent.position, 1.2, dot);
+        }
       }
     }
+    if (opacity < 1) canvas.restore();
   }
 
-  /// A coil of loose connecting wires lying on the bench, centred at [cx].
-  static void wireCoil(Canvas canvas, {required double cx}) {
-    canvas.drawOval(Rect.fromCenter(center: Offset(cx, _t + 8), width: 60, height: 14), LabPaint.stroke(const Color(0xFFC8392F), 3.2));
-    canvas.drawOval(Rect.fromCenter(center: Offset(cx + 4, _t + 9), width: 48, height: 10), LabPaint.stroke(const Color(0xFF1F2731), 3.2));
-    canvas.drawOval(Rect.fromCenter(center: Offset(cx - 3, _t + 7), width: 36, height: 8), LabPaint.stroke(const Color(0xFFC8392F), 3));
+  /// A bundle of loose connecting wires (with crocodile clips) lying on the
+  /// bench, centred at [c].
+  static void wireBundle(Canvas canvas, Offset c) {
+    canvas.drawOval(Rect.fromCenter(center: c, width: 68, height: 32), LabPaint.stroke(const Color(0xFFC8392F), 3.6));
+    canvas.drawOval(Rect.fromCenter(center: c + const Offset(5, 2), width: 52, height: 22), LabPaint.stroke(const Color(0xFF1F2731), 3.6));
+    canvas.drawOval(Rect.fromCenter(center: c + const Offset(-4, -1), width: 36, height: 14), LabPaint.stroke(const Color(0xFFC8392F), 3.2));
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(c.dx + 30, c.dy - 4, 12, 7), const Radius.circular(2)),
+        Paint()..color = const Color(0xFFC8392F));
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(c.dx - 42, c.dy - 2, 12, 7), const Radius.circular(2)),
+        Paint()..color = const Color(0xFF1F2731));
   }
 }

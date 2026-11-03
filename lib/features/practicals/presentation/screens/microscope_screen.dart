@@ -4,6 +4,8 @@ import '../../data/models/microscope_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/microscope_controller.dart';
 import '../widgets/microscope_viewfinder_painter.dart';
+import '../widgets/microscope_slide_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/titration_completion_card.dart';
 import '../../../../core/utils/learning_language.dart';
 
@@ -361,87 +363,14 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
           ),
           const SizedBox(height: 14.0),
 
-          // Glass slide graphic mockup
-          Container(
-            height: 100.0,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(
-                color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
-                width: 2.0,
-              ),
-            ),
-            child: Center(
-              child: Container(
-                width: 180.0,
-                height: 48.0,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(6.0),
-                  border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 6.0,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: state.isSpecimenPlaced
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 32.0,
-                              height: 32.0,
-                              decoration: BoxDecoration(
-                                color: state.appliedStain != StainType.none
-                                    ? const Color(0xFFD97706).withValues(alpha: 0.65)
-                                    : const Color(0xFF94A3B8).withValues(alpha: 0.4),
-                                borderRadius: BorderRadius.circular(4.0),
-                                border: state.isCoverslipMounted
-                                    ? Border.all(color: const Color(0xFF0284C7), width: 1.5)
-                                    : Border.all(color: Colors.amber, width: 1.0, style: BorderStyle.solid),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  state.isCoverslipMounted
-                                      ? Icons.check_rounded
-                                      : Icons.water_drop_rounded,
-                                  size: 16.0,
-                                  color: state.appliedStain != StainType.none
-                                      ? const Color(0xFF78350F)
-                                      : const Color(0xFF334155),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8.0),
-                            Text(
-                              state.isCoverslipMounted
-                                  ? (isSwahili ? 'Kiolezo Kimekamilika' : 'Mounted Slide')
-                                  : (state.appliedStain != StainType.none
-                                      ? (isSwahili ? 'Rangi ya Iodini' : 'Iodine Stained')
-                                      : (isSwahili ? 'Kipande cha Kitunguu' : 'Onion Epidermis')),
-                              style: const TextStyle(
-                                fontSize: 11.0,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1E293B),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Text(
-                          isSwahili ? 'Kioo cha Slide (Kitupu)' : 'Clean Glass Slide (Empty)',
-                          style: const TextStyle(
-                            fontSize: 11.0,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                ),
+          // The slide on a white tile, prepared by the student's hand
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12.0),
+            child: AspectRatio(
+              aspectRatio: MicroscopeSlidePainter.width / MicroscopeSlidePainter.height,
+              child: LabHandPaint(
+                watch: MicroscopeSlidePainter.handKeys(state),
+                painter: (hands) => MicroscopeSlidePainter(state: state, hands: hands),
               ),
             ),
           ),

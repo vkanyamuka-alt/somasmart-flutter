@@ -2,21 +2,45 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/titration_state.dart';
 import 'lab_apparatus.dart';
+import 'lab_hand.dart';
 
 /// The titration bench, built from the shared lab apparatus kit
 /// ([LabPaint]): reagent bottles, a retort stand holding the burette over a
 /// conical flask on a white tile, the pipette and the indicator dropper. The
-/// same bench is drawn on the website (TitrationBench.jsx).
+/// student's hand squeezes the pipette filler, carries the pipette over the
+/// flask, squeezes the dropper for each drop of indicator, carries the flask
+/// onto the tile and turns the tap ([LabHand]). The same bench is drawn on
+/// the website (TitrationBench.jsx).
 class TitrationBenchPainter extends CustomPainter {
   final TitrationState state;
   final bool isDark;
   final double animationValue;
+  final LabHandRuns? hands; // keys from [handKeys]
 
   TitrationBenchPainter({
     required this.state,
     required this.isDark,
     this.animationValue = 0.0,
-  });
+    this.hands,
+  }) : super(repaint: hands);
+
+  /// Where the pipette is: lying on the bench, in the HCl bottle or over the flask.
+  static String pipettePlace(TitrationState s) {
+    if (s.currentStepIndex != 2 || s.pipetteStep < 2) return 'bench';
+    return s.pipetteStep >= 5 ? 'flask' : 'bottle';
+  }
+
+  static bool _showDropper(TitrationState s) => s.currentStepIndex == 3 && s.indicatorStep >= 1;
+
+  /// The values the hands on this bench react to, for [LabHandRuns.watch].
+  static Map<String, Object?> handKeys(TitrationState s) => {
+        'tap': s.stopcockState,
+        'flask': s.flaskPositioned,
+        'pipette': pipettePlace(s),
+        'filler': s.isDrawingLiquid || s.isTransferringLiquid,
+        'dropper': _showDropper(s),
+        'drop': s.indicatorDropsCount,
+      };
 
   static const double _buretteX = 352;
   static const double _buretteTop = 42; // liquid surface at 0.00 mL
@@ -36,10 +60,13 @@ class TitrationBenchPainter extends CustomPainter {
       LabPaint.clampJaws(canvas, x: _buretteX, y: 52);
       LabPaint.whiteTile(canvas, x: 306, y: 300);
       _drawBurette(canvas);
-      _drawConicalFlask(canvas);
+      LabHand.carry(canvas, state.flaskPositioned ? hands?.since('flask') : null,
+          offset: const Offset(128, 18), grip: const Offset(354, 236), draw: () => _drawConicalFlask(canvas));
       _drawDelivery(canvas);
       _drawIndicatorDropper(canvas);
       _drawPipette(canvas);
+      LabHand.move(canvas, hands?.since('tap'),
+          from: const Offset(420, 236), to: const Offset(367, 201), rotate: -90, duration: 1100);
       LabPaint.beaker(canvas, cx: 668, w: 40, h: 56, fill: 0.35, liquid: const Color(0x8CDCE6EE));
     });
   }
@@ -175,11 +202,26 @@ class TitrationBenchPainter extends CustomPainter {
   }
 
   void _drawPipette(Canvas canvas) {
-    if (state.currentStepIndex != 2 || state.pipetteStep < 2) {
+    final place = pipettePlace(state);
+    if (place == 'bench') {
       _drawPipetteOnBench(canvas);
       return;
     }
-    final overFlask = state.pipetteStep >= 5;
+    final overFlask = place == 'flask';
+    if (overFlask) {
+      LabHand.carry(canvas, hands?.since('pipette'),
+          offset: const Offset(-359, 0), grip: const Offset(480, 166), draw: () => _drawPipetteUpright(canvas, overFlask));
+    } else {
+      _drawPipetteUpright(canvas, overFlask);
+    }
+    // A finger and thumb squeeze the filler to draw liquid up or let it run out.
+    final filling = overFlask ? state.isTransferringLiquid : state.isDrawingLiquid;
+    if (filling) {
+      LabHand.rest(canvas, hands?.since('filler'), at: Offset(overFlask ? 480 : 121, 124), rotate: 180);
+    }
+  }
+
+  void _drawPipetteUpright(Canvas canvas, bool overFlask) {
     canvas.save();
     canvas.translate(overFlask ? 470 : 111, 120);
 
@@ -286,16 +328,27 @@ class TitrationBenchPainter extends CustomPainter {
   }
 
   void _drawIndicatorDropper(Canvas canvas) {
-    if (!(state.currentStepIndex == 3 && state.indicatorStep >= 1)) return;
+    if (!_showDropper(state)) return;
+    // The teat is squeezed while a drop comes out, and briefly for each drop.
+    final dropAt = hands?.since('drop');
+    final squeezing = state.isDroppingIndicator || (dropAt != null && dropAt < 450);
     canvas.save();
     canvas.translate(468, 150);
-    final teat = Path()
-      ..moveTo(6, 12)
-      ..lineTo(6, 0)
-      ..quadraticBezierTo(6, -10, 12, -10)
-      ..quadraticBezierTo(18, -10, 18, 0)
-      ..lineTo(18, 12)
-      ..close();
+    final teat = squeezing
+        ? (Path()
+          ..moveTo(7.5, 12)
+          ..lineTo(7.5, 2)
+          ..quadraticBezierTo(7.5, -6, 12, -6)
+          ..quadraticBezierTo(16.5, -6, 16.5, 2)
+          ..lineTo(16.5, 12)
+          ..close())
+        : (Path()
+          ..moveTo(6, 12)
+          ..lineTo(6, 0)
+          ..quadraticBezierTo(6, -10, 12, -10)
+          ..quadraticBezierTo(18, -10, 18, 0)
+          ..lineTo(18, 12)
+          ..close());
     canvas.drawPath(teat, Paint()..color = const Color(0xFF1F2731));
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(4, 12, 16, 6), const Radius.circular(2)),
         Paint()..color = const Color(0xFF2E3640));
@@ -321,6 +374,7 @@ class TitrationBenchPainter extends CustomPainter {
       canvas.drawPath(drop, LabPaint.stroke(const Color(0xFF9AA5B1), 0.8));
     }
     canvas.restore();
+    LabHand.rest(canvas, hands?.since('dropper'), at: Offset(480, squeezing ? 144 : 140), rotate: 180);
   }
 
   @override

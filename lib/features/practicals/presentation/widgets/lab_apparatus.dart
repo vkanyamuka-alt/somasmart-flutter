@@ -22,19 +22,48 @@ class LabPaint {
 
   /// Scales the 700 x 380 bench into [size] and calls [draw] with the canvas
   /// in bench units. [draw] gets the visible left and right edges (in bench
-  /// units) so pieces can reach the sides of the canvas.
-  static void paintScene(Canvas canvas, Size size, bool isDark, void Function(double left, double right) draw) {
-    final scale = math.min(size.width / 700.0, size.height / 380.0);
-    final dx = (size.width - 700 * scale) / 2;
+  /// units) so pieces can reach the sides of the canvas. [cropX] and
+  /// [cropWidth] show only that part of the bench, so a bench whose apparatus
+  /// stands close together fills a phone screen. Nothing is drawn outside
+  /// the canvas (the student's hand reaches in from its edges).
+  static void paintScene(Canvas canvas, Size size, bool isDark, void Function(double left, double right) draw,
+      {double cropX = 0, double cropWidth = 700}) {
+    final scale = math.min(size.width / cropWidth, size.height / 380.0);
+    final dx = (size.width - cropWidth * scale) / 2 - cropX * scale;
     final dy = size.height - 380 * scale;
-    _wall(canvas, size, scale, isDark);
     canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    _wall(canvas, size, scale, isDark);
     canvas.translate(dx, dy);
     canvas.scale(scale);
     final left = -dx / scale;
     final right = (size.width - dx) / scale;
     _table(canvas, left, right);
     draw(left, right);
+    canvas.restore();
+  }
+
+  /// The bench top seen from above, for circuits laid out on the table: a
+  /// [width] x [height] box scaled evenly and centred in [size]. [draw] works
+  /// in box units.
+  static void paintTop(Canvas canvas, Size size, double width, double height, void Function() draw) {
+    final scale = math.min(size.width / width, size.height / height);
+    final dx = (size.width - width * scale) / 2;
+    final dy = (size.height - height * scale) / 2;
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFFDCE3EA));
+    canvas.translate(dx, dy);
+    canvas.scale(scale);
+    final lines = Paint()
+      ..color = const Color(0x59FFFFFF)
+      ..strokeWidth = 1;
+    final left = -dx / scale;
+    final right = (size.width - dx) / scale;
+    for (double y = 23; y < height; y += 46) {
+      canvas.drawLine(Offset(left, y), Offset(right, y), lines);
+    }
+    draw();
     canvas.restore();
   }
 
@@ -46,8 +75,9 @@ class LabPaint {
     final dx = (size.width - 700 * scale) / 2;
     final dy = (size.height - 380 * scale) / 2;
     final all = Offset.zero & size;
-    canvas.drawRect(all, wood(all));
     canvas.save();
+    canvas.clipRect(all);
+    canvas.drawRect(all, wood(all));
     canvas.translate(dx, dy);
     canvas.scale(scale);
     const paper = Rect.fromLTWH(24, 18, 652, 344);

@@ -6,6 +6,7 @@ import '../../data/models/osmosis_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/osmosis_controller.dart';
 import '../widgets/osmosis_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/osmosis_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
 import '../../../../core/utils/learning_language.dart';
@@ -353,12 +354,14 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          child: CustomPaint(
+          child: LabHandPaint(
             size: const Size(double.infinity, 250),
-            painter: OsmosisBenchPainter(
+            watch: OsmosisBenchPainter.handKeys(state),
+            painter: (hands) => OsmosisBenchPainter(
               state: state,
               isDark: isDark,
               animationValue: _pulseController.value,
+              hands: hands,
             ),
           ),
         );

@@ -7,6 +7,7 @@ import '../../data/models/optics_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/optics_controller.dart';
 import '../widgets/optics_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/practical_layout.dart';
 import '../widgets/optics_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
@@ -304,11 +305,9 @@ class OpticsScreen extends ConsumerWidget {
           children: [
             // CustomPainter for Drawing Board, Prism, Light Ray, Pins, Protractor
             Positioned.fill(
-              child: CustomPaint(
-                painter: OpticsBenchPainter(
-                  state: state,
-                  isDark: isDark,
-                ),
+              child: LabHandPaint(
+                watch: OpticsBenchPainter.handKeys(state),
+                painter: (hands) => OpticsBenchPainter(state: state, isDark: isDark, hands: hands),
               ),
             ),
 

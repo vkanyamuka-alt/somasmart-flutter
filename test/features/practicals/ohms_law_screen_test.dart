@@ -47,14 +47,15 @@ void main() {
       // Workflow step bar
       expect(find.text('Inspect'), findsOneWidget);
       expect(find.text('Connect'), findsOneWidget);
-      expect(find.text('Switch'), findsOneWidget);
+      expect(find.text('Key'), findsOneWidget);
 
       // Inspection chips in Step 0
-      expect(find.text('DC Power Supply'), findsOneWidget);
-      expect(find.text('Resistor (10Ω)'), findsOneWidget);
+      expect(find.text('Dry cells'), findsOneWidget);
+      expect(find.text('Resistor R'), findsOneWidget);
       expect(find.text('Ammeter'), findsOneWidget);
       expect(find.text('Voltmeter'), findsOneWidget);
-      expect(find.text('Knife Switch'), findsOneWidget);
+      expect(find.text('Key (K)'), findsOneWidget);
+      expect(find.text('Connecting wires'), findsOneWidget);
 
       // Initial circuit disconnected state
       expect(find.text('DE-ENERGIZED'), findsOneWidget);
@@ -89,9 +90,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Tap 4 inspection chips
-      await tester.tap(find.text('DC Power Supply'));
+      await tester.tap(find.text('Dry cells'));
       await tester.pump(const Duration(milliseconds: 50));
-      await tester.tap(find.text('Resistor (10Ω)'));
+      await tester.tap(find.text('Resistor R'));
       await tester.pump(const Duration(milliseconds: 50));
       await tester.tap(find.text('Ammeter'));
       await tester.pump(const Duration(milliseconds: 50));
@@ -122,17 +123,19 @@ void main() {
 
       // In Free Exploration, circuit is auto-connected
       expect(find.text('Free Exploration'), findsOneWidget);
-      expect(find.text('CLOSE (ON)'), findsOneWidget);
+      expect(find.text('CLOSE THE KEY'), findsOneWidget);
 
-      // Toggle switch to CLOSED (ON)
-      await tester.tap(find.text('CLOSE (ON)'));
+      // Push the plug into the key
+      await tester.tap(find.text('CLOSE THE KEY'));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('OPEN (OFF)'), findsOneWidget);
+      expect(find.text('OPEN THE KEY'), findsOneWidget);
       expect(find.text('ACTIVE / ENERGIZED'), findsOneWidget);
 
-      // Tap voltage preset 2V
-      await tester.tap(find.text('2V'));
+      // Put two dry cells in the circuit (3.0 V)
+      final twoCells = find.byKey(const ValueKey('ohms-cells-2'));
+      await tester.ensureVisible(twoCells);
+      await tester.tap(twoCells);
       await tester.pump(const Duration(milliseconds: 100));
 
       // Record reading
@@ -143,8 +146,8 @@ void main() {
 
       // Verify trial in data table
       expect(find.text('#1'), findsOneWidget);
-      expect(find.text('2.00 V'), findsOneWidget);
-      expect(find.text('0.200 A'), findsOneWidget);
+      expect(find.text('3.00 V'), findsOneWidget);
+      expect(find.text('0.300 A'), findsOneWidget);
       expect(find.text('10.00 Ω'), findsOneWidget);
 
       // Enter calculation and submit

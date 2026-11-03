@@ -2,29 +2,96 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/osmosis_state.dart';
+import 'lab_hand.dart';
 
-/// Interactive Canvas CustomPainter for the Osmosis in Potato Tissues Virtual Laboratory Bench
+/// Interactive Canvas CustomPainter for the Osmosis in Potato Tissues
+/// Virtual Laboratory Bench. The student's hand cuts each cylinder with the
+/// cork borer, puts it on the balance pan, drops it into its tube and blots
+/// it on filter paper ([LabHand]).
 class OsmosisBenchPainter extends CustomPainter {
   final OsmosisState state;
   final bool isDark;
   final double animationValue; // 0.0 to 1.0 for water flux pulse
+  final LabHandRuns? hands; // keys from [handKeys]
 
   OsmosisBenchPainter({
     required this.state,
     required this.isDark,
     required this.animationValue,
-  });
+    this.hands,
+  }) : super(repaint: hands);
+
+  /// The values the hands on this bench react to, for [LabHandPaint.watch]:
+  /// one flag per sample, so the hand goes to the ones just done.
+  static Map<String, Object?> handKeys(OsmosisState s) => {
+        'cut': _flags(s, (x) => x.isPrepared),
+        'balance': s.balanceOccupiedBySampleId,
+        'immerse': _flags(s, (x) => x.isImmersed),
+        'blot': _flags(s, (x) => x.isBlotted),
+      };
+
+  static String _flags(OsmosisState s, bool Function(PotatoSample) on) => s.samples.map((x) => on(x) ? '1' : '0').join();
+
+  /// The samples whose flag for [key] has just come on.
+  List<int> _justDone(String key, String now) {
+    final before = hands?.previous(key);
+    if (before is! String || before.length != now.length) return const [];
+    return [for (int i = 0; i < now.length; i++) if (now[i] == '1' && before[i] == '0') i];
+  }
+
+  static const double _hand = 0.55;
+  static const double _handGap = 650; // ms between one cylinder and the next
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
 
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
     _drawLabBackground(canvas, w, h);
     _drawTableBench(canvas, w, h);
     _drawTestTubeRackAndTubes(canvas, w, h);
     _drawDigitalBalance(canvas, w, h);
     _drawCuttingTileOrFilterPaper(canvas, w, h);
+    _drawHands(canvas, w, h);
+    canvas.restore();
+  }
+
+  void _drawHands(Canvas canvas, double w, double h) {
+    Offset tileItem(int i) => Offset(w * 0.05 + (i + 1) * (w * 0.90 / 6.0), h * 0.78 + h * 0.18 * 0.65);
+    Offset tubeMouth(int i) => Offset(w * 0.05 + (i + 0.8) * (w * 0.58 / (state.samples.length + 0.5)), h * 0.35 - 22);
+    // The cork borer pushed down into the potato on the tile.
+    final cut = _justDone('cut', _flags(state, (x) => x.isPrepared));
+    for (int k = 0; k < cut.length; k++) {
+      LabHand.move(canvas, hands?.since('cut'),
+          to: tileItem(cut[k]) + const Offset(0, -22), pose: HandPose.grip, scale: _hand, duration: 1100, delay: k * _handGap,
+          holding: _corkBorer);
+    }
+    // A cylinder dropped into its tube of sucrose solution.
+    final dropped = _justDone('immerse', _flags(state, (x) => x.isImmersed));
+    for (int k = 0; k < dropped.length; k++) {
+      LabHand.move(canvas, hands?.since('immerse'),
+          to: tubeMouth(dropped[k]), rotate: 180, scale: _hand, duration: 1100, delay: k * _handGap,
+          holding: (c) => c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-5, 2, 10, 16), const Radius.circular(3)),
+              Paint()..color = const Color(0xFFF59E0B)));
+    }
+    // Each cylinder pressed dry between filter paper, the finger coming in
+    // from the side so it shows above the bench edge and off the rack.
+    final blotted = _justDone('blot', _flags(state, (x) => x.isBlotted));
+    for (int k = 0; k < blotted.length; k++) {
+      LabHand.move(canvas, hands?.since('blot'),
+          from: tileItem(blotted[k]) + const Offset(30, -4), to: tileItem(blotted[k]) + const Offset(4, 0),
+          pose: HandPose.point, rotate: -90, scale: _hand, duration: 1000, delay: k * _handGap);
+    }
+  }
+
+  /// A brass cork borer: T-handle above the fist, the cutting tube below it.
+  void _corkBorer(Canvas c) {
+    final metal = Paint()..color = const Color(0xFFB08D3C);
+    c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-11, -30, 22, 5), const Radius.circular(2)), metal);
+    c.drawRect(const Rect.fromLTWH(-3, -26, 6, 50), metal);
+    c.drawRect(const Rect.fromLTWH(-1.2, -26, 2.4, 50), Paint()..color = const Color(0x66FFFFFF));
   }
 
   /// 1. Laboratory Environment Background & Grid
@@ -127,8 +194,11 @@ class OsmosisBenchPainter extends CustomPainter {
     final tubeCount = state.samples.length;
     final tubeSpacing = rackWidth / (tubeCount + 0.5);
 
+    // a cylinder that has just been dropped in shows once its hand lets go
+    final dropped = _justDone('immerse', _flags(state, (x) => x.isImmersed));
     for (int i = 0; i < tubeCount; i++) {
       final sample = state.samples[i];
+      final k = dropped.indexOf(i);
       final tubeCenterX = rackLeft + (i + 0.8) * tubeSpacing;
       final tubeWidth = 24.0;
       final tubeTopY = rackY - 20;
@@ -143,6 +213,7 @@ class OsmosisBenchPainter extends CustomPainter {
         height: tubeHeight,
         sample: sample,
         isSelected: i == state.activeSampleIndex,
+        cylinderShown: k < 0 ? 1 : LabHand.appear(hands?.since('immerse'), k * _handGap + 500),
       );
     }
   }
@@ -156,6 +227,7 @@ class OsmosisBenchPainter extends CustomPainter {
     required double height,
     required PotatoSample sample,
     required bool isSelected,
+    double cylinderShown = 1,
   }) {
     final rect = Rect.fromLTWH(centerX - width / 2, topY, width, height);
     final rrect = RRect.fromRectAndCorners(
@@ -217,7 +289,8 @@ class OsmosisBenchPainter extends CustomPainter {
     );
 
     // Potato cylinder inside the tube if immersed
-    if (sample.isImmersed) {
+    if (sample.isImmersed && cylinderShown > 0) {
+      if (cylinderShown < 1) canvas.saveLayer(null, Paint()..color = Color.fromRGBO(0, 0, 0, cylinderShown));
       final cylinderWidth = (sample.concentration <= 0.2 ? 14.0 : (sample.concentration >= 0.6 ? 9.0 : 11.5));
       final cylinderHeight = (sample.concentration <= 0.2 ? 34.0 : (sample.concentration >= 0.6 ? 26.0 : 30.0));
       final cylinderCenterY = liquidTopY + liquidHeight * 0.55;
@@ -248,6 +321,7 @@ class OsmosisBenchPainter extends CustomPainter {
       if (state.isIncubating || sample.isImmersed) {
         _drawOsmoticFluxArrows(canvas, centerX, cylinderCenterY, cylinderWidth, sample.concentration);
       }
+      if (cylinderShown < 1) canvas.restore();
     }
 
     // Glass Tube Outline & Highlights
@@ -373,7 +447,10 @@ class OsmosisBenchPainter extends CustomPainter {
         ..shader = const LinearGradient(
           colors: [Color(0xFFFCD34D), Color(0xFFB45309)],
         ).createShader(potatoRect);
-      canvas.drawRRect(RRect.fromRectAndRadius(potatoRect, const Radius.circular(3)), potatoPaint);
+      // put on the pan by the hand
+      LabHand.carry(canvas, hands?.since('balance'),
+          offset: Offset(-w * 0.22, -24), grip: potatoRect.topCenter, pose: HandPose.pinch, rotate: 180, scale: _hand,
+          draw: () => canvas.drawRRect(RRect.fromRectAndRadius(potatoRect, const Radius.circular(3)), potatoPaint));
     }
 
     // LCD Display Window (Glowing Blue / Dark Slate)

@@ -6,6 +6,7 @@ import '../../data/models/pendulum_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/pendulum_controller.dart';
 import '../widgets/pendulum_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/practical_layout.dart';
 import '../widgets/pendulum_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
@@ -23,7 +24,14 @@ class PendulumScreen extends ConsumerStatefulWidget {
   ConsumerState<PendulumScreen> createState() => _PendulumScreenState();
 }
 
-class _PendulumScreenState extends ConsumerState<PendulumScreen> {
+class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProviderStateMixin {
+  late final LabHandRuns _hands = LabHandRuns(this);
+
+  /// The metre rule is on the bench only while the length is set.
+  static bool _showRule(PendulumState s) => s.currentStepIndex <= 1;
+
+  /// The hand holds the bob at the release angle until it is let go.
+  static bool _holding(PendulumState s) => s.currentStepIndex == 2 && !s.isOscillating;
   final TextEditingController _gradientController = TextEditingController();
   final TextEditingController _gravityController = TextEditingController();
 
@@ -74,12 +82,17 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
   void dispose() {
     _gradientController.dispose();
     _gravityController.dispose();
+    _hands.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(pendulumControllerProvider(widget.mode));
+    _hands.enabled = !MediaQuery.disableAnimationsOf(context);
+    _hands.watch('rule', _showRule(state));
+    _hands.watch('hold', _holding(state));
+    _hands.watch('watch', state.isOscillating);
     final notifier = ref.read(pendulumControllerProvider(widget.mode).notifier);
     final language = learningLanguage();
     final isSwahili = language == 'sw';
@@ -292,7 +305,6 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
 
   Widget _buildLaboratoryWorkbench(PendulumState state, bool isDark, bool isSwahili) {
     return Container(
-      height: 250,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0B1120) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
@@ -308,35 +320,46 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
           ),
         ],
       ),
-      child: Stack(
+      // The bench, cropped to the apparatus and upright enough to fill a
+      // phone, with what is happening written underneath it.
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Apparatus CustomPainter
           ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: PendulumBenchPainter(
-                lengthCm: state.pendulumLengthCm,
-                // While setting the release angle, show the bob held out at it.
-                angleDeg: state.currentStepIndex == 2 && !state.isOscillating
-                    ? state.deflectionAngleDeg
-                    : state.currentAngleDeg,
-                releaseAngleDeg: state.deflectionAngleDeg,
-                isOscillating: state.isOscillating,
-                isDark: isDark,
-                stopwatchSeconds: state.stopwatchElapsedSec,
-                oscillations: state.currentOscillations,
-                targetOscillations: state.targetOscillations,
-                inspectedItemKey: state.selectedInspectItemKey,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.55),
+                child: AspectRatio(
+                  aspectRatio: PendulumBenchPainter.cropWidth / 380,
+                  child: CustomPaint(
+                    painter: PendulumBenchPainter(
+                      lengthCm: state.pendulumLengthCm,
+                      // While setting the release angle, show the bob held out at it.
+                      angleDeg: state.currentStepIndex == 2 && !state.isOscillating
+                          ? state.deflectionAngleDeg
+                          : state.currentAngleDeg,
+                      releaseAngleDeg: state.deflectionAngleDeg,
+                      isOscillating: state.isOscillating,
+                      isDark: isDark,
+                      stopwatchSeconds: state.stopwatchElapsedSec,
+                      oscillations: state.currentOscillations,
+                      targetOscillations: state.targetOscillations,
+                      inspectedItemKey: state.selectedInspectItemKey,
+                      showRule: _showRule(state),
+                      holding: _holding(state),
+                      hands: _hands,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
 
-          // Top Info Banner on Workbench
-          Positioned(
-            top: 8,
-            left: 10,
-            right: 10,
+          // What is happening on the bench
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(

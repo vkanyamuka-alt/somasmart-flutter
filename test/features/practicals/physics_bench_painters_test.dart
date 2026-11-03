@@ -7,9 +7,9 @@ import 'package:somasmart_flutter/features/practicals/presentation/widgets/optic
 void main() {
   final painters = <String, CustomPainter>{
     'circuit not connected': CircuitBenchPainter(
-        isConnected: false, isSwitchClosed: false, measuredVoltage: 0, measuredCurrent: 0, animationProgress: 0, isDarkMode: true),
+        isConnected: false, isSwitchClosed: false, cells: 1, measuredVoltage: 0, measuredCurrent: 0, animationProgress: 0, isDarkMode: true),
     'circuit live at 6 V': CircuitBenchPainter(
-        isConnected: true, isSwitchClosed: true, measuredVoltage: 6, measuredCurrent: 0.6, animationProgress: 0.4, isDarkMode: false, supplyVoltage: 6),
+        isConnected: true, isSwitchClosed: true, cells: 4, measuredVoltage: 6, measuredCurrent: 0.6, animationProgress: 0.4, isDarkMode: false),
     'prism at 45°': OpticsBenchPainter(state: const OpticsState(incidentAngleDeg: 45), isDark: true),
     'prism at 70°': OpticsBenchPainter(state: const OpticsState(incidentAngleDeg: 70), isDark: false),
     'prism at 20° (total internal reflection)': OpticsBenchPainter(state: const OpticsState(incidentAngleDeg: 20), isDark: true),

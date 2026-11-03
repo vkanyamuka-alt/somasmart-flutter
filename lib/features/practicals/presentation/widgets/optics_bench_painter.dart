@@ -2,20 +2,30 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/optics_state.dart';
 import 'lab_apparatus.dart';
+import 'lab_hand.dart';
 
 /// The refraction bench: a drawing board seen from above with the 60° glass
 /// prism, the normals, a protractor on face AB, a ray box sending a ray
 /// through the prism and the four optical pins, drawn as students draw it on
-/// paper. Built from the shared lab kit ([LabPaint]); the website draws the
-/// same board (RefractionBench.jsx) with the same geometry.
+/// paper. The student's hand lays the protractor on face AB and pushes the
+/// pins in one at a time ([LabHand]). Built from the shared lab kit
+/// ([LabPaint]); the website draws the same board (RefractionBench.jsx) with
+/// the same geometry.
 class OpticsBenchPainter extends CustomPainter {
   final OpticsState state;
   final bool isDark;
+  final LabHandRuns? hands; // 'protractor', 'pins'
 
   OpticsBenchPainter({
     required this.state,
     required this.isDark,
-  });
+    this.hands,
+  }) : super(repaint: hands);
+
+  /// The values the hands on this bench react to, for [LabHandPaint.watch].
+  static Map<String, Object?> handKeys(OpticsState s) => {'protractor': s.showProtractor, 'pins': s.showOpticalPins};
+
+  static const double _pinGap = 900; // ms between the hand pushing in one pin and the next
 
   // The prism on the board: apex A, base corners B and C.
   static const _a = Offset(350, 80);
@@ -68,7 +78,10 @@ class OpticsBenchPainter extends CustomPainter {
         _dashed(canvas, p - nAB * 70, p + nAB * 60);
         _dashed(canvas, q - nAC * 60, q + nAC * 70);
       }
-      if (state.showProtractor) _protractor(canvas, p);
+      if (state.showProtractor) {
+        LabHand.carry(canvas, hands?.since('protractor'),
+            offset: const Offset(-70, 60), grip: p + const Offset(-30, 40), pose: HandPose.pinch, rotate: -30, draw: () => _protractor(canvas, p));
+      }
 
       final source = p - dIn * 235;
       final rayPaint = Paint()
@@ -102,11 +115,19 @@ class OpticsBenchPainter extends CustomPainter {
       canvas.restore();
 
       if (state.showOpticalPins) {
-        _pin(canvas, p - dIn * 150, 'P1');
-        _pin(canvas, p - dIn * 78, 'P2');
-        if (dE != null) {
-          _pin(canvas, q + dE * 78, 'P3');
-          _pin(canvas, q + dE * 150, 'P4');
+        final pins = [
+          (p - dIn * 150, 'P1'),
+          (p - dIn * 78, 'P2'),
+          if (dE != null) (q + dE * 78, 'P3'),
+          if (dE != null) (q + dE * 150, 'P4'),
+        ];
+        // Each pin shows once the hand has pushed it into the board.
+        final t = hands?.since('pins');
+        for (int k = 0; k < pins.length; k++) {
+          _pin(canvas, pins[k].$1, pins[k].$2, opacity: LabHand.appear(t, k * _pinGap + 500));
+        }
+        for (int k = 0; k < pins.length; k++) {
+          LabHand.move(canvas, t, to: pins[k].$1, duration: 1100, delay: k * _pinGap);
         }
       }
 
@@ -152,12 +173,15 @@ class OpticsBenchPainter extends CustomPainter {
     LabPaint.text(canvas, label, c + Offset(math.cos(mid), math.sin(mid)) * (r + 11), 10.5, color);
   }
 
-  void _pin(Canvas canvas, Offset p, String label) {
+  void _pin(Canvas canvas, Offset p, String label, {double opacity = 1}) {
+    if (opacity <= 0) return;
+    if (opacity < 1) canvas.saveLayer(null, Paint()..color = Color.fromRGBO(0, 0, 0, opacity));
     canvas.drawOval(Rect.fromCenter(center: p + const Offset(3, 3), width: 10, height: 6), Paint()..color = const Color(0x2E0B1A2A));
     final head = Rect.fromCircle(center: p, radius: 5);
     canvas.drawOval(head, LabPaint.radial(head, const [Color(0xFFFFFFFF), Color(0xFFB7C1CB), Color(0xFF5F6B77)], stops: const [0, 0.5, 1]));
     canvas.drawCircle(p, 2.2, Paint()..color = const Color(0xFFC8392F));
     LabPaint.text(canvas, label, p + const Offset(14, -9), 10, _ink);
+    if (opacity < 1) canvas.restore();
   }
 
   @override

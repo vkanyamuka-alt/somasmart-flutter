@@ -1,26 +1,73 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/rates_of_reaction_state.dart';
+import 'lab_hand.dart';
 
-/// CustomPainter that renders the interactive chemical kinetics laboratory bench
+/// CustomPainter that renders the interactive chemical kinetics laboratory
+/// bench. The student's hand carries each flask onto the paper marked X and
+/// pours in the acid ([LabHand]).
 class RatesOfReactionBenchPainter extends CustomPainter {
   final RatesOfReactionState state;
   final bool isDark;
   final double animationValue;
+  final LabHandRuns? hands; // keys from [handKeys]
 
   const RatesOfReactionBenchPainter({
     required this.state,
     required this.isDark,
     this.animationValue = 0.0,
-  });
+    this.hands,
+  }) : super(repaint: hands);
+
+  /// The values the hands on this bench react to, for [LabHandPaint.watch].
+  static Map<String, Object?> handKeys(RatesOfReactionState s) => {
+        'flask': s.isFlaskOnCross,
+        'acid': s.trials.isEmpty ? null : '${s.activeTrialIndex}:${s.trials[s.activeTrialIndex].isAcidAdded}',
+      };
 
   @override
   void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
     _drawLabBenchBackground(canvas, size);
     _drawReagentBottles(canvas, size);
     _drawCrossTileAndFlask(canvas, size);
     _drawTopDownCrossPortal(canvas, size);
     _drawFlaskRack(canvas, size);
+    _drawAcidPour(canvas, size);
+    canvas.restore();
+  }
+
+  /// The 5 mL of acid poured from a measuring cylinder into the flask.
+  void _drawAcidPour(Canvas canvas, Size size) {
+    if (!state.isFlaskOnCross || state.trials.isEmpty || !state.trials[state.activeTrialIndex].isAcidAdded) return;
+    final centerX = size.width * 0.52;
+    final flaskTopY = size.height * 0.55 - 65;
+    LabHand.move(canvas, hands?.since('acid'),
+        from: const Offset(118, 70), to: Offset(centerX + 33, flaskTopY - 26), pose: HandPose.grip, scale: 0.6, duration: 1700,
+        holding: (c) {
+      // A 10 mL measuring cylinder tipped so its mouth (+y end) points down
+      // into the flask neck; long enough to show either side of the fist.
+      c.save();
+      c.rotate(0.75);
+      final glass = Paint()
+        ..color = const Color(0xFF64748B)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2;
+      final cylinder = RRect.fromRectAndRadius(const Rect.fromLTWH(-6, -24, 12, 54), const Radius.circular(2));
+      c.drawRRect(cylinder, Paint()..color = const Color(0x40BAE6FD));
+      c.drawRect(const Rect.fromLTWH(-5, 16, 10, 13), Paint()..color = const Color(0xB3FDE68A));
+      c.drawRRect(cylinder, glass);
+      c.drawRect(const Rect.fromLTWH(-10, -28, 20, 4), Paint()..color = const Color(0xFF64748B));
+      for (final y in [-14.0, -6.0, 2.0, 10.0]) {
+        c.drawLine(Offset(-6, y), Offset(-2, y), glass..strokeWidth = 0.8);
+      }
+      c.restore();
+      c.drawLine(const Offset(-20, 22), const Offset(-20, 40), Paint()
+        ..color = const Color(0x99FDE68A)
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round);
+    });
   }
 
   void _drawLabBenchBackground(Canvas canvas, Size size) {
@@ -151,95 +198,101 @@ class RatesOfReactionBenchPainter extends CustomPainter {
       crossPaint,
     );
 
-    // 3. Conical Flask (250 mL Pyrex) on top of the tile
+    // 3. Conical Flask (250 mL Pyrex) on top of the tile, carried there by the hand
     if (state.isFlaskOnCross) {
-      final flaskBaseY = centerY + 78;
-      final flaskTopY = centerY - 65;
-      final flaskWidth = 100.0;
-      final neckWidth = 26.0;
+      LabHand.carry(canvas, hands?.since('flask'),
+          offset: Offset(size.width * 0.42, 4), grip: Offset(centerX + 2, centerY - 42), scale: 0.7,
+          draw: () => _drawFlask(canvas, centerX, centerY));
+    }
+  }
 
-      // Flask Path
-      final flaskPath = Path();
-      // Lip top
-      flaskPath.moveTo(centerX - neckWidth / 2 - 2, flaskTopY);
-      flaskPath.lineTo(centerX + neckWidth / 2 + 2, flaskTopY);
-      // Neck right
-      flaskPath.lineTo(centerX + neckWidth / 2, flaskTopY + 32);
-      // Conical slope right
-      flaskPath.lineTo(centerX + flaskWidth / 2, flaskBaseY - 8);
-      // Base curve
-      flaskPath.quadraticBezierTo(centerX + flaskWidth / 2, flaskBaseY, centerX + flaskWidth / 2 - 8, flaskBaseY);
-      flaskPath.lineTo(centerX - flaskWidth / 2 + 8, flaskBaseY);
-      flaskPath.quadraticBezierTo(centerX - flaskWidth / 2, flaskBaseY, centerX - flaskWidth / 2, flaskBaseY - 8);
-      // Conical slope left
-      flaskPath.lineTo(centerX - neckWidth / 2, flaskTopY + 32);
-      flaskPath.lineTo(centerX - neckWidth / 2 - 2, flaskTopY);
-      flaskPath.close();
+  void _drawFlask(Canvas canvas, double centerX, double centerY) {
+    final flaskBaseY = centerY + 78;
+    final flaskTopY = centerY - 65;
+    final flaskWidth = 100.0;
+    final neckWidth = 26.0;
 
-      // Liquid in flask
-      final liquidPath = Path();
-      final liquidTopY = flaskBaseY - 48;
-      liquidPath.moveTo(centerX - flaskWidth / 2 + 10, liquidTopY);
-      liquidPath.lineTo(centerX + flaskWidth / 2 - 10, liquidTopY);
-      liquidPath.lineTo(centerX + flaskWidth / 2 - 2, flaskBaseY - 8);
-      liquidPath.quadraticBezierTo(centerX + flaskWidth / 2, flaskBaseY, centerX + flaskWidth / 2 - 8, flaskBaseY);
-      liquidPath.lineTo(centerX - flaskWidth / 2 + 8, flaskBaseY);
-      liquidPath.quadraticBezierTo(centerX - flaskWidth / 2, flaskBaseY, centerX - flaskWidth / 2 + 2, flaskBaseY - 8);
-      liquidPath.close();
+    // Flask Path
+    final flaskPath = Path();
+    // Lip top
+    flaskPath.moveTo(centerX - neckWidth / 2 - 2, flaskTopY);
+    flaskPath.lineTo(centerX + neckWidth / 2 + 2, flaskTopY);
+    // Neck right
+    flaskPath.lineTo(centerX + neckWidth / 2, flaskTopY + 32);
+    // Conical slope right
+    flaskPath.lineTo(centerX + flaskWidth / 2, flaskBaseY - 8);
+    // Base curve
+    flaskPath.quadraticBezierTo(centerX + flaskWidth / 2, flaskBaseY, centerX + flaskWidth / 2 - 8, flaskBaseY);
+    flaskPath.lineTo(centerX - flaskWidth / 2 + 8, flaskBaseY);
+    flaskPath.quadraticBezierTo(centerX - flaskWidth / 2, flaskBaseY, centerX - flaskWidth / 2, flaskBaseY - 8);
+    // Conical slope left
+    flaskPath.lineTo(centerX - neckWidth / 2, flaskTopY + 32);
+    flaskPath.lineTo(centerX - neckWidth / 2 - 2, flaskTopY);
+    flaskPath.close();
 
-      // Liquid Opacity & Color: Clear water -> Colloidal sulfur (milky bright yellow)
-      final opacity = state.turbidityOpacity.clamp(0.0, 1.0);
-      final liquidColor = Color.lerp(
-        const Color(0xFF38BDF8).withValues(alpha: 0.25), // Initial clear solution
-        const Color(0xFFFDE047), // Colloidal sulfur yellow
-        opacity,
-      )!;
+    // Liquid in flask
+    final liquidPath = Path();
+    final liquidTopY = flaskBaseY - 48;
+    liquidPath.moveTo(centerX - flaskWidth / 2 + 10, liquidTopY);
+    liquidPath.lineTo(centerX + flaskWidth / 2 - 10, liquidTopY);
+    liquidPath.lineTo(centerX + flaskWidth / 2 - 2, flaskBaseY - 8);
+    liquidPath.quadraticBezierTo(centerX + flaskWidth / 2, flaskBaseY, centerX + flaskWidth / 2 - 8, flaskBaseY);
+    liquidPath.lineTo(centerX - flaskWidth / 2 + 8, flaskBaseY);
+    liquidPath.quadraticBezierTo(centerX - flaskWidth / 2, flaskBaseY, centerX - flaskWidth / 2 + 2, flaskBaseY - 8);
+    liquidPath.close();
 
-      final liquidPaint = Paint()
-        ..color = liquidColor.withValues(alpha: 0.35 + (0.60 * opacity))
+    // Liquid Opacity & Color: Clear water -> Colloidal sulfur (milky bright yellow)
+    final opacity = state.turbidityOpacity.clamp(0.0, 1.0);
+    final liquidColor = Color.lerp(
+      const Color(0xFF38BDF8).withValues(alpha: 0.25), // Initial clear solution
+      const Color(0xFFFDE047), // Colloidal sulfur yellow
+      opacity,
+    )!;
+
+    final liquidPaint = Paint()
+      ..color = liquidColor.withValues(alpha: 0.35 + (0.60 * opacity))
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(liquidPath, liquidPaint);
+
+    // Colloidal precipitate particles when reacting
+    if (opacity > 0.05) {
+      final particlePaint = Paint()
+        ..color = const Color(0xFFEAB308).withValues(alpha: (0.8 * opacity).clamp(0.0, 1.0))
         ..style = PaintingStyle.fill;
-      canvas.drawPath(liquidPath, liquidPaint);
-
-      // Colloidal precipitate particles when reacting
-      if (opacity > 0.05) {
-        final particlePaint = Paint()
-          ..color = const Color(0xFFEAB308).withValues(alpha: (0.8 * opacity).clamp(0.0, 1.0))
-          ..style = PaintingStyle.fill;
-        final rng = math.Random(42);
-        for (int i = 0; i < (opacity * 35).toInt(); i++) {
-          final px = centerX - 35 + rng.nextDouble() * 70;
-          final py = liquidTopY + 5 + rng.nextDouble() * 38;
-          final pr = 1.2 + rng.nextDouble() * 2.2;
-          canvas.drawCircle(Offset(px, py), pr, particlePaint);
-        }
+      final rng = math.Random(42);
+      for (int i = 0; i < (opacity * 35).toInt(); i++) {
+        final px = centerX - 35 + rng.nextDouble() * 70;
+        final py = liquidTopY + 5 + rng.nextDouble() * 38;
+        final pr = 1.2 + rng.nextDouble() * 2.2;
+        canvas.drawCircle(Offset(px, py), pr, particlePaint);
       }
+    }
 
-      // Flask Glass Outlines and Highlights
-      final glassOutline = Paint()
-        ..color = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.2;
-      canvas.drawPath(flaskPath, glassOutline);
+    // Flask Glass Outlines and Highlights
+    final glassOutline = Paint()
+      ..color = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
+    canvas.drawPath(flaskPath, glassOutline);
 
-      // Glass highlight reflection
-      final highlightPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0;
-      canvas.drawLine(
-        Offset(centerX - flaskWidth / 2 + 8, flaskBaseY - 14),
-        Offset(centerX - neckWidth / 2 + 2, flaskTopY + 36),
-        highlightPaint,
-      );
+    // Glass highlight reflection
+    final highlightPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawLine(
+      Offset(centerX - flaskWidth / 2 + 8, flaskBaseY - 14),
+      Offset(centerX - neckWidth / 2 + 2, flaskTopY + 36),
+      highlightPaint,
+    );
 
-      // Volume graduation marks on flask
-      final markPaint = Paint()
-        ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.4)
-        ..strokeWidth = 1.2;
-      for (int i = 1; i <= 3; i++) {
-        final my = flaskBaseY - 12 - (i * 12.0);
-        canvas.drawLine(Offset(centerX + 18, my), Offset(centerX + 28, my), markPaint);
-      }
+    // Volume graduation marks on flask
+    final markPaint = Paint()
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.4)
+      ..strokeWidth = 1.2;
+    for (int i = 1; i <= 3; i++) {
+      final my = flaskBaseY - 12 - (i * 12.0);
+      canvas.drawLine(Offset(centerX + 18, my), Offset(centerX + 28, my), markPaint);
     }
   }
 

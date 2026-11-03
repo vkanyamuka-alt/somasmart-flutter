@@ -7,6 +7,7 @@ import '../../data/models/titration_state.dart';
 import '../controllers/titration_controller.dart';
 import '../widgets/burette_reading_lens.dart';
 import '../widgets/titration_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/titration_completion_card.dart';
 import '../widgets/workflow_step_bar.dart';
 import '../../../../core/utils/learning_language.dart';
@@ -24,8 +25,9 @@ class TitrationScreen extends ConsumerStatefulWidget {
 }
 
 class _TitrationScreenState extends ConsumerState<TitrationScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animController;
+  late final LabHandRuns _hands = LabHandRuns(this);
 
   // Step 8 Form inputs
   final _initialReadingCtrl = TextEditingController(text: '0.00');
@@ -49,6 +51,7 @@ class _TitrationScreenState extends ConsumerState<TitrationScreen>
   @override
   void dispose() {
     _animController.dispose();
+    _hands.dispose();
     _initialReadingCtrl.dispose();
     _finalReadingCtrl.dispose();
     _titreVolumeCtrl.dispose();
@@ -64,6 +67,8 @@ class _TitrationScreenState extends ConsumerState<TitrationScreen>
     final isSwahili = language == 'sw';
 
     final titrationState = ref.watch(titrationControllerProvider(widget.mode));
+    _hands.enabled = !MediaQuery.disableAnimationsOf(context);
+    TitrationBenchPainter.handKeys(titrationState).forEach(_hands.watch);
     final controller = ref.read(titrationControllerProvider(widget.mode).notifier);
 
     return PopScope(
@@ -193,6 +198,7 @@ class _TitrationScreenState extends ConsumerState<TitrationScreen>
                                   state: titrationState,
                                   isDark: isDark,
                                   animationValue: _animController.value,
+                                  hands: _hands,
                                 ),
                               );
                             },

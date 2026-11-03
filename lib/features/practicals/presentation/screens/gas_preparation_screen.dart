@@ -5,6 +5,7 @@ import '../../data/models/gas_preparation_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/gas_preparation_controller.dart';
 import '../widgets/gas_preparation_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/titration_completion_card.dart';
 import '../../../../core/utils/learning_language.dart';
 
@@ -342,12 +343,14 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
         child: AnimatedBuilder(
           animation: _pulseController,
           builder: (context, _) {
-            return CustomPaint(
+            return LabHandPaint(
               size: const Size(double.infinity, 250),
-              painter: GasPreparationBenchPainter(
+              watch: GasPreparationBenchPainter.handKeys(state),
+              painter: (hands) => GasPreparationBenchPainter(
                 state: state,
                 isDark: isDark,
                 animationValue: _pulseController.value,
+                hands: hands,
               ),
             );
           },

@@ -1,28 +1,101 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/gas_preparation_state.dart';
+import 'lab_hand.dart';
 
-/// CustomPainter that renders the native chemical gas preparation laboratory bench
+/// CustomPainter that renders the native chemical gas preparation laboratory
+/// bench. The student's hand spoons the solid into the flask, pours the
+/// liquid down the thistle funnel and holds the splint (or limewater) to
+/// test the gas ([LabHand]).
 class GasPreparationBenchPainter extends CustomPainter {
   final GasPreparationState state;
   final bool isDark;
   final double animationValue;
+  final LabHandRuns? hands; // keys from [handKeys]
 
   const GasPreparationBenchPainter({
     required this.state,
     required this.isDark,
     this.animationValue = 0.0,
-  });
+    this.hands,
+  }) : super(repaint: hands);
+
+  /// The values the hands on this bench react to, for [LabHandPaint.watch].
+  static Map<String, Object?> handKeys(GasPreparationState s) =>
+      {'solid': s.isSolidAdded, 'liquid': s.isLiquidAdded, 'test': s.isTestPerformed};
+
+  /// The hand is drawn a little over half size on this pixel-sized bench.
+  static const double _hand = 0.55;
 
   @override
   void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
     _drawBenchBackground(canvas, size);
     _drawReagentSupply(canvas, size);
     _drawGeneratorFlask(canvas, size);
     _drawDeliveryTube(canvas, size);
     _drawCollectionApparatus(canvas, size);
     _drawGasTestZone(canvas, size);
+    _drawHands(canvas, size);
+    canvas.restore();
   }
+
+  void _drawHands(Canvas canvas, Size size) {
+    const flaskCenterX = 70.0;
+    final flaskBaseY = size.height - 45.0;
+    // A spatula of the solid from its container into the flask, the hand
+    // reaching down from above so the sleeve does not cover the flask.
+    if (state.isSolidAdded) {
+      LabHand.move(canvas, hands?.since('solid'),
+          from: const Offset(44, 40), to: Offset(flaskCenterX + 12, flaskBaseY - 146), rotate: 180, scale: _hand, duration: 1500,
+          holding: (c) {
+        c.drawLine(Offset.zero, const Offset(-9, 24), Paint()
+          ..color = const Color(0xFF8C9BAA)
+          ..strokeWidth = 2.5
+          ..strokeCap = StrokeCap.round);
+        final scoop = Rect.fromCenter(center: const Offset(-10, 27), width: 11, height: 6);
+        c.drawOval(scoop, Paint()..color = const Color(0xFF8C9BAA));
+        c.drawOval(scoop.deflate(1.2), Paint()..color = _solidColor);
+        c.drawOval(scoop.deflate(1.2), Paint()
+          ..color = const Color(0xFF475569)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.6);
+      });
+    }
+    // The liquid poured from a small beaker down the thistle funnel: the
+    // beaker is tipped with its lip (+y end) to the funnel, showing past the fist.
+    if (state.isLiquidAdded) {
+      LabHand.move(canvas, hands?.since('liquid'),
+          from: const Offset(118, 40), to: Offset(flaskCenterX + 11, flaskBaseY - 160), pose: HandPose.grip, scale: _hand, duration: 1700,
+          holding: (c) {
+        c.save();
+        c.rotate(0.9);
+        final cup = RRect.fromRectAndRadius(const Rect.fromLTWH(-10, -16, 20, 34), const Radius.circular(2));
+        c.drawRRect(cup, Paint()..color = const Color(0x3338BDF8));
+        c.drawRect(const Rect.fromLTWH(-9, 6, 18, 11), Paint()..color = const Color(0x8038BDF8));
+        c.drawRRect(cup, Paint()
+          ..color = const Color(0xFF0284C7)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2);
+        c.restore();
+        c.drawLine(const Offset(-14, 11), const Offset(-14, 26), Paint()
+          ..color = const Color(0xB338BDF8)
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round);
+      });
+    }
+    // The splint (or the limewater tube) held at the mouth of the jar.
+    if (state.isTestPerformed) {
+      final testX = size.width - 55.0;
+      final at = state.selectedGas == PreparedGasType.carbonDioxide ? Offset(testX - 13, flaskBaseY - 24) : Offset(testX + 1, flaskBaseY - 12);
+      LabHand.rest(canvas, hands?.since('test'), at: at, scale: _hand, enter: const Offset(20, 40));
+    }
+  }
+
+  Color get _solidColor => state.selectedGas == PreparedGasType.oxygen
+      ? const Color(0xFF1E293B)
+      : (state.selectedGas == PreparedGasType.carbonDioxide ? const Color(0xFFF1F5F9) : const Color(0xFF94A3B8));
 
   void _drawBenchBackground(Canvas canvas, Size size) {
     final benchRect = Rect.fromLTWH(0, 0, size.width, size.height);

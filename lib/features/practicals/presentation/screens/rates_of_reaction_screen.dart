@@ -6,6 +6,7 @@ import '../../data/models/practical_model.dart';
 import '../../data/models/rates_of_reaction_state.dart';
 import '../controllers/rates_of_reaction_controller.dart';
 import '../widgets/rates_of_reaction_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/rates_of_reaction_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
 import '../../../../core/utils/learning_language.dart';
@@ -345,12 +346,14 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
         child: AnimatedBuilder(
           animation: _pulseController,
           builder: (context, _) {
-            return CustomPaint(
+            return LabHandPaint(
               size: const Size(double.infinity, 240),
-              painter: RatesOfReactionBenchPainter(
+              watch: RatesOfReactionBenchPainter.handKeys(state),
+              painter: (hands) => RatesOfReactionBenchPainter(
                 state: state,
                 isDark: isDark,
                 animationValue: _pulseController.value,
+                hands: hands,
               ),
             );
           },

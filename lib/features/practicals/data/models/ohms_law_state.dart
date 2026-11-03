@@ -30,7 +30,7 @@ class OhmsLawState {
 
   // Circuit simulation state (Step 2 & 3)
   final bool isSwitchClosed;
-  final double voltageSetting; // 0.0 to 6.0 V
+  final double voltageSetting; // the cells in use: 1.5, 3.0, 4.5 or 6.0 V
   final double knownResistance; // Fixed standard resistor = 10.0 Ω
   final double measuredVoltage; // Voltmeter reading (V)
   final double measuredCurrent; // Ammeter reading (A)
@@ -56,7 +56,7 @@ class OhmsLawState {
     this.selectedInspectItemKey,
     this.circuitConnected = false,
     this.isSwitchClosed = false,
-    this.voltageSetting = 1.0,
+    this.voltageSetting = 1.5,
     this.knownResistance = 10.0,
     this.measuredVoltage = 0.0,
     this.measuredCurrent = 0.0,
@@ -70,30 +70,33 @@ class OhmsLawState {
 
   bool get isCircuitActive => circuitConnected && isSwitchClosed && voltageSetting > 0;
 
+  /// The number of 1.5 V dry cells in the circuit (1 to 4).
+  int get cells => (voltageSetting / 1.5).round().clamp(1, 4);
+
   String get observationMessageEn {
     if (!circuitConnected) {
-      return 'Circuit is incomplete. Connect all wires, meters, and standard resistor.';
+      return 'The circuit is not connected yet. The ammeter goes in series with the resistor, the voltmeter in parallel across it.';
     }
     if (!isSwitchClosed) {
-      return 'Switch is OPEN (Off). Zero current flows through the circuit (I = 0.00 A).';
+      return 'The key is open, so no current flows and both needles rest at zero.';
     }
     if (measuredCurrent > 0) {
-      return 'Switch is CLOSED (On). Current of ${measuredCurrent.toStringAsFixed(3)} A flows at ${measuredVoltage.toStringAsFixed(2)} V across ${knownResistance.toStringAsFixed(1)} Ω.';
+      return 'Key closed: the voltmeter reads ${measuredVoltage.toStringAsFixed(2)} V and the ammeter ${measuredCurrent.toStringAsFixed(3)} A.';
     }
-    return 'Adjust the variable voltage power supply to take measurements.';
+    return 'Choose how many dry cells to use, then read both meters.';
   }
 
   String get observationMessageSw {
     if (!circuitConnected) {
-      return 'Saketi haijakamilika. Unganisha nyaya, mita na kikinza sanifu.';
+      return 'Saketi haijaunganishwa. Ammita huwekwa mfululizo na kikinza, voltimita sambamba nacho.';
     }
     if (!isSwitchClosed) {
-      return 'Swichi IKO WAZI (Imezimwa). Hakuna mkondo wa umeme unaopita (I = 0.00 A).';
+      return 'Ufunguo uko wazi, hivyo hakuna mkondo na sindano zote ziko kwenye sifuri.';
     }
     if (measuredCurrent > 0) {
-      return 'Swichi IMEFUNGWA (Imewashwa). Mkondo wa ${measuredCurrent.toStringAsFixed(3)} A unapita kwenye volteji ya ${measuredVoltage.toStringAsFixed(2)} V.';
+      return 'Ufunguo umefungwa: voltimita inasoma ${measuredVoltage.toStringAsFixed(2)} V na ammita ${measuredCurrent.toStringAsFixed(3)} A.';
     }
-    return 'Badilisha volteji ya betri ili kupima mikondo tofauti ya umeme.';
+    return 'Chagua idadi ya seli kavu, kisha soma mita zote mbili.';
   }
 
   bool canAdvanceStep() {
