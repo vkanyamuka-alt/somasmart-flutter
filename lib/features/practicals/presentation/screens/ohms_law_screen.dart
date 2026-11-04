@@ -161,7 +161,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
     switch (state.mode) {
       case PracticalMode.guidedPractice:
         modeName = isSwahili ? 'Mazoezi Yaliyoongozwa' : 'Guided Practice';
-        modeColor = const Color(0xFF3B82F6);
+        modeColor = AppColors.primary;
         break;
       case PracticalMode.examMode:
         modeName = isSwahili ? 'Mtihani Halisi' : 'Exam Mode';
@@ -256,14 +256,14 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: isCurrent
-                    ? const Color(0xFF3B82F6)
+                    ? AppColors.primary
                     : (isPast
                         ? const Color(0xFF10B981).withValues(alpha: 0.15)
                         : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9))),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isCurrent
-                      ? const Color(0xFF3B82F6)
+                      ? AppColors.primary
                       : (isPast ? const Color(0xFF10B981) : Colors.transparent),
                 ),
               ),
@@ -281,7 +281,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: isCurrent ? const Color(0xFF3B82F6) : Colors.white,
+                              color: isCurrent ? AppColors.primary : Colors.white,
                             ),
                           ),
                   ),
@@ -332,7 +332,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.bolt_rounded, size: 18, color: Color(0xFF3B82F6)),
+                    const Icon(Icons.bolt_rounded, size: 18, color: AppColors.primary),
                     const SizedBox(width: 6),
                     Text(
                       isSwahili ? 'Saketi ya Maabara' : 'Laboratory Circuit Bench',
@@ -545,7 +545,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                 icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                 label: Text(isSwahili ? 'Hatua Inayofuata (Unganisha)' : 'Next Step (Assemble Circuit)'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -601,7 +601,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                   icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                   label: Text(isSwahili ? 'Endelea (Funga Ufunguo)' : 'Proceed (Close the Key)'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B82F6),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -663,7 +663,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                       : 'Record Reading (V = ${state.measuredVoltage.toStringAsFixed(1)}V, I = ${state.measuredCurrent.toStringAsFixed(3)}A)',
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -714,14 +714,14 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
       avatar: Icon(
         isInspected ? Icons.check_circle_rounded : Icons.info_outline_rounded,
         size: 16,
-        color: isInspected ? const Color(0xFF10B981) : const Color(0xFF3B82F6),
+        color: isInspected ? const Color(0xFF10B981) : AppColors.primary,
       ),
       label: Text(label, style: const TextStyle(fontSize: 12)),
       backgroundColor: isInspected
           ? const Color(0xFF10B981).withValues(alpha: 0.12)
           : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
       side: BorderSide(
-        color: isInspected ? const Color(0xFF10B981) : const Color(0xFF3B82F6).withValues(alpha: 0.3),
+        color: isInspected ? const Color(0xFF10B981) : AppColors.primary.withValues(alpha: 0.3),
       ),
       onPressed: () => controller.inspectItem(key),
     );
@@ -809,7 +809,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                         DataCell(Text('#${r.trialNumber}', style: const TextStyle(fontSize: 12))),
                         DataCell(Text('${r.voltage.toStringAsFixed(2)} V', style: const TextStyle(fontSize: 12))),
                         DataCell(Text('${r.current.toStringAsFixed(3)} A', style: const TextStyle(fontSize: 12))),
-                        DataCell(Text('${r.calculatedResistance.toStringAsFixed(2)} Ω', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF3B82F6)))),
+                        DataCell(Text('${r.calculatedResistance.toStringAsFixed(2)} Ω', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary))),
                         DataCell(
                           IconButton(
                             icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFEF4444)),
@@ -849,7 +849,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
           children: [
             Row(
               children: [
-                const Icon(Icons.calculate_rounded, size: 20, color: Color(0xFF3B82F6)),
+                const Icon(Icons.calculate_rounded, size: 20, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
                   isSwahili ? 'Uhesabuji wa Kikinza na Alama' : 'Resistance Calculation & Final Submission',

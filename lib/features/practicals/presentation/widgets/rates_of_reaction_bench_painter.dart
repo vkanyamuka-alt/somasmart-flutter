@@ -453,7 +453,7 @@ class RatesOfReactionBenchPainter extends CustomPainter {
 
     // Portal Border
     final portalBorder = Paint()
-      ..color = opacity >= 1.0 ? const Color(0xFF10B981) : const Color(0xFF38BDF8)
+      ..color = opacity >= 1.0 ? const Color(0xFF10B981) : const Color(0xFF184E78)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
     canvas.drawCircle(portalCenter, portalRadius, portalBorder);
@@ -465,7 +465,7 @@ class RatesOfReactionBenchPainter extends CustomPainter {
       style: TextStyle(
         fontSize: 7.5,
         fontWeight: FontWeight.w800,
-        color: opacity >= 1.0 ? const Color(0xFF10B981) : const Color(0xFF38BDF8),
+        color: opacity >= 1.0 ? const Color(0xFF10B981) : const Color(0xFF184E78),
       ),
     );
     textPainter.layout();
@@ -489,7 +489,7 @@ class RatesOfReactionBenchPainter extends CustomPainter {
 
       final badgePaint = Paint()
         ..color = isSelected
-            ? const Color(0xFF38BDF8)
+            ? const Color(0xFF184E78)
             : (trial.isCompleted
                 ? const Color(0xFF10B981)
                 : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)))

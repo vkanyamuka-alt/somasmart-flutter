@@ -101,7 +101,7 @@ class OpticsScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                  color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -109,12 +109,12 @@ class OpticsScreen extends ConsumerWidget {
                   style: const TextStyle(
                     fontSize: 9.5,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF0284C7),
+                    color: AppColors.primary,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.timer_outlined, size: 13, color: Color(0xFF0284C7)),
+              const Icon(Icons.timer_outlined, size: 13, color: AppColors.primary),
               const SizedBox(width: 3),
               Text(
                 timeStr,
@@ -142,7 +142,7 @@ class OpticsScreen extends ConsumerWidget {
       actions: [
         // Lab Notebook Button
         IconButton(
-          icon: const Icon(Icons.menu_book_outlined, color: Color(0xFF0284C7)),
+          icon: const Icon(Icons.menu_book_outlined, color: AppColors.primary),
           tooltip: isSwahili ? 'Daftari la Maabara' : 'Lab Notebook',
           onPressed: () => _openLabNotebook(context, state, isDark, isSwahili),
         ),
@@ -205,11 +205,11 @@ class OpticsScreen extends ConsumerWidget {
                 ],
               ),
               selected: isActive,
-              selectedColor: const Color(0xFF0058BE),
+              selectedColor: AppColors.primary,
               backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
               side: BorderSide(
                 color: isActive
-                    ? const Color(0xFF0058BE)
+                    ? AppColors.primary
                     : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
               ),
               onSelected: (_) {
@@ -229,10 +229,10 @@ class OpticsScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.15 : 0.08),
+        color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.3 : 0.2),
+          color: AppColors.primary.withValues(alpha: isDark ? 0.3 : 0.2),
         ),
       ),
       child: Row(
@@ -240,7 +240,7 @@ class OpticsScreen extends ConsumerWidget {
         children: [
           const Padding(
             padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.info_outline, size: 16, color: Color(0xFF0284C7)),
+            child: Icon(Icons.info_outline, size: 16, color: AppColors.primary),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -249,7 +249,7 @@ class OpticsScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 12,
                 height: 1.35,
-                color: isDark ? const Color(0xFFE0F2FE) : const Color(0xFF0369A1),
+                color: isDark ? const Color(0xFFE0F2FE) : AppColors.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -419,11 +419,11 @@ class OpticsScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
           color: isActive
-              ? const Color(0xFF0284C7).withValues(alpha: 0.2)
+              ? AppColors.primary.withValues(alpha: 0.2)
               : (isDark ? const Color(0xFF0F172A).withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.8)),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isActive ? const Color(0xFF0284C7) : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+            color: isActive ? AppColors.primary : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
           ),
         ),
         child: Row(
@@ -432,7 +432,7 @@ class OpticsScreen extends ConsumerWidget {
             Icon(
               icon,
               size: 13,
-              color: isActive ? const Color(0xFF0284C7) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              color: isActive ? AppColors.primary : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
             ),
             const SizedBox(width: 3),
             Text(
@@ -440,7 +440,7 @@ class OpticsScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 9.5,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? const Color(0xFF0284C7) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                color: isActive ? AppColors.primary : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
               ),
             ),
           ],
@@ -617,7 +617,7 @@ class OpticsScreen extends ConsumerWidget {
                 child: _buildInfoMetricBox(
                   title: isSwahili ? 'Pembe ya Mche (A)' : 'Prism Angle (A)',
                   value: '60.0°',
-                  color: const Color(0xFF0284C7),
+                  color: AppColors.primary,
                   isDark: isDark,
                 ),
               ),
@@ -689,7 +689,7 @@ class OpticsScreen extends ConsumerWidget {
             min: 20.0,
             max: 70.0,
             divisions: 50,
-            activeColor: const Color(0xFF0058BE),
+            activeColor: AppColors.primary,
             inactiveColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
             onChanged: (val) {
               ref.read(opticsControllerProvider.notifier).setIncidentAngle(val);
@@ -706,7 +706,7 @@ class OpticsScreen extends ConsumerWidget {
               return ChoiceChip(
                 label: Text('${angle.toStringAsFixed(0)}°'),
                 selected: isSelected,
-                selectedColor: const Color(0xFF0058BE),
+                selectedColor: AppColors.primary,
                 onSelected: (_) {
                   ref.read(opticsControllerProvider.notifier).setIncidentAngle(angle);
                 },
@@ -763,7 +763,7 @@ class OpticsScreen extends ConsumerWidget {
                 icon: const Icon(Icons.bookmark_add, size: 16),
                 label: Text(isSwahili ? 'Hifadhi Jaribio' : 'Record Trial'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0058BE),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
@@ -876,7 +876,7 @@ class OpticsScreen extends ConsumerWidget {
                 icon: const Icon(Icons.add, size: 16),
                 label: Text(isSwahili ? 'Hifadhi Pembe Hii' : 'Record Current'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0058BE),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
@@ -936,7 +936,7 @@ class OpticsScreen extends ConsumerWidget {
                           trial.calculatedIndex.toStringAsFixed(3),
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF0284C7),
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -1070,7 +1070,7 @@ class OpticsScreen extends ConsumerWidget {
             icon: const Icon(Icons.fact_check),
             label: Text(isSwahili ? 'Wasilisha na Kamilisha Jaribio' : 'Submit & Complete Practical'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0058BE),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1092,7 +1092,7 @@ class OpticsScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: valueColor ?? const Color(0xFF0284C7),
+            color: valueColor ?? AppColors.primary,
           ),
         ),
       ],
@@ -1189,7 +1189,7 @@ class OpticsScreen extends ConsumerWidget {
                     : (isSwahili ? 'Hatua Inayofuata' : 'Next Step'),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0058BE),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
