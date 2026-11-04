@@ -301,17 +301,17 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFE0F2FE),
+      color: isDark ? const Color(0xFF0F172A) : AppColors.primarySoft,
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF0284C7)),
+          const Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               isSwahili ? msgSw : msgEn,
               style: TextStyle(
                 fontSize: 12,
-                color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF0369A1),
+                color: isDark ? const Color(0xFFE2E8F0) : AppColors.primary,
                 height: 1.3,
               ),
             ),
@@ -615,7 +615,7 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
               ),
               Text(
                 'Digital Balance: ${state.balanceDisplay.toStringAsFixed(2)} g',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0284C7)),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primary),
               ),
             ],
           ),
@@ -670,7 +670,7 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
                       isInitial
                           ? 'Recorded m₀: ${state.activeSample.initialMass.toStringAsFixed(2)} g'
                           : 'Recorded m₁: ${state.activeSample.finalMass.toStringAsFixed(2)} g',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF0284C7), fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
                     ),
                   ],
                   ),
@@ -686,7 +686,7 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
                   icon: const Icon(Icons.scale_rounded, size: 16),
                   label: Text(isSwahili ? 'Weka Mzanini' : 'Place on Balance'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0284C7),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -730,7 +730,7 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
                   icon: const Icon(Icons.water_drop_rounded, size: 14),
                   label: Text(isSwahili ? 'Loweka Zote' : 'Immerse All'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0284C7),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
