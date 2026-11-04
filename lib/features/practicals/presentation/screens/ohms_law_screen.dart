@@ -5,7 +5,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/models/practical_model.dart';
 import '../../data/models/ohms_law_state.dart';
 import '../controllers/ohms_law_controller.dart';
+import '../../domain/ohms_law_engine.dart';
 import '../widgets/circuit_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/practical_layout.dart';
 import '../widgets/ohms_law_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
@@ -24,8 +26,9 @@ class OhmsLawScreen extends ConsumerStatefulWidget {
 }
 
 class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animController;
+  late final LabHandRuns _hands = LabHandRuns(this);
 
   final _slopeCtrl = TextEditingController();
   final _resistanceCtrl = TextEditingController();
@@ -42,6 +45,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
   @override
   void dispose() {
     _animController.dispose();
+    _hands.dispose();
     _slopeCtrl.dispose();
     _resistanceCtrl.dispose();
     super.dispose();
@@ -55,6 +59,11 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
 
     final ohmsState = ref.watch(ohmsLawControllerProvider(widget.mode));
     final controller = ref.read(ohmsLawControllerProvider(widget.mode).notifier);
+    // The student's hand joins the wires, moves the cell clip and pushes the plug key.
+    _hands.enabled = !MediaQuery.disableAnimationsOf(context);
+    _hands.watch('wired', ohmsState.circuitConnected);
+    _hands.watch('cells', ohmsState.cells);
+    _hands.watch('key', ohmsState.isSwitchClosed);
 
     return PopScope(
       canPop: false,
@@ -98,6 +107,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
               )
             // Bench and step controls: stacked on phones, side by side when wide.
             : PracticalSplitLayout(
+                step: ohmsState.currentStepIndex,
                 padding: const EdgeInsets.all(14),
                 bench: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -224,8 +234,8 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
 
   Widget _buildStepBar(OhmsLawState state, OhmsLawController controller, bool isDark, bool isSwahili) {
     final stepLabels = isSwahili
-        ? ['Vifaa', 'Unganisha', 'Swichi', 'Pima', 'Data', 'Hesabu']
-        : ['Inspect', 'Connect', 'Switch', 'Measure', 'Data', 'Calculate'];
+        ? ['Vifaa', 'Unganisha', 'Ufunguo', 'Pima', 'Data', 'Hesabu']
+        : ['Inspect', 'Connect', 'Key', 'Measure', 'Data', 'Calculate'];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -362,18 +372,29 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
             AnimatedBuilder(
               animation: _animController,
               builder: (context, _) {
-                // The bench drawing is 700 x 380; the box takes its shape.
-                return AspectRatio(
-                  aspectRatio: 700 / 380,
-                  child: CustomPaint(
-                    painter: CircuitBenchPainter(
-                      isConnected: state.circuitConnected,
-                      isSwitchClosed: state.isSwitchClosed,
-                      measuredVoltage: state.measuredVoltage,
-                      measuredCurrent: state.measuredCurrent,
-                      animationProgress: _animController.value,
-                      isDarkMode: isDark,
-                      supplyVoltage: state.voltageSetting,
+                // The bench is drawn from above, upright (360 x 400), and kept
+                // short enough on wide screens for the controls to stay in reach.
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.7),
+                    child: AspectRatio(
+                      aspectRatio: CircuitBenchPainter.width / CircuitBenchPainter.height,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: CustomPaint(
+                          painter: CircuitBenchPainter(
+                            isConnected: state.circuitConnected,
+                            isSwitchClosed: state.isSwitchClosed,
+                            cells: state.cells,
+                            measuredVoltage: state.measuredVoltage,
+                            measuredCurrent: state.measuredCurrent,
+                            animationProgress: _animController.value,
+                            isDarkMode: isDark,
+                            hands: _hands,
+                            inspectedItemKey: state.currentStepIndex == 0 ? state.selectedInspectItemKey : null,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 );
@@ -409,6 +430,58 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
           ],
         ),
       ),
+    );
+  }
+
+  /// Four large buttons, one per number of cells, each with its e.m.f.
+  Widget _buildCellChoice(OhmsLawState state, OhmsLawController controller, bool isDark) {
+    const navy = Color(0xFF184E78);
+    const navyOnDark = Color(0xFF7FB2DA);
+    return Row(
+      children: List.generate(OhmsLawEngine.maxCells, (i) {
+        final n = i + 1;
+        final on = state.cells == n;
+        final volts = (n * OhmsLawEngine.cellVolts).toStringAsFixed(1);
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: n < OhmsLawEngine.maxCells ? 8 : 0),
+            child: Semantics(
+              selected: on,
+              button: true,
+              label: '$n dry cell${n == 1 ? '' : 's'}, $volts volts',
+              excludeSemantics: true,
+              child: InkWell(
+                key: ValueKey('ohms-cells-$n'),
+                onTap: () => controller.setVoltage(n * OhmsLawEngine.cellVolts),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: on ? navy.withValues(alpha: isDark ? 0.35 : 0.08) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: on ? (isDark ? navyOnDark : navy) : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      width: on ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('$n',
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: on ? (isDark ? navyOnDark : navy) : (isDark ? Colors.white : const Color(0xFF0F172A)))),
+                      Text('$volts V', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -458,11 +531,12 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildInspectChip('battery', isSwahili ? 'Betri ya DC' : 'DC Power Supply', state, controller, isDark),
-                  _buildInspectChip('resistor', isSwahili ? 'Kikinza Sanifu (10Ω)' : 'Resistor (10Ω)', state, controller, isDark),
+                  _buildInspectChip('battery', isSwahili ? 'Seli kavu' : 'Dry cells', state, controller, isDark),
+                  _buildInspectChip('resistor', isSwahili ? 'Kikinza R' : 'Resistor R', state, controller, isDark),
                   _buildInspectChip('ammeter', isSwahili ? 'Mita ya Ampea' : 'Ammeter', state, controller, isDark),
                   _buildInspectChip('voltmeter', isSwahili ? 'Mita ya Volteji' : 'Voltmeter', state, controller, isDark),
-                  _buildInspectChip('switch', isSwahili ? 'Swichi ya Kisu' : 'Knife Switch', state, controller, isDark),
+                  _buildInspectChip('switch', isSwahili ? 'Ufunguo (K)' : 'Key (K)', state, controller, isDark),
+                  _buildInspectChip('wires', isSwahili ? 'Nyaya' : 'Connecting wires', state, controller, isDark),
                 ],
               ),
               const SizedBox(height: 14),
@@ -484,8 +558,8 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
               if (!state.circuitConnected) ...[
                 Text(
                   isSwahili
-                      ? 'Unganisha nyaya za shaba: Ampea mfululizo (series), Volteji sambamba (parallel) na kikinza.'
-                      : 'Connect low-resistance wires: Ammeter in series, Voltmeter in parallel across standard resistor.',
+                      ? 'Unganisha seli, ufunguo, ammita na kikinza mfululizo; voltimita sambamba na kikinza. Terminali nyekundu (+) za mita zielekee + ya seli.'
+                      : "Join the cells, key, ammeter and resistor in one loop (series), and the voltmeter across the resistor (parallel). The meters' red + terminals go towards the + of the cells.",
                   style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 12),
@@ -525,7 +599,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                 ElevatedButton.icon(
                   onPressed: () => controller.nextStep(),
                   icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                  label: Text(isSwahili ? 'Endelea (Washa Swichi)' : 'Proceed (Close Switch)'),
+                  label: Text(isSwahili ? 'Endelea (Funga Ufunguo)' : 'Proceed (Close the Key)'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
                     foregroundColor: Colors.white,
@@ -543,7 +617,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    isSwahili ? 'Swichi ya Saketi:' : 'Knife Switch State:',
+                    isSwahili ? 'Ufunguo K:' : 'Key K:',
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                   ElevatedButton.icon(
@@ -556,8 +630,8 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                     ),
                     label: Text(
                       state.isSwitchClosed
-                          ? (isSwahili ? 'FUNGUA (ZIMA)' : 'OPEN (OFF)')
-                          : (isSwahili ? 'FUNGA (WASHA)' : 'CLOSE (ON)'),
+                          ? (isSwahili ? 'FUNGUA UFUNGUO' : 'OPEN THE KEY')
+                          : (isSwahili ? 'FUNGA UFUNGUO' : 'CLOSE THE KEY'),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: state.isSwitchClosed ? const Color(0xFFE11D48) : const Color(0xFF10B981),
@@ -570,41 +644,13 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
               ),
               const Divider(height: 24),
 
-              // Voltage Control Slider
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    isSwahili ? 'Volteji ya Betri (V):' : 'Power Supply Voltage (V):',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    '${state.voltageSetting.toStringAsFixed(1)} V',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF3B82F6)),
-                  ),
-                ],
+              // Dry cells in the circuit: the crocodile clip picks 1 to 4 cells.
+              Text(
+                isSwahili ? 'Seli kavu kwenye saketi:' : 'Dry cells in the circuit:',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
-              Slider(
-                value: state.voltageSetting,
-                min: 0.0,
-                max: 6.0,
-                divisions: 12,
-                label: '${state.voltageSetting.toStringAsFixed(1)} V',
-                onChanged: state.isSwitchClosed ? (val) => controller.setVoltage(val) : null,
-              ),
-
-              // Voltage Presets
-              Wrap(
-                spacing: 6,
-                children: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0].map((v) {
-                  final isSelected = (state.voltageSetting - v).abs() < 0.05;
-                  return ChoiceChip(
-                    label: Text('${v.toStringAsFixed(0)}V', style: const TextStyle(fontSize: 11)),
-                    selected: isSelected,
-                    onSelected: state.isSwitchClosed ? (_) => controller.setVoltage(v) : null,
-                  );
-                }).toList(),
-              ),
+              const SizedBox(height: 8),
+              _buildCellChoice(state, controller, isDark),
               const SizedBox(height: 14),
 
               // Record Reading Button
@@ -731,7 +777,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                   child: Text(
                     isSwahili
                         ? 'Hakuna vipimo vilivyorekodiwa bado. Washa swichi na ubonyeze "Rekodi Kipimo".'
-                        : 'No readings recorded yet. Close the switch and tap "Record Reading".',
+                        : 'No readings recorded yet. Close the key and tap "Record Reading".',
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),

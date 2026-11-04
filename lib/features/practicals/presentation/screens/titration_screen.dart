@@ -5,8 +5,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/models/practical_model.dart';
 import '../../data/models/titration_state.dart';
 import '../controllers/titration_controller.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/burette_reading_lens.dart';
 import '../widgets/titration_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/titration_completion_card.dart';
 import '../widgets/workflow_step_bar.dart';
 import '../../../../core/utils/learning_language.dart';
@@ -24,8 +26,9 @@ class TitrationScreen extends ConsumerStatefulWidget {
 }
 
 class _TitrationScreenState extends ConsumerState<TitrationScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animController;
+  late final LabHandRuns _hands = LabHandRuns(this);
 
   // Step 8 Form inputs
   final _initialReadingCtrl = TextEditingController(text: '0.00');
@@ -49,6 +52,7 @@ class _TitrationScreenState extends ConsumerState<TitrationScreen>
   @override
   void dispose() {
     _animController.dispose();
+    _hands.dispose();
     _initialReadingCtrl.dispose();
     _finalReadingCtrl.dispose();
     _titreVolumeCtrl.dispose();
@@ -64,6 +68,8 @@ class _TitrationScreenState extends ConsumerState<TitrationScreen>
     final isSwahili = language == 'sw';
 
     final titrationState = ref.watch(titrationControllerProvider(widget.mode));
+    _hands.enabled = !MediaQuery.disableAnimationsOf(context);
+    TitrationBenchPainter.handKeys(titrationState).forEach(_hands.watch);
     final controller = ref.read(titrationControllerProvider(widget.mode).notifier);
 
     return PopScope(
@@ -106,7 +112,8 @@ class _TitrationScreenState extends ConsumerState<TitrationScreen>
                   onFinish: () => context.pop(),
                 ),
               )
-            : SingleChildScrollView(
+            : StepScrollView(
+                step: titrationState.currentStepIndex,
                 padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -183,25 +190,37 @@ class _TitrationScreenState extends ConsumerState<TitrationScreen>
                       ),
                       child: Stack(
                         children: [
-                          // CustomPainter Canvas
-                          AnimatedBuilder(
-                            animation: _animController,
-                            builder: (context, _) {
-                              return CustomPaint(
-                                size: const Size(double.infinity, 240),
-                                painter: TitrationBenchPainter(
-                                  state: titrationState,
-                                  isDark: isDark,
-                                  animationValue: _animController.value,
-                                ),
-                              );
-                            },
+                          // CustomPainter Canvas; on the inspect step a tap on an item inspects it
+                          LayoutBuilder(
+                            builder: (context, box) => GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTapUp: titrationState.currentStepIndex != 0
+                                  ? null
+                                  : (d) {
+                                      final item = TitrationBenchPainter.itemAt(d.localPosition, Size(box.maxWidth, 240));
+                                      if (item != null) controller.inspectItem(item);
+                                    },
+                              child: AnimatedBuilder(
+                                animation: _animController,
+                                builder: (context, _) {
+                                  return CustomPaint(
+                                    size: const Size(double.infinity, 240),
+                                    painter: TitrationBenchPainter(
+                                      state: titrationState,
+                                      isDark: isDark,
+                                      animationValue: _animController.value,
+                                      hands: _hands,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
 
-                          // Burette Reading Magnifier Lens (Top Right)
+                          // Burette Reading Magnifier Lens (top left, clear of the hands at the burette and flask)
                           Positioned(
                             top: 8,
-                            right: 8,
+                            left: 8,
                             child: BuretteReadingLens(
                               volumeDelivered: titrationState.volumeDelivered,
                               isDark: isDark,
@@ -210,6 +229,7 @@ class _TitrationScreenState extends ConsumerState<TitrationScreen>
                           ),
 
                           // Reagents & Apparatus Quick-tap Hints (Bottom Left)
+                          if (titrationState.currentStepIndex == 0)
                           Positioned(
                             bottom: 6,
                             left: 10,

@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/osmosis_state.dart';
 import '../../data/models/practical_model.dart';
+import '../controllers/lab_inspect_provider.dart';
 import '../controllers/osmosis_controller.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/osmosis_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/osmosis_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
 import '../../../../core/utils/learning_language.dart';
@@ -69,7 +72,8 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
 
               // 3. Main Workspace Area
               Expanded(
-                child: SingleChildScrollView(
+                child: StepScrollView(
+                  step: state.step,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -116,13 +120,15 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
         icon: const Icon(Icons.arrow_back),
         onPressed: () => _showExitConfirmationDialog(context, isDark, isSwahili),
       ),
+      // Mode and session time above the title, so the title has the full width.
       title: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
@@ -130,57 +136,39 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
                 child: Text(
                   widget.mode.labelEn.toUpperCase(),
                   style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF10B981),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  isSwahili ? 'Osmosisi kwenye Viazi' : 'Osmosis in Potato Tissues',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              const Icon(Icons.timer_outlined, size: 13, color: Color(0xFF10B981)),
+              const SizedBox(width: 3),
+              Text(
+                timeStr,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'monospace',
+                  color: isDark ? Colors.white70 : const Color(0xFF0F172A),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            isSwahili ? 'Osmosisi kwenye Viazi' : 'Osmosis in Potato Tissues',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
       actions: [
-        // Live Experiment Timer
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.timer_outlined, size: 14, color: Color(0xFF10B981)),
-              const SizedBox(width: 4),
-              Text(
-                timeStr,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-
         // Lab Notebook Button
         IconButton(
           icon: const Icon(Icons.menu_book_outlined, color: Color(0xFF10B981)),
@@ -337,6 +325,8 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
   // Canvas Laboratory Bench
   // ---------------------------------------------------------------------------
   Widget _buildLaboratoryCanvas(OsmosisState state, bool isDark) {
+    final inspected =
+        state.step == OsmosisStep.inspectApparatus ? ref.watch(labInspectedProvider('osmosis')) : null;
     return AnimatedBuilder(
       animation: _pulseController,
       builder: (context, child) {
@@ -353,12 +343,15 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          child: CustomPaint(
+          child: LabHandPaint(
             size: const Size(double.infinity, 250),
-            painter: OsmosisBenchPainter(
+            watch: OsmosisBenchPainter.handKeys(state),
+            painter: (hands) => OsmosisBenchPainter(
               state: state,
               isDark: isDark,
               animationValue: _pulseController.value,
+              hands: hands,
+              inspectedItemKey: inspected,
             ),
           ),
         );
@@ -468,7 +461,10 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
                       color: isDark ? Colors.white60 : const Color(0xFF64748B),
                     ),
                   ),
-                  onTap: () => ref.read(osmosisControllerProvider.notifier).inspectItem(item.id),
+                  onTap: () {
+                    ref.read(osmosisControllerProvider.notifier).inspectItem(item.id);
+                    ref.read(labInspectedProvider('osmosis').notifier).state = item.id;
+                  },
                 ),
               ),
             );
@@ -657,7 +653,8 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
+                Expanded(
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -676,7 +673,9 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
                       style: const TextStyle(fontSize: 12, color: Color(0xFF0284C7), fontWeight: FontWeight.w600),
                     ),
                   ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () {
                     ref.read(osmosisControllerProvider.notifier).placeSampleOnBalance(
@@ -752,8 +751,10 @@ class _OsmosisScreenState extends ConsumerState<OsmosisScreen> with SingleTicker
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     Text(
                       isSwahili ? 'Kipima-Muda cha Osmosisi:' : 'Osmotic Incubation Timer:',

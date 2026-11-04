@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/practical_model.dart';
 import '../../data/models/rates_of_reaction_state.dart';
+import '../controllers/lab_inspect_provider.dart';
 import '../controllers/rates_of_reaction_controller.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/rates_of_reaction_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/rates_of_reaction_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
 import '../../../../core/utils/learning_language.dart';
@@ -70,7 +73,8 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
 
               // 3. Main Workspace Area
               Expanded(
-                child: SingleChildScrollView(
+                child: StepScrollView(
+                  step: state.step,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -328,6 +332,8 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
   // Laboratory Canvas
   // ---------------------------------------------------------------------------
   Widget _buildLaboratoryCanvas(RatesOfReactionState state, bool isDark) {
+    final inspected =
+        state.step == RatesOfReactionStep.inspectApparatus ? ref.watch(labInspectedProvider('rates')) : null;
     return Container(
       height: 240,
       decoration: BoxDecoration(
@@ -345,12 +351,15 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
         child: AnimatedBuilder(
           animation: _pulseController,
           builder: (context, _) {
-            return CustomPaint(
+            return LabHandPaint(
               size: const Size(double.infinity, 240),
-              painter: RatesOfReactionBenchPainter(
+              watch: RatesOfReactionBenchPainter.handKeys(state),
+              painter: (hands) => RatesOfReactionBenchPainter(
                 state: state,
                 isDark: isDark,
                 animationValue: _pulseController.value,
+                hands: hands,
+                inspectedItemKey: inspected,
               ),
             );
           },
@@ -445,8 +454,10 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
             child: Material(
               color: Colors.transparent,
               child: ListTile(
-                onTap: () =>
-                    ref.read(ratesOfReactionControllerProvider.notifier).inspectItem(item.id),
+                onTap: () {
+                  ref.read(ratesOfReactionControllerProvider.notifier).inspectItem(item.id);
+                  ref.read(labInspectedProvider('rates').notifier).state = item.id;
+                },
                 leading: Container(
                   width: 32,
                   height: 32,

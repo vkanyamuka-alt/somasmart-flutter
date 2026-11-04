@@ -2,21 +2,70 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/titration_state.dart';
 import 'lab_apparatus.dart';
+import 'lab_hand.dart';
 
 /// The titration bench, built from the shared lab apparatus kit
 /// ([LabPaint]): reagent bottles, a retort stand holding the burette over a
 /// conical flask on a white tile, the pipette and the indicator dropper. The
-/// same bench is drawn on the website (TitrationBench.jsx).
+/// student's hand lifts the NaOH bottle and pours it through a funnel into
+/// the burette, squeezes the pipette filler, carries the pipette to the acid
+/// and over the flask and back, brings the dropper over the flask and
+/// squeezes it for each drop of indicator, carries the flask onto the tile
+/// and turns the tap ([LabHand]). The item being inspected glows. The same
+/// bench is drawn on the website (TitrationBench.jsx).
 class TitrationBenchPainter extends CustomPainter {
   final TitrationState state;
   final bool isDark;
   final double animationValue;
+  final LabHandRuns? hands; // keys from [handKeys]
 
   TitrationBenchPainter({
     required this.state,
     required this.isDark,
     this.animationValue = 0.0,
-  });
+    this.hands,
+  }) : super(repaint: hands);
+
+  /// Where the pipette is: lying on the bench, in the HCl bottle or over the flask.
+  static String pipettePlace(TitrationState s) {
+    if (s.currentStepIndex != 2 || s.pipetteStep < 2) return 'bench';
+    return s.pipetteStep >= 5 ? 'flask' : 'bottle';
+  }
+
+  static bool _showDropper(TitrationState s) => s.currentStepIndex == 3 && s.indicatorStep >= 1;
+
+  /// The values the hands on this bench react to, for [LabHandRuns.watch].
+  static Map<String, Object?> handKeys(TitrationState s) => {
+        'fill': s.buretteFilled,
+        'tap': s.stopcockState,
+        'flask': s.flaskPositioned,
+        'pipette': pipettePlace(s),
+        'filler': s.isDrawingLiquid || s.isTransferringLiquid,
+        'dropper': _showDropper(s),
+        'drop': s.indicatorDropsCount,
+      };
+
+  /// Where each inspectable item stands on the bench (scene units), for the
+  /// glow and for taps on the bench.
+  static const Map<String, Rect> inspectAreas = {
+    'naoh': Rect.fromLTWH(36, 208, 50, 112),
+    'hcl': Rect.fromLTWH(96, 208, 50, 112),
+    'indicator': Rect.fromLTWH(160, 246, 36, 74),
+    'burette': Rect.fromLTWH(_buretteX - 14, 26, 28, 204),
+    'flask': Rect.fromLTWH(436, 234, 88, 86),
+    'pipette': Rect.fromLTWH(524, 294, 120, 24),
+    'tile': Rect.fromLTWH(304, 296, 96, 12),
+  };
+
+  /// The inspectable item under [p], a point in a bench painted at [size].
+  static String? itemAt(Offset p, Size size) {
+    final scale = math.min(size.width / 700, size.height / 380);
+    final q = Offset((p.dx - (size.width - 700 * scale) / 2) / scale, (p.dy - (size.height - 380 * scale)) / scale);
+    for (final e in inspectAreas.entries) {
+      if (e.value.inflate(8).contains(q)) return e.key;
+    }
+    return null;
+  }
 
   static const double _buretteX = 352;
   static const double _buretteTop = 42; // liquid surface at 0.00 mL
@@ -27,21 +76,102 @@ class TitrationBenchPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     LabPaint.paintScene(canvas, size, isDark, (left, right) {
-      LabPaint.reagentBottle(canvas, x: 40, label: 'NaOH', sub: '0.10 M', stripe: const Color(0xFF2F7FD1), liquid: LabPaint.naoh);
+      if (_fillTime == null) _naohBottle(canvas, x: 40);
       LabPaint.reagentBottle(canvas, x: 100, label: 'HCl', sub: 'unknown', stripe: const Color(0xFFE2B13C), liquid: LabPaint.hcl);
-      if (!(state.currentStepIndex == 3 && state.indicatorStep >= 1)) {
-        LabPaint.dropperBottle(canvas, x: 166, lines: const ['phenol-', 'phthalein']);
-      }
+      LabPaint.dropperBottle(canvas, x: 166, lines: const ['phenol-', 'phthalein'], withDropper: _dropperOut == null);
       LabPaint.retortStand(canvas, baseX: 250, rodX: 300, clampYs: const [54], armTo: 340);
       LabPaint.clampJaws(canvas, x: _buretteX, y: 52);
       LabPaint.whiteTile(canvas, x: 306, y: 300);
       _drawBurette(canvas);
-      _drawConicalFlask(canvas);
+      _drawBuretteFill(canvas);
+      LabHand.carry(canvas, state.flaskPositioned ? hands?.since('flask') : null,
+          offset: const Offset(128, 18), grip: const Offset(354, 236), draw: () => _drawConicalFlask(canvas));
       _drawDelivery(canvas);
       _drawIndicatorDropper(canvas);
       _drawPipette(canvas);
+      LabHand.move(canvas, hands?.since('tap'),
+          from: const Offset(420, 236), to: const Offset(367, 201), rotate: -90, duration: 1100);
       LabPaint.beaker(canvas, cx: 668, w: 40, h: 56, fill: 0.35, liquid: const Color(0x8CDCE6EE));
+      final inspected = state.currentStepIndex == 0 ? inspectAreas[state.selectedInspectItemKey] : null;
+      if (inspected != null) LabPaint.activeGlow(canvas, inspected);
     });
+  }
+
+  void _naohBottle(Canvas canvas, {required double x, bool stoppered = true, bool onTable = true}) =>
+      LabPaint.reagentBottle(canvas,
+          x: x,
+          label: 'NaOH',
+          sub: '0.10 M',
+          stripe: const Color(0xFF2F7FD1),
+          liquid: LabPaint.naoh,
+          stoppered: stoppered,
+          onTable: onTable);
+
+  // Filling the burette (ms after "Fill"): the hand lifts the bottle to the
+  // funnel, pours while the level rises to 0.00 mL, and puts it back.
+  static const double _lifted = 800, _poured = 2600, _back = 3400, _gone = 3700;
+
+  /// Time since the burette was filled while the pour is still playing.
+  double? get _fillTime {
+    final t = hands?.since('fill');
+    return state.buretteFilled && t != null && t < _gone ? t : null;
+  }
+
+  /// How far up the burette the NaOH has come while it is poured in (0 to 1).
+  double get _fillLevel {
+    final t = _fillTime;
+    return t == null ? 1 : ((t - _lifted - 100) / (_poured - _lifted - 100)).clamp(0.0, 1.0);
+  }
+
+  void _drawBuretteFill(Canvas canvas) {
+    final t = _fillTime;
+    if (t == null) return;
+    // a small funnel in the top of the burette
+    final funnel = Path()
+      ..moveTo(_buretteX - 13, -4)
+      ..lineTo(_buretteX + 13, -4)
+      ..lineTo(_buretteX + 3, 16)
+      ..lineTo(_buretteX + 3, 40)
+      ..lineTo(_buretteX - 3, 40)
+      ..lineTo(_buretteX - 3, 16)
+      ..close();
+    canvas.drawPath(funnel, LabPaint.glass(funnel.getBounds()));
+    canvas.drawPath(funnel, LabPaint.stroke(LabPaint.glassEdge, 1.2));
+    // its stopper lies on the table while the bottle is open
+    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(48, LabPaint.tableY - 6, 20, 6), const Radius.circular(3)),
+        Paint()..color = const Color(0xFFE9EEF3));
+
+    // the bottle's mouth goes from the table to just above the funnel, tipped over
+    const rest = Offset(61, LabPaint.tableY - 102);
+    const pour = Offset(_buretteX + 18, -8);
+    final f = t < _lifted
+        ? Curves.easeInOut.transform(t / _lifted)
+        : t < _poured
+            ? 1.0
+            : 1 - Curves.easeInOut.transform(((t - _poured) / (_back - _poured)).clamp(0.0, 1.0));
+    final mouth = Offset.lerp(rest, pour, f)!;
+    final turn = -1.75 * f;
+    canvas.save();
+    canvas.translate(mouth.dx, mouth.dy);
+    canvas.rotate(turn);
+    canvas.translate(-21, 20 - (LabPaint.tableY - 82));
+    _naohBottle(canvas, x: 0, stoppered: false, onTable: f == 0);
+    canvas.restore();
+
+    if (t > _lifted && t < _poured) {
+      final stream = Paint()
+        ..color = LabPaint.naoh
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(mouth + const Offset(-1, 2), const Offset(_buretteX + 2, 8), stream);
+      canvas.drawLine(const Offset(_buretteX, 16), const Offset(_buretteX, 40), stream..strokeWidth = 2);
+    }
+
+    // the hand holds the bottle round its middle and leaves once it is back
+    final grip = mouth + Offset(-64 * math.sin(turn), 64 * math.cos(turn));
+    final away = ((t - _back) / (_gone - _back)).clamp(0.0, 1.0);
+    final shown = (t / 200).clamp(0.0, 1.0) * (1 - away);
+    LabHand.paint(canvas, HandPose.grip, at: grip + const Offset(40, 36) * away, scale: 0.85, opacity: shown);
   }
 
   void _drawBurette(Canvas canvas) {
@@ -49,8 +179,9 @@ class TitrationBenchPainter extends CustomPainter {
     final tubeR = RRect.fromRectAndRadius(tube, const Radius.circular(4));
     canvas.drawRRect(tubeR, LabPaint.glass(tube));
 
-    final liquidTop = _buretteTop + state.volumeDelivered.clamp(0.0, 50.0) * _buretteScale;
-    if (state.buretteFilled && liquidTop < _buretteBottom) {
+    final fullTop = _buretteTop + state.volumeDelivered.clamp(0.0, 50.0) * _buretteScale;
+    final liquidTop = _buretteBottom + 4 - (_buretteBottom + 4 - fullTop) * _fillLevel;
+    if (state.buretteFilled && _fillLevel > 0 && liquidTop < _buretteBottom) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(Rect.fromLTRB(_buretteX - 6, liquidTop, _buretteX + 6, _buretteBottom + 4), const Radius.circular(1.5)),
         Paint()..color = LabPaint.naoh,
@@ -175,11 +306,33 @@ class TitrationBenchPainter extends CustomPainter {
   }
 
   void _drawPipette(Canvas canvas) {
-    if (state.currentStepIndex != 2 || state.pipetteStep < 2) {
-      _drawPipetteOnBench(canvas);
+    final place = pipettePlace(state);
+    final from = hands?.previous('pipette');
+    final moved = hands?.since('pipette');
+    if (place == 'bench') {
+      // put back on the bench after use
+      final back = from == 'flask' || from == 'bottle';
+      LabHand.carry(canvas, back ? moved : null,
+          offset: Offset(from == 'flask' ? -108 : -467, -118), grip: const Offset(590, 306), draw: () => _drawPipetteOnBench(canvas));
       return;
     }
-    final overFlask = state.pipetteStep >= 5;
+    final overFlask = place == 'flask';
+    if (overFlask) {
+      LabHand.carry(canvas, moved,
+          offset: const Offset(-359, 0), grip: const Offset(480, 166), draw: () => _drawPipetteUpright(canvas, overFlask));
+    } else {
+      // picked up from the bench and stood in the acid
+      LabHand.carry(canvas, from == 'bench' ? moved : null,
+          offset: const Offset(467, 118), grip: const Offset(121, 166), draw: () => _drawPipetteUpright(canvas, overFlask));
+    }
+    // A finger and thumb squeeze the filler to draw liquid up or let it run out.
+    final filling = overFlask ? state.isTransferringLiquid : state.isDrawingLiquid;
+    if (filling) {
+      LabHand.rest(canvas, hands?.since('filler'), at: Offset(overFlask ? 480 : 121, 124), rotate: 180);
+    }
+  }
+
+  void _drawPipetteUpright(Canvas canvas, bool overFlask) {
     canvas.save();
     canvas.translate(overFlask ? 470 : 111, 120);
 
@@ -285,17 +438,45 @@ class TitrationBenchPainter extends CustomPainter {
     canvas.restore();
   }
 
+  static const double _dropperMs = 900;
+
+  /// How far the dropper is out of its bottle towards the flask, 0 to 1:
+  /// brought over the flask for the indicator step, put back after it. Null
+  /// while it is in the bottle.
+  double? get _dropperOut {
+    final t = hands?.since('dropper');
+    if (_showDropper(state)) return t == null ? 1.0 : Curves.easeInOut.transform((t / _dropperMs).clamp(0.0, 1.0));
+    if (t == null || t >= _dropperMs || hands?.previous('dropper') != true) return null;
+    return 1 - Curves.easeInOut.transform(t / _dropperMs);
+  }
+
   void _drawIndicatorDropper(Canvas canvas) {
-    if (!(state.currentStepIndex == 3 && state.indicatorStep >= 1)) return;
+    final f = _dropperOut;
+    if (f == null) return;
+    final out = _showDropper(state);
+    // The teat is squeezed while a drop comes out, and briefly for each drop.
+    final dropAt = hands?.since('drop');
+    final squeezing = out && (state.isDroppingIndicator || (dropAt != null && dropAt < 450));
+    // brought out of its bottle to above the flask, held by the teat, and back
+    final t = hands?.since('dropper');
+    final off = const Offset(-304, 96) * (1 - f);
     canvas.save();
-    canvas.translate(468, 150);
-    final teat = Path()
-      ..moveTo(6, 12)
-      ..lineTo(6, 0)
-      ..quadraticBezierTo(6, -10, 12, -10)
-      ..quadraticBezierTo(18, -10, 18, 0)
-      ..lineTo(18, 12)
-      ..close();
+    canvas.translate(468 + off.dx, 150 + off.dy);
+    final teat = squeezing
+        ? (Path()
+          ..moveTo(7.5, 12)
+          ..lineTo(7.5, 2)
+          ..quadraticBezierTo(7.5, -6, 12, -6)
+          ..quadraticBezierTo(16.5, -6, 16.5, 2)
+          ..lineTo(16.5, 12)
+          ..close())
+        : (Path()
+          ..moveTo(6, 12)
+          ..lineTo(6, 0)
+          ..quadraticBezierTo(6, -10, 12, -10)
+          ..quadraticBezierTo(18, -10, 18, 0)
+          ..lineTo(18, 12)
+          ..close());
     canvas.drawPath(teat, Paint()..color = const Color(0xFF1F2731));
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(4, 12, 16, 6), const Radius.circular(2)),
         Paint()..color = const Color(0xFF2E3640));
@@ -309,7 +490,7 @@ class TitrationBenchPainter extends CustomPainter {
       ..close();
     canvas.drawPath(tube, LabPaint.glass(const Rect.fromLTWH(8, 18, 8, 42)));
     canvas.drawPath(tube, LabPaint.stroke(LabPaint.glassEdge, 1.2));
-    if (state.isDroppingIndicator) {
+    if (out && state.isDroppingIndicator) {
       final t = (animationValue * 3) % 1.0;
       final y = 66 + t * 10;
       final drop = Path()
@@ -321,6 +502,8 @@ class TitrationBenchPainter extends CustomPainter {
       canvas.drawPath(drop, LabPaint.stroke(const Color(0xFF9AA5B1), 0.8));
     }
     canvas.restore();
+    LabHand.paint(canvas, HandPose.pinch, at: Offset(480, squeezing ? 144 : 140) + off, rotate: 180,
+        opacity: t == null ? 1 : (out ? t / 200 : (_dropperMs - t) / 200).clamp(0.0, 1.0));
   }
 
   @override

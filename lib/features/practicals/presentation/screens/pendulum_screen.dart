@@ -6,6 +6,7 @@ import '../../data/models/pendulum_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/pendulum_controller.dart';
 import '../widgets/pendulum_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/practical_layout.dart';
 import '../widgets/pendulum_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
@@ -23,7 +24,17 @@ class PendulumScreen extends ConsumerStatefulWidget {
   ConsumerState<PendulumScreen> createState() => _PendulumScreenState();
 }
 
-class _PendulumScreenState extends ConsumerState<PendulumScreen> {
+class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProviderStateMixin {
+  late final LabHandRuns _hands = LabHandRuns(this);
+
+  /// The metre rule is on the bench only while the length is set.
+  static bool _showRule(PendulumState s) => s.currentStepIndex <= 1;
+
+  /// The hand holds the bob at the release angle until it is let go.
+  /// The hand holds the bob out at the release angle while it is set, and
+  /// on through the timing step until the student presses Start.
+  static bool _holding(PendulumState s) =>
+      !s.isOscillating && (s.currentStepIndex == 2 || (s.currentStepIndex == 3 && s.stopwatchElapsedSec == 0));
   final TextEditingController _gradientController = TextEditingController();
   final TextEditingController _gravityController = TextEditingController();
 
@@ -74,12 +85,18 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
   void dispose() {
     _gradientController.dispose();
     _gravityController.dispose();
+    _hands.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(pendulumControllerProvider(widget.mode));
+    _hands.enabled = !MediaQuery.disableAnimationsOf(context);
+    _hands.watch('rule', _showRule(state));
+    _hands.watch('hold', _holding(state));
+    _hands.watch('watch', state.isOscillating);
+    _hands.watch('length', state.pendulumLengthCm);
     final notifier = ref.read(pendulumControllerProvider(widget.mode).notifier);
     final language = learningLanguage();
     final isSwahili = language == 'sw';
@@ -122,63 +139,55 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
             onPressed: () => _showExitConfirmationDialog(context, isDark, isSwahili),
           ),
           titleSpacing: 0,
-          title: Row(
+          // Mode and session time above the title, so the title has the full width.
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  widget.mode.id.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  isSwahili ? 'Penduli Rahisi (g)' : 'Simple Pendulum (g)',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : AppColors.heroNavyDark,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            // Session Timer
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
+              Row(
                 children: [
-                  const Icon(Icons.timer_outlined, size: 14, color: AppColors.primary),
-                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      widget.mode.id.toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.timer_outlined, size: 13, color: AppColors.primary),
+                  const SizedBox(width: 3),
                   Text(
                     _formatTime(state.elapsedSeconds),
                     style: TextStyle(
-                      fontSize: 11.5,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: isDark ? Colors.white70 : AppColors.heroNavyDark,
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 6),
+              const SizedBox(height: 2),
+              Text(
+                isSwahili ? 'Penduli Rahisi (g)' : 'Simple Pendulum (g)',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : AppColors.heroNavyDark,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          actions: [
             // Lab Notebook Button
             IconButton(
               icon: const Icon(Icons.menu_book_rounded, color: AppColors.primary, size: 20),
@@ -203,6 +212,7 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
               // Bench and step controls: stacked on phones, side by side when wide.
               Expanded(
                 child: PracticalSplitLayout(
+                  step: state.currentStepIndex,
                   bench: _buildLaboratoryWorkbench(state, isDark, isSwahili),
                   controls: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -292,7 +302,6 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
 
   Widget _buildLaboratoryWorkbench(PendulumState state, bool isDark, bool isSwahili) {
     return Container(
-      height: 250,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0B1120) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
@@ -308,35 +317,44 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> {
           ),
         ],
       ),
-      child: Stack(
+      // The bench, cropped to the apparatus and upright enough to fill a
+      // phone, with what is happening written underneath it.
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Apparatus CustomPainter
           ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: PendulumBenchPainter(
-                lengthCm: state.pendulumLengthCm,
-                // While setting the release angle, show the bob held out at it.
-                angleDeg: state.currentStepIndex == 2 && !state.isOscillating
-                    ? state.deflectionAngleDeg
-                    : state.currentAngleDeg,
-                releaseAngleDeg: state.deflectionAngleDeg,
-                isOscillating: state.isOscillating,
-                isDark: isDark,
-                stopwatchSeconds: state.stopwatchElapsedSec,
-                oscillations: state.currentOscillations,
-                targetOscillations: state.targetOscillations,
-                inspectedItemKey: state.selectedInspectItemKey,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.55),
+                child: AspectRatio(
+                  aspectRatio: PendulumBenchPainter.cropWidth / 380,
+                  child: CustomPaint(
+                    painter: PendulumBenchPainter(
+                      lengthCm: state.pendulumLengthCm,
+                      // While the bob is held, show it out at the release angle.
+                      angleDeg: _holding(state) ? state.deflectionAngleDeg : state.currentAngleDeg,
+                      releaseAngleDeg: state.deflectionAngleDeg,
+                      isOscillating: state.isOscillating,
+                      isDark: isDark,
+                      stopwatchSeconds: state.stopwatchElapsedSec,
+                      oscillations: state.currentOscillations,
+                      targetOscillations: state.targetOscillations,
+                      inspectedItemKey: state.currentStepIndex == 0 ? state.selectedInspectItemKey : null,
+                      showRule: _showRule(state),
+                      holding: _holding(state),
+                      hands: _hands,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
 
-          // Top Info Banner on Workbench
-          Positioned(
-            top: 8,
-            left: 10,
-            right: 10,
+          // What is happening on the bench
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(

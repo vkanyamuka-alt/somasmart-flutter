@@ -65,18 +65,24 @@ class GasPreparationController extends StateNotifier<GasPreparationState> {
   void addLiquidReactant() {
     state = _engine.processAction(state, const AddLiquidReactantAction());
 
+    // The gas comes once the hand has poured the liquid down the funnel.
     _generationTimer?.cancel();
-    _generationTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
-      if (!state.isGenerating) {
-        timer.cancel();
-        return;
-      }
-      state = _engine.processAction(state, const TickGasGenerationAction(deltaVolume: 4.0));
-      if (state.isGasJarFull) {
-        timer.cancel();
-      }
+    _generationTimer = Timer(_pourTime, () {
+      _generationTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
+        if (!state.isGenerating) {
+          timer.cancel();
+          return;
+        }
+        state = _engine.processAction(state, const TickGasGenerationAction(deltaVolume: 4.0));
+        if (state.isGasJarFull) {
+          timer.cancel();
+        }
+      });
     });
   }
+
+  /// How long the bench's hand takes to pour the liquid into the flask.
+  static const Duration _pourTime = Duration(milliseconds: 1400);
 
   /// Complete gas collection instantly (or when volume reaches 100)
   void completeGasCollection() {
