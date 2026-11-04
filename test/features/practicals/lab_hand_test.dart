@@ -56,7 +56,7 @@ void main() {
       expect(runs.since('key'), closeTo(600, 1));
 
       // Time stops once every hand has long finished.
-      await tester.pump(const Duration(seconds: 6));
+      await tester.pump(const Duration(seconds: 9));
       await tester.pump();
       expect(runs.isTicking, isFalse);
     });

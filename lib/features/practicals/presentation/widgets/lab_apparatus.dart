@@ -138,6 +138,26 @@ class LabPaint {
   static Paint radial(Rect r, List<Color> colors, {List<double>? stops}) => Paint()
     ..shader = RadialGradient(center: const Alignment(-0.3, -0.4), colors: colors, stops: stops).createShader(r);
 
+  /// The apparatus the student has just tapped to inspect: a soft gold glow
+  /// and outline round [area], so the picture shows which item is active.
+  static void activeGlow(Canvas canvas, Rect area, {double radius = 8}) {
+    final r = RRect.fromRectAndRadius(area.inflate(5), Radius.circular(radius));
+    canvas.drawRRect(r, Paint()..color = const Color(0x26DB9E3D));
+    canvas.drawRRect(
+        r,
+        Paint()
+          ..color = const Color(0x66DB9E3D)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 6));
+    canvas.drawRRect(r, stroke(const Color(0xFFDB9E3D), 2));
+  }
+
+  /// [activeGlow] following an outline, for apparatus that is not boxy.
+  static void activeGlowPath(Canvas canvas, Path path) {
+    canvas.drawPath(path, Paint()..color = const Color(0x26DB9E3D));
+    canvas.drawPath(path, stroke(const Color(0x66DB9E3D), 10)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
+    canvas.drawPath(path, stroke(const Color(0xFFDB9E3D), 2.5));
+  }
+
   static Paint stroke(Color c, double w) => Paint()
     ..color = c
     ..strokeWidth = w
@@ -262,17 +282,27 @@ class LabPaint {
   // ---------------------------------------------------------------------------
 
   /// Labelled reagent bottle standing on the table, left edge at [x] (42 wide).
+  /// Its mouth is at (x + 21, tableY - 102). [stoppered] false draws it open,
+  /// and [onTable] false leaves out its shadow (when it is lifted).
   static void reagentBottle(Canvas canvas,
-      {required double x, required String label, String? sub, required Color stripe, required Color liquid}) {
+      {required double x,
+      required String label,
+      String? sub,
+      required Color stripe,
+      required Color liquid,
+      bool stoppered = true,
+      bool onTable = true}) {
     canvas.save();
     canvas.translate(x, tableY - 82);
-    shadow(canvas, const Offset(21, 82), 26, 3);
+    if (onTable) shadow(canvas, const Offset(21, 82), 26, 3);
     final neck = RRect.fromRectAndRadius(const Rect.fromLTWH(14, -20, 14, 10), const Radius.circular(3));
     canvas.drawRRect(neck, glass(neck.outerRect));
     canvas.drawRRect(neck, stroke(const Color(0xFF8EA8BE), 1.2));
-    final stopper = RRect.fromRectAndRadius(const Rect.fromLTWH(11, -24, 20, 6), const Radius.circular(3));
-    canvas.drawRRect(stopper, Paint()..color = const Color(0xFFE9EEF3));
-    canvas.drawRRect(stopper, stroke(const Color(0xFF8C9BAA), 1));
+    if (stoppered) {
+      final stopper = RRect.fromRectAndRadius(const Rect.fromLTWH(11, -24, 20, 6), const Radius.circular(3));
+      canvas.drawRRect(stopper, Paint()..color = const Color(0xFFE9EEF3));
+      canvas.drawRRect(stopper, stroke(const Color(0xFF8C9BAA), 1));
+    }
     final body = Path()
       ..moveTo(14, -10)
       ..lineTo(28, -10)
@@ -307,11 +337,13 @@ class LabPaint {
     canvas.restore();
   }
 
-  /// Small brown dropper bottle (indicators, stains), left edge at [x].
-  static void dropperBottle(Canvas canvas, {required double x, required List<String> lines}) {
+  /// Small brown dropper bottle (indicators, stains), left edge at [x]; with
+  /// [withDropper] false its dropper is out and the open neck shows.
+  static void dropperBottle(Canvas canvas, {required double x, required List<String> lines, bool withDropper = true}) {
     canvas.save();
     canvas.translate(x, tableY - 62);
     shadow(canvas, const Offset(13, 62), 18, 2.5);
+    if (withDropper) {
     final teat = Path()
       ..moveTo(9, -12)
       ..lineTo(9, -22)
@@ -322,6 +354,7 @@ class LabPaint {
     canvas.drawPath(teat, Paint()..color = const Color(0xFF1F2731));
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(6, -12, 14, 8), const Radius.circular(2)),
         Paint()..color = const Color(0xFF2E3640));
+    }
     final body = Path()
       ..moveTo(8, -4)
       ..lineTo(18, -4)
@@ -336,6 +369,7 @@ class LabPaint {
       ..close();
     canvas.drawPath(body, Paint()..color = const Color(0xFF8A5A1F));
     canvas.drawPath(body, stroke(const Color(0xFF5C3A12), 1.2));
+    if (!withDropper) canvas.drawLine(const Offset(8, -4), const Offset(18, -4), stroke(const Color(0xFF3A2408), 1.6));
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(3, 22, 20, 22), const Radius.circular(1.5)),
         Paint()..color = const Color(0xFFFDFDFB));
     for (int i = 0; i < lines.length; i++) {

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/optics_state.dart';
 import '../../data/models/practical_model.dart';
+import '../controllers/lab_inspect_provider.dart';
 import '../controllers/optics_controller.dart';
 import '../widgets/optics_bench_painter.dart';
 import '../widgets/lab_hand.dart';
@@ -41,6 +42,7 @@ class OpticsScreen extends ConsumerWidget {
             // Bench and step controls: stacked on phones, side by side when wide.
             Expanded(
               child: PracticalSplitLayout(
+                step: state.step,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 bench: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -89,13 +91,15 @@ class OpticsScreen extends ConsumerWidget {
         icon: const Icon(Icons.arrow_back),
         onPressed: () => _showExitConfirmationDialog(context, isDark, isSwahili),
       ),
+      // Mode and session time above the title, so the title has the full width.
       title: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0284C7).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
@@ -103,57 +107,39 @@ class OpticsScreen extends ConsumerWidget {
                 child: Text(
                   mode.labelEn.toUpperCase(),
                   style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF0284C7),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  isSwahili ? 'Mche wa Kioo (Optics)' : 'Refraction & Prism',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              const Icon(Icons.timer_outlined, size: 13, color: Color(0xFF0284C7)),
+              const SizedBox(width: 3),
+              Text(
+                timeStr,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'monospace',
+                  color: isDark ? Colors.white70 : const Color(0xFF0F172A),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            isSwahili ? 'Mche wa Kioo (Optics)' : 'Refraction & Prism',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
       actions: [
-        // Live Experiment Timer
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.timer_outlined, size: 14, color: Color(0xFF0284C7)),
-              const SizedBox(width: 4),
-              Text(
-                timeStr,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-
         // Lab Notebook Button
         IconButton(
           icon: const Icon(Icons.menu_book_outlined, color: Color(0xFF0284C7)),
@@ -307,7 +293,13 @@ class OpticsScreen extends ConsumerWidget {
             Positioned.fill(
               child: LabHandPaint(
                 watch: OpticsBenchPainter.handKeys(state),
-                painter: (hands) => OpticsBenchPainter(state: state, isDark: isDark, hands: hands),
+                painter: (hands) => OpticsBenchPainter(
+                  state: state,
+                  isDark: isDark,
+                  hands: hands,
+                  inspectedItemKey:
+                      state.step == OpticsStep.inspectApparatus ? ref.watch(labInspectedProvider('optics')) : null,
+                ),
               ),
             ),
 
@@ -574,6 +566,7 @@ class OpticsScreen extends ConsumerWidget {
                   ),
                   onTap: () {
                     ref.read(opticsControllerProvider.notifier).inspectApparatus(item.id);
+                    ref.read(labInspectedProvider('optics').notifier).state = item.id;
                   },
                 ),
               ),

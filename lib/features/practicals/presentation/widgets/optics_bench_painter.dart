@@ -14,16 +14,24 @@ import 'lab_hand.dart';
 class OpticsBenchPainter extends CustomPainter {
   final OpticsState state;
   final bool isDark;
-  final LabHandRuns? hands; // 'protractor', 'pins'
+  final LabHandRuns? hands; // keys from [handKeys]
+  /// The apparatus tapped on the inspect step, shown glowing as active.
+  final String? inspectedItemKey;
 
   OpticsBenchPainter({
     required this.state,
     required this.isDark,
     this.hands,
+    this.inspectedItemKey,
   }) : super(repaint: hands);
 
   /// The values the hands on this bench react to, for [LabHandPaint.watch].
-  static Map<String, Object?> handKeys(OpticsState s) => {'protractor': s.showProtractor, 'pins': s.showOpticalPins};
+  static Map<String, Object?> handKeys(OpticsState s) =>
+      {'protractor': s.showProtractor, 'pins': s.showOpticalPins, 'angle': s.incidentAngleDeg};
+
+  /// Where the protractor and the tray of pins lie until the hand takes them.
+  static const _protractorRest = Offset(140, 92);
+  static const _pinTray = Rect.fromLTWH(304, 304, 92, 28);
 
   static const double _pinGap = 900; // ms between the hand pushing in one pin and the next
 
@@ -80,7 +88,9 @@ class OpticsBenchPainter extends CustomPainter {
       }
       if (state.showProtractor) {
         LabHand.carry(canvas, hands?.since('protractor'),
-            offset: const Offset(-70, 60), grip: p + const Offset(-30, 40), pose: HandPose.pinch, rotate: -30, draw: () => _protractor(canvas, p));
+            offset: _protractorRest - p, grip: p + const Offset(-30, 40), pose: HandPose.pinch, rotate: -30, draw: () => _protractor(canvas, p));
+      } else {
+        _protractor(canvas, _protractorRest);
       }
 
       final source = p - dIn * 235;
@@ -113,6 +123,22 @@ class OpticsBenchPainter extends CustomPainter {
       canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(-40, -9, 22, 4), const Radius.circular(2)),
           Paint()..color = const Color(0xFF4A5562));
       canvas.restore();
+      // The hand turns the ray box to the new angle of incidence.
+      final turned = hands?.since('angle');
+      if (turned != null) {
+        final grip = source - dIn * 24;
+        if (turned < 900) {
+          LabHand.paint(canvas, HandPose.grip, at: grip, scale: 0.8);
+        } else {
+          LabHand.letGo(canvas, turned - 900, at: grip, pose: HandPose.grip, scale: 0.8);
+        }
+      }
+
+      // The pins wait in their tray until the hand pushes them in.
+      final pinsIn = hands?.since('pins');
+      final used = dE == null ? 2 : 4;
+      final taken = pinsIn == null ? used : (pinsIn < 150 ? 0 : ((pinsIn - 150) / _pinGap).floor() + 1).clamp(0, used);
+      _pinTrayWith(canvas, state.showOpticalPins ? 4 - taken : 4);
 
       if (state.showOpticalPins) {
         final pins = [
@@ -127,8 +153,21 @@ class OpticsBenchPainter extends CustomPainter {
           _pin(canvas, pins[k].$1, pins[k].$2, opacity: LabHand.appear(t, k * _pinGap + 500));
         }
         for (int k = 0; k < pins.length; k++) {
-          LabHand.move(canvas, t, to: pins[k].$1, duration: 1100, delay: k * _pinGap);
+          LabHand.move(canvas, t, from: _pinTray.center, to: pins[k].$1, duration: 1100, delay: k * _pinGap);
         }
+      }
+
+      if (inspectedItemKey == 'prism') {
+        LabPaint.activeGlowPath(canvas, prism);
+      } else if (inspectedItemKey == 'pins' && state.showOpticalPins) {
+        final rings = Path();
+        for (final c in [p - dIn * 150, p - dIn * 78, if (dE != null) q + dE * 78, if (dE != null) q + dE * 150]) {
+          rings.addOval(Rect.fromCircle(center: c, radius: 11));
+        }
+        LabPaint.activeGlowPath(canvas, rings);
+      } else {
+        final area = _inspectArea(inspectedItemKey, p, source, dIn);
+        if (area != null) LabPaint.activeGlow(canvas, area, radius: 10);
       }
 
       LabPaint.text(canvas, 'A', _a + const Offset(0, -12), 11, _ink);
@@ -136,6 +175,37 @@ class OpticsBenchPainter extends CustomPainter {
       LabPaint.text(canvas, 'C', _c + const Offset(12, 10), 11, _ink);
       LabPaint.text(canvas, '60°', _a + const Offset(0, 38), 10, const Color(0xFF3B4B5C), weight: FontWeight.w400);
     });
+  }
+
+  /// Where each inspected apparatus lies on the board.
+  Rect? _inspectArea(String? id, Offset p, Offset source, Offset dIn) {
+    switch (id) {
+      case 'board':
+        return const Rect.fromLTWH(24, 18, 652, 344);
+      case 'pins':
+        return _pinTray;
+      case 'protractor':
+        final c = state.showProtractor ? p : _protractorRest;
+        return Rect.fromLTRB(c.dx - 54, c.dy - 48, c.dx + 28, c.dy + 48);
+      case 'light_source':
+        return Rect.fromCircle(center: source - dIn * 23, radius: 28);
+    }
+    return null;
+  }
+
+  /// A small tray holding the [count] pins not yet pushed into the board.
+  void _pinTrayWith(Canvas canvas, int count) {
+    if (count == 0) return;
+    final tray = RRect.fromRectAndRadius(_pinTray, const Radius.circular(5));
+    canvas.drawRRect(tray, Paint()..color = const Color(0xFFE9E4D6));
+    canvas.drawRRect(tray, LabPaint.stroke(const Color(0xFFB9B09A), 1));
+    for (int k = 0; k < count; k++) {
+      final c = Offset(_pinTray.left + 16 + k * 20, _pinTray.center.dy);
+      canvas.drawLine(c, c + const Offset(9, 5), LabPaint.stroke(const Color(0xFF8C9BAA), 1.4));
+      final head = Rect.fromCircle(center: c, radius: 4.5);
+      canvas.drawOval(head, LabPaint.radial(head, const [Color(0xFFFFFFFF), Color(0xFFB7C1CB), Color(0xFF5F6B77)], stops: const [0, 0.5, 1]));
+      canvas.drawCircle(c, 2, Paint()..color = const Color(0xFFC8392F));
+    }
   }
 
   void _dashed(Canvas canvas, Offset a, Offset b) {
@@ -185,5 +255,6 @@ class OpticsBenchPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant OpticsBenchPainter oldDelegate) => oldDelegate.state != state || oldDelegate.isDark != isDark;
+  bool shouldRepaint(covariant OpticsBenchPainter oldDelegate) =>
+      oldDelegate.state != state || oldDelegate.isDark != isDark || oldDelegate.inspectedItemKey != inspectedItemKey;
 }

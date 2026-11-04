@@ -119,3 +119,98 @@ class MicroscopeSlidePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant MicroscopeSlidePainter oldDelegate) => oldDelegate.state != state;
 }
+
+/// The microscope practical's apparatus laid out on the bench for the
+/// inspect step; the one the student taps glows as active.
+class MicroscopeApparatusPainter extends CustomPainter {
+  final String? selected;
+
+  const MicroscopeApparatusPainter({this.selected});
+
+  static const List<String> ids = ['microscope', 'glass_slide', 'mounted_needle', 'onion_peel', 'iodine_dropper', 'filter_paper'];
+  static const _labels = ['Microscope', 'Slide', 'Needle', 'Onion', 'Iodine', 'Filter paper'];
+  static const double width = 360;
+  static const double height = 104;
+  static const double _slot = width / 6;
+
+  static Rect _area(int i) => Rect.fromLTWH(i * _slot + 4, 8, _slot - 8, 80);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    LabPaint.paintTop(canvas, size, width, height, () {
+      final i = ids.indexOf(selected ?? '');
+      if (i >= 0) LabPaint.activeGlow(canvas, _area(i).deflate(3));
+      for (int k = 0; k < ids.length; k++) {
+        final c = Offset(k * _slot + _slot / 2, 46);
+        switch (ids[k]) {
+          case 'microscope':
+            _microscope(canvas, c);
+          case 'glass_slide':
+            final s = Rect.fromCenter(center: c, width: 46, height: 16);
+            canvas.drawRect(s, LabPaint.glass(s));
+            canvas.drawRect(s, LabPaint.stroke(const Color(0xFF86A0B6), 1));
+            final cs = Rect.fromCenter(center: c + const Offset(6, 0), width: 14, height: 14);
+            canvas.drawRect(cs, LabPaint.stroke(const Color(0xCC86A0B6), 0.8));
+          case 'mounted_needle':
+            canvas.drawLine(c + const Offset(-18, 14), c + const Offset(-2, -2), LabPaint.stroke(const Color(0xFFA9773F), 5)..strokeCap = StrokeCap.round);
+            canvas.drawLine(c + const Offset(-2, -2), c + const Offset(16, -20), LabPaint.stroke(const Color(0xFF8C9BAA), 1.2));
+          case 'onion_peel':
+            final bulb = Path()
+              ..moveTo(c.dx, c.dy - 22)
+              ..quadraticBezierTo(c.dx + 4, c.dy - 10, c.dx + 15, c.dy - 2)
+              ..quadraticBezierTo(c.dx + 20, c.dy + 16, c.dx, c.dy + 16)
+              ..quadraticBezierTo(c.dx - 20, c.dy + 16, c.dx - 15, c.dy - 2)
+              ..quadraticBezierTo(c.dx - 4, c.dy - 10, c.dx, c.dy - 22)
+              ..close();
+            canvas.drawPath(bulb, Paint()..color = const Color(0xFFC9925A));
+            canvas.drawPath(bulb, LabPaint.stroke(const Color(0xFF8E5B2C), 1));
+            canvas.drawLine(c + const Offset(0, -12), c + const Offset(0, 14), LabPaint.stroke(const Color(0x668E5B2C), 0.8));
+          case 'iodine_dropper':
+            final bottle = RRect.fromRectAndRadius(Rect.fromCenter(center: c + const Offset(0, 6), width: 22, height: 26), const Radius.circular(4));
+            canvas.drawRRect(bottle, Paint()..color = const Color(0xFF7A3E12));
+            canvas.drawRect(Rect.fromCenter(center: c + const Offset(0, 6), width: 16, height: 9), Paint()..color = const Color(0xFFF5EBD7));
+            canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: c + const Offset(0, -12), width: 8, height: 10), const Radius.circular(3)),
+                Paint()..color = const Color(0xFF1F2731));
+          case 'filter_paper':
+            canvas.drawCircle(c, 18, Paint()..color = Colors.white);
+            canvas.drawCircle(c, 18, LabPaint.stroke(const Color(0xFFCBD5E1), 1));
+        }
+        LabPaint.text(canvas, _labels[k], Offset(c.dx, 80), 9, const Color(0xFF184E78), weight: FontWeight.w600);
+      }
+    });
+  }
+
+  /// A compound microscope from the side: base, curved arm, stage with the
+  /// lamp under it, and the body tube with eyepiece and objective.
+  void _microscope(Canvas canvas, Offset c) {
+    const navy = Color(0xFF184E78);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: c + const Offset(0, 24), width: 34, height: 6), const Radius.circular(2)),
+        Paint()..color = navy);
+    canvas.drawPath(
+        Path()
+          ..moveTo(c.dx + 10, c.dy + 21)
+          ..quadraticBezierTo(c.dx + 19, c.dy + 2, c.dx + 7, c.dy - 15),
+        LabPaint.stroke(navy, 5)..strokeCap = StrokeCap.round);
+    canvas.drawRect(Rect.fromLTWH(c.dx - 15, c.dy + 3, 26, 3), Paint()..color = const Color(0xFF2E3640));
+    canvas.drawCircle(c + const Offset(-3, 13), 2.6, Paint()..color = const Color(0xFFDB9E3D));
+    canvas.drawLine(c + const Offset(0, -14), c + const Offset(7, -14), LabPaint.stroke(navy, 3));
+    canvas.save();
+    canvas.translate(c.dx - 1, c.dy - 12);
+    canvas.rotate(-0.18);
+    canvas.drawRect(const Rect.fromLTWH(-3.5, -12, 7, 20), Paint()..color = const Color(0xFFDCE3EA));
+    canvas.drawRect(const Rect.fromLTWH(-3.5, -12, 7, 20), LabPaint.stroke(navy, 1));
+    canvas.drawRect(const Rect.fromLTWH(-4.5, -16, 9, 4), Paint()..color = const Color(0xFF2E3640));
+    canvas.drawPath(
+        Path()
+          ..moveTo(-3, 8)
+          ..lineTo(3, 8)
+          ..lineTo(2, 13)
+          ..lineTo(-2, 13)
+          ..close(),
+        Paint()..color = const Color(0xFF2E3640));
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant MicroscopeApparatusPainter oldDelegate) => oldDelegate.selected != selected;
+}

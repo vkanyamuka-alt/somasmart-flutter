@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/rates_of_reaction_state.dart';
+import 'lab_apparatus.dart';
 import 'lab_hand.dart';
 
 /// CustomPainter that renders the interactive chemical kinetics laboratory
@@ -11,19 +12,29 @@ class RatesOfReactionBenchPainter extends CustomPainter {
   final bool isDark;
   final double animationValue;
   final LabHandRuns? hands; // keys from [handKeys]
+  /// The apparatus tapped on the inspect step, shown glowing as active.
+  final String? inspectedItemKey;
 
   const RatesOfReactionBenchPainter({
     required this.state,
     required this.isDark,
     this.animationValue = 0.0,
     this.hands,
+    this.inspectedItemKey,
   }) : super(repaint: hands);
+
+  /// Where the 10 mL measuring cylinder stands until the hand picks it up.
+  static const Offset _cylinderAt = Offset(36, 167);
+  static const double _pourMs = 1700;
 
   /// The values the hands on this bench react to, for [LabHandPaint.watch].
   static Map<String, Object?> handKeys(RatesOfReactionState s) => {
         'flask': s.isFlaskOnCross,
         'acid': s.trials.isEmpty ? null : '${s.activeTrialIndex}:${s.trials[s.activeTrialIndex].isAcidAdded}',
+        'prep': s.trials.map((t) => t.isPrepared ? '1' : '0').join(),
       };
+
+  static const double _prepGap = 1100; // ms for each flask filled, one after the other
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -34,40 +45,136 @@ class RatesOfReactionBenchPainter extends CustomPainter {
     _drawCrossTileAndFlask(canvas, size);
     _drawTopDownCrossPortal(canvas, size);
     _drawFlaskRack(canvas, size);
+    _drawStopwatch(canvas);
+    _drawStandingCylinder(canvas);
+    final area = _inspectArea(inspectedItemKey, size);
+    if (area != null) LabPaint.activeGlow(canvas, area, radius: 6);
     _drawAcidPour(canvas, size);
+    _drawPrepPours(canvas, size);
     canvas.restore();
   }
 
-  /// The 5 mL of acid poured from a measuring cylinder into the flask.
+  /// Where each inspected apparatus sits on the bench.
+  Rect? _inspectArea(String? id, Size size) {
+    final cx = size.width * 0.52;
+    final cy = size.height * 0.55;
+    switch (id) {
+      case 'conical_flasks':
+        return state.isFlaskOnCross
+            ? Rect.fromLTRB(cx - 48, cy - 70, cx + 48, cy + 80)
+            : Rect.fromPoints(_flaskBadge(0, size), _flaskBadge(math.max(0, state.trials.length - 1), size)).inflate(11);
+      case 'cross_tile':
+        return Rect.fromCenter(center: Offset(cx, cy + 30), width: 140, height: 140);
+      case 'stopwatch':
+        return Rect.fromCircle(center: const Offset(76, 182), radius: 16);
+      case 'measuring_cylinders':
+        return Rect.fromCenter(center: _cylinderAt, width: 20, height: 62);
+      case 'thiosulfate_stock':
+        return const Rect.fromLTWH(20, 14, 42, 81);
+      case 'hydrochloric_acid':
+        return const Rect.fromLTWH(72, 14, 42, 81);
+    }
+    return null;
+  }
+
+  bool get _pouring {
+    final t = hands?.since('acid');
+    if (t != null && t < _pourMs) return true;
+    final p = hands?.since('prep');
+    return p != null && p < _justPrepared.length * _prepGap;
+  }
+
+  /// How far the flask is on its way to the cross. When the same tap fills
+  /// the flasks and puts the first on the cross, it is carried after the
+  /// pours, so only one hand is on the bench at a time.
+  double? get _flaskCarry {
+    final t = hands?.since('flask');
+    final p = hands?.since('prep');
+    if (t == null || p == null || (t - p).abs() > 50) return t;
+    return t - _justPrepared.length * _prepGap;
+  }
+
+  /// The flasks whose solution has just been measured in.
+  List<int> get _justPrepared {
+    final before = hands?.previous('prep');
+    final now = state.trials.map((t) => t.isPrepared ? '1' : '0').join();
+    if (before is! String || before.length != now.length) return const [];
+    return [for (int i = 0; i < now.length; i++) if (now[i] == '1' && before[i] == '0') i];
+  }
+
+  /// The hand pours the measured thiosulfate from the cylinder into each
+  /// flask as it is prepared.
+  void _drawPrepPours(Canvas canvas, Size size) {
+    final done = _justPrepared;
+    for (int k = 0; k < done.length; k++) {
+      LabHand.move(canvas, hands?.since('prep'),
+          from: _cylinderAt, to: _flaskBadge(done[k], size) + const Offset(-22, -30), pose: HandPose.grip, scale: 0.6,
+          duration: _prepGap, delay: k * _prepGap, holding: _tippedCylinder);
+    }
+  }
+
+  /// The empty 10 mL measuring cylinder standing on the bench, away while
+  /// the hand pours from it.
+  void _drawStandingCylinder(Canvas canvas) {
+    if (_pouring) return;
+    final glass = Paint()
+      ..color = const Color(0xFF64748B)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final body = RRect.fromRectAndRadius(Rect.fromCenter(center: _cylinderAt, width: 12, height: 54), const Radius.circular(2));
+    canvas.drawRRect(body, Paint()..color = const Color(0x40BAE6FD));
+    canvas.drawRRect(body, glass);
+    canvas.drawRect(Rect.fromCenter(center: _cylinderAt + const Offset(0, 29), width: 20, height: 4), Paint()..color = const Color(0xFF64748B));
+    for (final y in [-16.0, -8.0, 0.0, 8.0, 16.0]) {
+      canvas.drawLine(_cylinderAt + Offset(-6, y), _cylinderAt + Offset(-2, y), glass..strokeWidth = 0.8);
+    }
+  }
+
+  /// The stopwatch lying ready on the bench.
+  void _drawStopwatch(Canvas canvas) {
+    const c = Offset(76, 182);
+    canvas.drawRect(Rect.fromCenter(center: c + const Offset(0, -15), width: 6, height: 4), Paint()..color = const Color(0xFF475569));
+    canvas.drawCircle(c, 12, Paint()..color = const Color(0xFF334155));
+    canvas.drawCircle(c, 9.5, Paint()..color = Colors.white);
+    canvas.drawLine(c, c + const Offset(0, -7), LabPaint.stroke(const Color(0xFFB91C1C), 1.2));
+    canvas.drawCircle(c, 1.3, Paint()..color = const Color(0xFF334155));
+  }
+
+  /// The 5 mL of acid poured from a measuring cylinder into the flask; the
+  /// hand picks the cylinder up from the bench and puts it back.
   void _drawAcidPour(Canvas canvas, Size size) {
     if (!state.isFlaskOnCross || state.trials.isEmpty || !state.trials[state.activeTrialIndex].isAcidAdded) return;
     final centerX = size.width * 0.52;
     final flaskTopY = size.height * 0.55 - 65;
     LabHand.move(canvas, hands?.since('acid'),
-        from: const Offset(118, 70), to: Offset(centerX + 33, flaskTopY - 26), pose: HandPose.grip, scale: 0.6, duration: 1700,
-        holding: (c) {
-      // A 10 mL measuring cylinder tipped so its mouth (+y end) points down
-      // into the flask neck; long enough to show either side of the fist.
-      c.save();
-      c.rotate(0.75);
-      final glass = Paint()
-        ..color = const Color(0xFF64748B)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2;
-      final cylinder = RRect.fromRectAndRadius(const Rect.fromLTWH(-6, -24, 12, 54), const Radius.circular(2));
-      c.drawRRect(cylinder, Paint()..color = const Color(0x40BAE6FD));
-      c.drawRect(const Rect.fromLTWH(-5, 16, 10, 13), Paint()..color = const Color(0xB3FDE68A));
-      c.drawRRect(cylinder, glass);
-      c.drawRect(const Rect.fromLTWH(-10, -28, 20, 4), Paint()..color = const Color(0xFF64748B));
-      for (final y in [-14.0, -6.0, 2.0, 10.0]) {
-        c.drawLine(Offset(-6, y), Offset(-2, y), glass..strokeWidth = 0.8);
-      }
-      c.restore();
-      c.drawLine(const Offset(-20, 22), const Offset(-20, 40), Paint()
-        ..color = const Color(0x99FDE68A)
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round);
-    });
+        from: _cylinderAt, to: Offset(centerX + 33, flaskTopY - 26), pose: HandPose.grip, scale: 0.6, duration: _pourMs,
+        holding: _tippedCylinder);
+  }
+
+  /// A measuring cylinder held tipped so its mouth (+y end) points down,
+  /// pouring.
+  void _tippedCylinder(Canvas c) {
+    // A 10 mL measuring cylinder tipped so its mouth (+y end) points down
+    // into the flask neck; long enough to show either side of the fist.
+    c.save();
+    c.rotate(0.75);
+    final glass = Paint()
+      ..color = const Color(0xFF64748B)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final cylinder = RRect.fromRectAndRadius(const Rect.fromLTWH(-6, -24, 12, 54), const Radius.circular(2));
+    c.drawRRect(cylinder, Paint()..color = const Color(0x40BAE6FD));
+    c.drawRect(const Rect.fromLTWH(-5, 16, 10, 13), Paint()..color = const Color(0xB3FDE68A));
+    c.drawRRect(cylinder, glass);
+    c.drawRect(const Rect.fromLTWH(-10, -28, 20, 4), Paint()..color = const Color(0xFF64748B));
+    for (final y in [-14.0, -6.0, 2.0, 10.0]) {
+      c.drawLine(Offset(-6, y), Offset(-2, y), glass..strokeWidth = 0.8);
+    }
+    c.restore();
+    c.drawLine(const Offset(-20, 22), const Offset(-20, 40), Paint()
+      ..color = const Color(0x99FDE68A)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round);
   }
 
   void _drawLabBenchBackground(Canvas canvas, Size size) {
@@ -199,8 +306,9 @@ class RatesOfReactionBenchPainter extends CustomPainter {
     );
 
     // 3. Conical Flask (250 mL Pyrex) on top of the tile, carried there by the hand
-    if (state.isFlaskOnCross) {
-      LabHand.carry(canvas, hands?.since('flask'),
+    final carried = _flaskCarry;
+    if (state.isFlaskOnCross && (carried == null || carried >= 0)) {
+      LabHand.carry(canvas, carried,
           offset: Offset(size.width * 0.42, 4), grip: Offset(centerX + 2, centerY - 42), scale: 0.7,
           draw: () => _drawFlask(canvas, centerX, centerY));
     }
@@ -364,15 +472,19 @@ class RatesOfReactionBenchPainter extends CustomPainter {
     textPainter.paint(canvas, Offset(portalCenter.dx - (textPainter.width / 2), portalCenter.dy + portalRadius + 5));
   }
 
-  void _drawFlaskRack(Canvas canvas, Size size) {
-    // Mini flask indicator row at bottom of the canvas
-    final startX = 20.0;
-    final rackY = size.height - 24.0;
-    final spacing = (size.width - 40) / 5;
+  /// Where flask badge [i] sits, in a column below the top view.
+  static Offset _flaskBadge(int i, Size size) {
+    final gap = math.min(24.0, (size.height - 128) / 5);
+    return Offset(size.width - 48, 118 + i * gap);
+  }
 
+  void _drawFlaskRack(Canvas canvas, Size size) {
+    // Mini flask indicators in a column under the top view, clear of the tile
     for (int i = 0; i < state.trials.length; i++) {
       final trial = state.trials[i];
-      final fx = startX + (i * spacing) + (spacing / 2);
+      final c = _flaskBadge(i, size);
+      final fx = c.dx;
+      final rackY = c.dy;
       final isSelected = i == state.activeTrialIndex;
 
       final badgePaint = Paint()
@@ -402,6 +514,7 @@ class RatesOfReactionBenchPainter extends CustomPainter {
   bool shouldRepaint(covariant RatesOfReactionBenchPainter oldDelegate) {
     return oldDelegate.state != state ||
         oldDelegate.isDark != isDark ||
-        oldDelegate.animationValue != animationValue;
+        oldDelegate.animationValue != animationValue ||
+        oldDelegate.inspectedItemKey != inspectedItemKey;
   }
 }

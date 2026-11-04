@@ -31,7 +31,10 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
   static bool _showRule(PendulumState s) => s.currentStepIndex <= 1;
 
   /// The hand holds the bob at the release angle until it is let go.
-  static bool _holding(PendulumState s) => s.currentStepIndex == 2 && !s.isOscillating;
+  /// The hand holds the bob out at the release angle while it is set, and
+  /// on through the timing step until the student presses Start.
+  static bool _holding(PendulumState s) =>
+      !s.isOscillating && (s.currentStepIndex == 2 || (s.currentStepIndex == 3 && s.stopwatchElapsedSec == 0));
   final TextEditingController _gradientController = TextEditingController();
   final TextEditingController _gravityController = TextEditingController();
 
@@ -93,6 +96,7 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
     _hands.watch('rule', _showRule(state));
     _hands.watch('hold', _holding(state));
     _hands.watch('watch', state.isOscillating);
+    _hands.watch('length', state.pendulumLengthCm);
     final notifier = ref.read(pendulumControllerProvider(widget.mode).notifier);
     final language = learningLanguage();
     final isSwahili = language == 'sw';
@@ -135,63 +139,55 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
             onPressed: () => _showExitConfirmationDialog(context, isDark, isSwahili),
           ),
           titleSpacing: 0,
-          title: Row(
+          // Mode and session time above the title, so the title has the full width.
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  widget.mode.id.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  isSwahili ? 'Penduli Rahisi (g)' : 'Simple Pendulum (g)',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : AppColors.heroNavyDark,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            // Session Timer
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
+              Row(
                 children: [
-                  const Icon(Icons.timer_outlined, size: 14, color: AppColors.primary),
-                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      widget.mode.id.toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.timer_outlined, size: 13, color: AppColors.primary),
+                  const SizedBox(width: 3),
                   Text(
                     _formatTime(state.elapsedSeconds),
                     style: TextStyle(
-                      fontSize: 11.5,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: isDark ? Colors.white70 : AppColors.heroNavyDark,
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 6),
+              const SizedBox(height: 2),
+              Text(
+                isSwahili ? 'Penduli Rahisi (g)' : 'Simple Pendulum (g)',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : AppColors.heroNavyDark,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          actions: [
             // Lab Notebook Button
             IconButton(
               icon: const Icon(Icons.menu_book_rounded, color: AppColors.primary, size: 20),
@@ -216,6 +212,7 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
               // Bench and step controls: stacked on phones, side by side when wide.
               Expanded(
                 child: PracticalSplitLayout(
+                  step: state.currentStepIndex,
                   bench: _buildLaboratoryWorkbench(state, isDark, isSwahili),
                   controls: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -336,17 +333,15 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
                   child: CustomPaint(
                     painter: PendulumBenchPainter(
                       lengthCm: state.pendulumLengthCm,
-                      // While setting the release angle, show the bob held out at it.
-                      angleDeg: state.currentStepIndex == 2 && !state.isOscillating
-                          ? state.deflectionAngleDeg
-                          : state.currentAngleDeg,
+                      // While the bob is held, show it out at the release angle.
+                      angleDeg: _holding(state) ? state.deflectionAngleDeg : state.currentAngleDeg,
                       releaseAngleDeg: state.deflectionAngleDeg,
                       isOscillating: state.isOscillating,
                       isDark: isDark,
                       stopwatchSeconds: state.stopwatchElapsedSec,
                       oscillations: state.currentOscillations,
                       targetOscillations: state.targetOscillations,
-                      inspectedItemKey: state.selectedInspectItemKey,
+                      inspectedItemKey: state.currentStepIndex == 0 ? state.selectedInspectItemKey : null,
                       showRule: _showRule(state),
                       holding: _holding(state),
                       hands: _hands,

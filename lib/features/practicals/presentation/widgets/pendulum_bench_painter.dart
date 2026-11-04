@@ -25,7 +25,7 @@ class PendulumBenchPainter extends CustomPainter {
   final String? inspectedItemKey;
   final bool showRule;
   final bool holding;
-  final LabHandRuns? hands; // 'rule', 'hold', 'watch'
+  final LabHandRuns? hands; // 'rule', 'hold', 'watch', 'length'
 
   const PendulumBenchPainter({
     required this.lengthCm,
@@ -52,6 +52,14 @@ class PendulumBenchPainter extends CustomPainter {
   static const double _pivotY = 72;
   static const double _pxPerCm = 2.3; // 100 cm of thread reaches just above the base
 
+  /// The thread slides through the cork to a new length while the hand pulls it.
+  double get _shownLengthCm {
+    final t = hands?.since('length');
+    final before = hands?.previous('length');
+    if (t == null || t >= 700 || before is! double) return lengthCm;
+    return before + (lengthCm - before) * Curves.easeInOut.transform(t / 700);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     LabPaint.paintScene(canvas, size, isDark, cropX: cropX, cropWidth: cropWidth, (left, right) {
@@ -59,7 +67,7 @@ class PendulumBenchPainter extends CustomPainter {
       LabPaint.splitCork(canvas, x: _pivotX, y: 50);
       _protractor(canvas);
 
-      final lengthPx = lengthCm * _pxPerCm;
+      final lengthPx = _shownLengthCm * _pxPerCm;
       final bobY = _pivotY + lengthPx;
       // Rest line and release angle
       _dashedLine(canvas, const Offset(_pivotX, _pivotY), Offset(_pivotX, bobY + 14));
@@ -80,6 +88,17 @@ class PendulumBenchPainter extends CustomPainter {
       LabPaint.bob(canvas, Offset(0, lengthPx));
       canvas.restore();
 
+      // The hand pulls the thread through the split cork to the new length.
+      final pulled = hands?.since('length');
+      if (pulled != null) {
+        const at = Offset(_pivotX + 6, _pivotY + 18);
+        if (pulled < 900) {
+          LabHand.paint(canvas, HandPose.pinch, at: at, rotate: -90);
+        } else {
+          LabHand.letGo(canvas, pulled - 900, at: at, rotate: -90);
+        }
+      }
+
       // The hand holds the bob beside its rest line at the release angle, then lets go.
       final held = Offset(_pivotX + lengthPx * math.sin(a) + 10, _pivotY + lengthPx * math.cos(a));
       final hold = hands?.since('hold');
@@ -97,9 +116,30 @@ class PendulumBenchPainter extends CustomPainter {
         11,
         isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
       );
+      final inspected = _inspectArea(lengthPx);
+      if (inspected != null) LabPaint.activeGlow(canvas, inspected);
       LabHand.move(canvas, hands?.since('watch'),
           from: const Offset(512, 176), to: const Offset(_stopwatchX, LabPaint.tableY - 87), pose: HandPose.point, rotate: 180, duration: 900);
     });
+  }
+
+  /// Where the item being inspected stands, for its glow.
+  Rect? _inspectArea(double lengthPx) {
+    final a = -angleDeg * math.pi / 180;
+    final bob = Offset(_pivotX - lengthPx * math.sin(a), _pivotY + lengthPx * math.cos(a));
+    switch (inspectedItemKey) {
+      case 'stand':
+        return Rect.fromLTRB(172, 30, 330, LabPaint.tableY);
+      case 'bob':
+        return Rect.fromCircle(center: bob, radius: 12);
+      case 'thread':
+        return Rect.fromPoints(const Offset(_pivotX, _pivotY), bob).inflate(3);
+      case 'ruler':
+        return showRule ? Rect.fromLTWH(368, _pivotY - 4, 22, 100 * _pxPerCm + 8) : null;
+      case 'stopwatch':
+        return const Rect.fromLTWH(_stopwatchX - 36, LabPaint.tableY - 82, 72, 82);
+    }
+    return null;
   }
 
   /// The metre rule beside the thread while the length is set, with L marked

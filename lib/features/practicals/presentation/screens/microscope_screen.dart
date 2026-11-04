@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/models/microscope_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/microscope_controller.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/microscope_viewfinder_painter.dart';
 import '../widgets/microscope_slide_painter.dart';
 import '../widgets/lab_hand.dart';
@@ -45,14 +47,19 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
     final state = ref.watch(microscopeControllerProvider(widget.mode));
     final controller = ref.read(microscopeControllerProvider(widget.mode).notifier);
     final language = learningLanguage();
-    debugPrint('BUILDING MicroscopeScreen with mode: ${widget.mode}');
     final isSwahili = language == 'sw';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _showExitConfirmationDialog(context, isDark, isSwahili);
+      },
+      child: Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF0058BE),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF184E78),
         foregroundColor: Colors.white,
         elevation: 0,
         title: Column(
@@ -60,16 +67,26 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
           children: [
             Text(
               isSwahili ? 'Darubini ya Mwanga & Seli' : 'Light Microscope Cell Staining',
-              style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
             ),
-            Text(
-              isSwahili ? 'Biolojia Kidato cha 1-4 • O-Level' : 'O-Level Biology • Practical #1',
-              style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.85)),
+            // the mode under the title, so the title has the full width
+            Row(
+              children: [
+                _buildModeBadge(state.mode, isSwahili),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    isSwahili ? 'Biolojia • O-Level' : 'O-Level Biology',
+                    style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.85)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         actions: [
-          _buildModeBadge(state.mode, isSwahili),
           IconButton(
             icon: const Icon(Icons.menu_book_rounded),
             tooltip: isSwahili ? 'Daftari la Maabara' : 'Lab Notebook',
@@ -93,7 +110,8 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
 
             // 3. Central Simulation Viewport / Workbench
             Expanded(
-              child: SingleChildScrollView(
+              child: StepScrollView(
+                step: state.currentStep,
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 child: state.currentStep == MicroscopeStep.completed && state.scoreResult != null
                     ? TitrationCompletionCard(
@@ -122,6 +140,40 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
           ],
         ),
       ),
+    ),
+    );
+  }
+
+  void _showExitConfirmationDialog(BuildContext context, bool isDark, bool isSwahili) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text(
+          isSwahili ? 'Ondoka kwenye Maabara?' : 'Leave Laboratory?',
+          style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A)),
+        ),
+        content: Text(
+          isSwahili
+              ? 'Maendeleo yako ya sasa ya darubini hayatahifadhiwa.'
+              : 'Your current microscope practical progress will be lost.',
+          style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF475569)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(isSwahili ? 'Ghairi' : 'Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.pop();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            child: Text(isSwahili ? 'Ondoka' : 'Leave', style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -144,18 +196,15 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 4.0),
-      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 1.0),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.2),
-        border: Border.all(color: color, width: 1.2),
-        borderRadius: BorderRadius.circular(14.0),
+        border: Border.all(color: color, width: 1.0),
+        borderRadius: BorderRadius.circular(10.0),
       ),
-      child: Center(
-        child: Text(
-          label.toUpperCase(),
-          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: color),
-        ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: color),
       ),
     );
   }
@@ -196,12 +245,12 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
               decoration: BoxDecoration(
                 color: isCurrent
-                    ? const Color(0xFF0058BE).withValues(alpha: 0.15)
+                    ? const Color(0xFF184E78).withValues(alpha: 0.15)
                     : (isDone ? const Color(0xFF10B981).withValues(alpha: 0.12) : Colors.transparent),
                 borderRadius: BorderRadius.circular(10.0),
                 border: Border.all(
                   color: isCurrent
-                      ? const Color(0xFF0058BE)
+                      ? const Color(0xFF184E78)
                       : (isDone ? const Color(0xFF10B981) : Colors.grey.withValues(alpha: 0.3)),
                   width: isCurrent ? 1.5 : 1.0,
                 ),
@@ -215,7 +264,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                       shape: BoxShape.circle,
                       color: isDone
                           ? const Color(0xFF10B981)
-                          : (isCurrent ? const Color(0xFF0058BE) : Colors.grey.shade400),
+                          : (isCurrent ? const Color(0xFF184E78) : Colors.grey.shade400),
                     ),
                     child: Center(
                       child: isDone
@@ -237,7 +286,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                       fontSize: 11.5,
                       fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
                       color: isCurrent
-                          ? const Color(0xFF0058BE)
+                          ? const Color(0xFF184E78)
                           : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
                     ),
                   ),
@@ -269,7 +318,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
         children: [
           Icon(
             state.isInFocus ? Icons.check_circle_rounded : Icons.info_outline_rounded,
-            color: state.isInFocus ? const Color(0xFF10B981) : const Color(0xFF0058BE),
+            color: state.isInFocus ? const Color(0xFF10B981) : const Color(0xFF184E78),
             size: 20.0,
           ),
           const SizedBox(width: 10.0),
@@ -432,13 +481,13 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
           color: isDone
               ? const Color(0xFF10B981).withValues(alpha: 0.15)
               : (onTap != null
-                  ? const Color(0xFF0058BE).withValues(alpha: 0.10)
+                  ? const Color(0xFF184E78).withValues(alpha: 0.10)
                   : Colors.grey.withValues(alpha: 0.10)),
           borderRadius: BorderRadius.circular(10.0),
           border: Border.all(
             color: isDone
                 ? const Color(0xFF10B981)
-                : (onTap != null ? const Color(0xFF0058BE) : Colors.grey.shade400),
+                : (onTap != null ? const Color(0xFF184E78) : Colors.grey.shade400),
             width: 1.2,
           ),
         ),
@@ -450,7 +499,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
               size: 14.0,
               color: isDone
                   ? const Color(0xFF10B981)
-                  : (onTap != null ? const Color(0xFF0058BE) : Colors.grey),
+                  : (onTap != null ? const Color(0xFF184E78) : Colors.grey),
             ),
             const SizedBox(width: 6.0),
             Text(
@@ -460,7 +509,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                 fontWeight: FontWeight.w700,
                 color: isDone
                     ? const Color(0xFF10B981)
-                    : (onTap != null ? const Color(0xFF0058BE) : Colors.grey),
+                    : (onTap != null ? const Color(0xFF184E78) : Colors.grey),
               ),
             ),
           ],
@@ -605,7 +654,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                       value: state.coarseFocus,
                       min: 0.0,
                       max: 100.0,
-                      activeColor: const Color(0xFF0058BE),
+                      activeColor: const Color(0xFF184E78),
                       onChanged: (val) => controller.setCoarseFocus(val),
                     ),
                   ),
@@ -721,7 +770,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                 style: const TextStyle(
                   fontSize: 12.0,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF0058BE),
+                  color: Color(0xFF184E78),
                 ),
               ),
             ],
@@ -745,13 +794,13 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                 label: Text(isSwahili ? org.nameSw : org.nameEn),
                 selected: isSelected,
                 onSelected: (_) => controller.toggleOrganelleSelection(org.id),
-                selectedColor: const Color(0xFF0058BE).withValues(alpha: 0.2),
-                checkmarkColor: const Color(0xFF0058BE),
+                selectedColor: const Color(0xFF184E78).withValues(alpha: 0.2),
+                checkmarkColor: const Color(0xFF184E78),
                 labelStyle: TextStyle(
                   fontSize: 11.5,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected
-                      ? const Color(0xFF0058BE)
+                      ? const Color(0xFF184E78)
                       : (isDark ? const Color(0xFFF1F5F9) : const Color(0xFF334155)),
                 ),
               );
@@ -769,7 +818,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                 style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0058BE),
+                backgroundColor: const Color(0xFF184E78),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 13.0),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
@@ -827,7 +876,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0058BE),
+                backgroundColor: const Color(0xFF184E78),
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
@@ -859,6 +908,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
       {'id': 'filter_paper', 'en': 'Filter / Blotting Paper', 'sw': 'Karatasi ya Kukaushia'},
     ];
 
+    String? selected;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -868,6 +918,8 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            // read afresh on each rebuild, so the ticks show as items are inspected
+            final live = ref.read(microscopeControllerProvider(widget.mode));
             return Container(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -886,10 +938,22 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                     style: const TextStyle(fontSize: 12.0, color: Colors.grey),
                   ),
                   const SizedBox(height: 12.0),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12.0),
+                    child: AspectRatio(
+                      aspectRatio: MicroscopeApparatusPainter.width / MicroscopeApparatusPainter.height,
+                      child: CustomPaint(painter: MicroscopeApparatusPainter(selected: selected)),
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
                   ...items.map((item) {
-                    final isInspected = state.inspectedItems.contains(item['id']);
+                    final isInspected = live.inspectedItems.contains(item['id']);
                     return ListTile(
                       dense: true,
+                      selected: selected == item['id'],
+                      selectedTileColor: const Color(0x1FDB9E3D),
+                      selectedColor: const Color(0xFF184E78),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
                       leading: Icon(
                         isInspected ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
                         color: isInspected ? const Color(0xFF10B981) : Colors.grey,
@@ -902,7 +966,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                       ),
                       onTap: () {
                         controller.inspectItem(item['id']!);
-                        setModalState(() {});
+                        setModalState(() => selected = item['id']);
                       },
                     );
                   }),
@@ -911,7 +975,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0058BE),
+                        backgroundColor: const Color(0xFF184E78),
                         foregroundColor: Colors.white,
                       ),
                       onPressed: () => Navigator.of(ctx).pop(),
@@ -959,7 +1023,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                 const Divider(),
                 Text(
                   isSwahili ? '1. Kanuni za Kisayansi (Biological Theory)' : '1. Biological Theory',
-                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF0058BE)),
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF184E78)),
                 ),
                 const SizedBox(height: 6.0),
                 Text(
@@ -975,7 +1039,7 @@ class _MicroscopeScreenState extends ConsumerState<MicroscopeScreen>
                 const SizedBox(height: 14.0),
                 Text(
                   isSwahili ? '2. Fomula ya Ukuzaji (Magnification)' : '2. Magnification Calculations',
-                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF0058BE)),
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF184E78)),
                 ),
                 const SizedBox(height: 6.0),
                 Text(

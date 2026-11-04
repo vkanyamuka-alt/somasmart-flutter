@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../data/models/gas_preparation_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/gas_preparation_controller.dart';
+import '../controllers/lab_inspect_provider.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/gas_preparation_bench_painter.dart';
 import '../widgets/lab_hand.dart';
 import '../widgets/titration_completion_card.dart';
@@ -67,7 +69,8 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
 
               // 3. Main Workspace Area
               Expanded(
-                child: SingleChildScrollView(
+                child: StepScrollView(
+                  step: state.step,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -326,6 +329,8 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
   // Laboratory Canvas
   // ---------------------------------------------------------------------------
   Widget _buildLaboratoryCanvas(GasPreparationState state, bool isDark) {
+    final inspected =
+        state.step == GasPrepStep.inspectApparatus ? ref.watch(labInspectedProvider('gas')) : null;
     return Container(
       height: 250,
       decoration: BoxDecoration(
@@ -351,6 +356,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                 isDark: isDark,
                 animationValue: _pulseController.value,
                 hands: hands,
+                inspectedItemKey: inspected,
               ),
             );
           },
@@ -531,8 +537,10 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () =>
-                    ref.read(gasPreparationControllerProvider.notifier).inspectItem(item.id),
+                onTap: () {
+                  ref.read(gasPreparationControllerProvider.notifier).inspectItem(item.id);
+                  ref.read(labInspectedProvider('gas').notifier).state = item.id;
+                },
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

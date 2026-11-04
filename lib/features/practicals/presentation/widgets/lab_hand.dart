@@ -436,7 +436,7 @@ class LabHandRuns extends ChangeNotifier {
   Duration _now = Duration.zero;
 
   /// The longest a hand takes, after which time stops ticking.
-  static const Duration _longest = Duration(milliseconds: 5000);
+  static const Duration _longest = Duration(milliseconds: 8000);
 
   /// Notes [value] for [key]; when it differs from the last value seen, the
   /// hand for [key] starts.

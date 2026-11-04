@@ -145,7 +145,7 @@ class OhmsLawState {
       isCompleted: isCompleted ?? this.isCompleted,
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
       inspectedItems: inspectedItems ?? this.inspectedItems,
-      selectedInspectItemKey: selectedInspectItemKey,
+      selectedInspectItemKey: selectedInspectItemKey ?? this.selectedInspectItemKey,
       circuitConnected: circuitConnected ?? this.circuitConnected,
       isSwitchClosed: isSwitchClosed ?? this.isSwitchClosed,
       voltageSetting: voltageSetting ?? this.voltageSetting,

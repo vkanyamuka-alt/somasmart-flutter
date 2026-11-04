@@ -107,6 +107,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
               )
             // Bench and step controls: stacked on phones, side by side when wide.
             : PracticalSplitLayout(
+                step: ohmsState.currentStepIndex,
                 padding: const EdgeInsets.all(14),
                 bench: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -390,6 +391,7 @@ class _OhmsLawScreenState extends ConsumerState<OhmsLawScreen>
                             animationProgress: _animController.value,
                             isDarkMode: isDark,
                             hands: _hands,
+                            inspectedItemKey: state.currentStepIndex == 0 ? state.selectedInspectItemKey : null,
                           ),
                         ),
                       ),

@@ -21,6 +21,7 @@ class CircuitBenchPainter extends CustomPainter {
   final double animationProgress; // 0.0 to 1.0 for current flow dots
   final bool isDarkMode;
   final LabHandRuns? hands; // 'wired', 'cells', 'key'
+  final String? inspectedItemKey; // glows while the apparatus is inspected
 
   CircuitBenchPainter({
     required this.isConnected,
@@ -31,7 +32,17 @@ class CircuitBenchPainter extends CustomPainter {
     required this.animationProgress,
     required this.isDarkMode,
     this.hands,
+    this.inspectedItemKey,
   }) : super(repaint: hands);
+
+  /// Where each inspectable item lies on the bench (box units).
+  static const Map<String, Rect> inspectAreas = {
+    'battery': Rect.fromLTWH(20, 40, 236, 58),
+    'switch': Rect.fromLTWH(262, 140, 90, 44),
+    'resistor': Rect.fromLTWH(20, 144, 140, 40),
+    'voltmeter': Rect.fromLTWH(15, 250, 150, 120),
+    'ammeter': Rect.fromLTWH(195, 250, 150, 120),
+  };
 
   static const double width = 360;
   static const double height = 400;
@@ -84,10 +95,14 @@ class CircuitBenchPainter extends CustomPainter {
       } else {
         LabElectrical.wireBundle(canvas, const Offset(204, 216));
       }
+      final inspected = inspectAreas[inspectedItemKey] ?? (inspectedItemKey == 'wires' ? _wiresArea : null);
+      if (inspected != null) LabPaint.activeGlow(canvas, inspected);
       LabHand.move(canvas, hands?.since('cells'), to: cell.positive);
       LabHand.move(canvas, keyMoved, to: _key + Offset(45, isSwitchClosed ? 22 : 52));
     });
   }
+
+  Rect get _wiresArea => isConnected ? const Rect.fromLTWH(10, 0, 345, 250) : Rect.fromCenter(center: const Offset(204, 216), width: 70, height: 44);
 
   /// The plug moves while the hand presses it (45% to 55% of its motion).
   double _plugOut(double? t) {
@@ -105,6 +120,7 @@ class CircuitBenchPainter extends CustomPainter {
         oldDelegate.measuredVoltage != measuredVoltage ||
         oldDelegate.measuredCurrent != measuredCurrent ||
         oldDelegate.animationProgress != animationProgress ||
-        oldDelegate.isDarkMode != isDarkMode;
+        oldDelegate.isDarkMode != isDarkMode ||
+        oldDelegate.inspectedItemKey != inspectedItemKey;
   }
 }
