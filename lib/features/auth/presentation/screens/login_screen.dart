@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../widgets/google_sign_in_section.dart';
 
 /// Official SomaSmart Login Screen (Phone-First).
 ///
@@ -505,6 +506,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     text: isSw ? 'Ingia' : 'Sign In',
                     isLoading: isLoading,
                     onPressed: isLoading ? null : _handleSignIn,
+                  ),
+
+                  GoogleSignInSection(
+                    onError: (message) => setState(() => _errorMessage = message),
                   ),
 
                   const SizedBox(height: 22),

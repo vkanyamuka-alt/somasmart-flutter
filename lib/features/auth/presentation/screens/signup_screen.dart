@@ -6,6 +6,7 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/soma_smart_logo.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../widgets/google_sign_in_section.dart';
 
 /// Official SomaSmart Registration / Sign Up Screen (Phone-First).
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -673,6 +674,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     text: isSw ? 'Jisajili' : 'Create Account',
                     isLoading: isLoading,
                     onPressed: isLoading ? null : _handleSignUp,
+                  ),
+
+                  GoogleSignInSection(
+                    onError: (message) => setState(() => _errorMessage = message),
                   ),
 
                   const SizedBox(height: 20),
