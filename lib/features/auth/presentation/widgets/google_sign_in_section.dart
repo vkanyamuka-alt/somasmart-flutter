@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/config/env.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
+import 'auth_layout.dart';
 
 /// "or" divider + "Continue with Google", shown under the phone sign-in and
 /// sign-up forms. Hidden in builds without GOOGLE_WEB_CLIENT_ID.
@@ -34,38 +34,27 @@ class GoogleSignInSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (!(enabledOverride ?? Env.googleSignInConfigured)) return const SizedBox.shrink();
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSw = ref.watch(languageProvider) == 'sw';
     final isLoading = ref.watch(authControllerProvider).isLoading;
-    final muted = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    final line = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Column(
       children: [
-        const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(child: Divider(color: line, height: 1)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(isSw ? 'au' : 'or', style: TextStyle(fontSize: 12.5, color: muted)),
-            ),
-            Expanded(child: Divider(color: line, height: 1)),
-          ],
-        ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
+        AuthDivider(isSw ? 'au' : 'or'),
+        const SizedBox(height: 20),
         SizedBox(
           width: double.infinity,
-          height: 50,
+          height: 48,
           child: OutlinedButton(
             key: const Key('google-sign-in'),
             onPressed: isLoading ? null : () => _continue(context, ref),
             style: OutlinedButton.styleFrom(
               // Google's rules: white button, grey outline, the "G" unchanged.
-              backgroundColor: isDark ? AppColors.darkBgSurface : Colors.white,
-              foregroundColor: isDark ? AppColors.darkTextPrimary : const Color(0xFF1F1F1F),
-              side: BorderSide(color: isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              // The sign-in screens are always light (like the website).
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF1F1F1F),
+              side: const BorderSide(color: AuthColors.inputBorder),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,

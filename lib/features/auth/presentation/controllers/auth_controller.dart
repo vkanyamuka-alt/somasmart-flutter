@@ -413,9 +413,12 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
           : 'This phone number already has a SomaSmart account. Sign out, then sign in with that number and its password.';
     }
     if (error is GoogleSignInException) {
+      // Android reports "no internet" from Google only as a generic failure
+      // (seen on a Pixel: GMS getToken NETWORK_ERROR), so the internet is the
+      // first thing to suggest.
       return isSw
-          ? 'Imeshindwa kuingia kwa Google. Jaribu tena au tumia namba ya simu.'
-          : 'Could not sign in with Google. Try again or use your phone number.';
+          ? 'Imeshindwa kuingia kwa Google. Hakikisha una intaneti, kisha jaribu tena au tumia namba ya simu.'
+          : 'Could not sign in with Google. Check that you are connected to the internet, then try again or use your phone number.';
     }
     final msg = error is AuthException ? error.message.toLowerCase() : error.toString().toLowerCase();
 
