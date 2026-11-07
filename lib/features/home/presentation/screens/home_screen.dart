@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
+import '../../../settings/presentation/widgets/study_reminder_flow.dart';
 import '../widgets/plant_cell_tablet_widget.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -163,6 +164,9 @@ class HomeScreen extends ConsumerWidget {
               },
             ),
             const SizedBox(height: 12),
+
+            // Daily study reminder offer (from the second day of use; hidden once answered).
+            const StudyReminderPrompt(),
 
             // ===== 2. SUBSCRIPTION STATUS CARD =====
             InkWell(

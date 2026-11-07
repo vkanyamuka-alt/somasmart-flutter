@@ -4,15 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_constants.dart';
+import '../../../../core/services/push/push_messaging.dart';
+import '../../../../core/services/push/push_providers.dart';
 import '../../../../core/services/support_contact_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/section_widgets.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
+import '../../data/study_reminder.dart';
 import '../controllers/settings_controller.dart';
+import '../widgets/study_reminder_flow.dart';
 
 /// Settings, grouped the same way as the web Settings page: Appearance,
-/// Notifications, Support, Legal, Sign out and Request account deletion.
+/// Notifications (push, daily study reminder), Support, Legal, Sign out and Request account deletion.
 /// Each feature lives in one place: the profile is the Account tab, and
 /// Share, Feedback, Help, About and Sign out are only here.
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -53,6 +57,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _toggle(String id) => setState(() => _open = _open == id ? null : id);
 
+  bool _busyPush = false;
+
+  Future<void> _runPush(Future<void> Function() action) async {
+    setState(() => _busyPush = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _busyPush = false);
+    }
+  }
+
+  void _say(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text), duration: const Duration(seconds: 3), behavior: SnackBarBehavior.floating));
+  }
+
+  Future<void> _sendTest(bool isSw) async {
+    try {
+      final sent = await ref.read(pushControllerProvider).sendTest(isSw ? 'sw' : 'en');
+      _say(sent > 0
+          ? (isSw ? 'Imetumwa. Itafika baada ya sekunde chache.' : 'Sent. It should arrive in a few seconds.')
+          : (isSw ? 'Haikutumwa. Jaribu tena baadaye.' : 'Not sent. Try again later.'));
+    } catch (e) {
+      final why = e.toString().replaceFirst('Exception: ', '');
+      _say(isSw ? 'Haikutumwa: $why' : 'Not sent: $why');
+    }
+  }
+
   Future<void> _confirmSignOut(bool isSw) async {
     final yes = await showDialog<bool>(
       context: context,
@@ -79,7 +113,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final themeMode = ref.watch(themeModeProvider);
-    final notificationsEnabled = ref.watch(notificationsEnabledProvider);
+    final push = ref.watch(pushControllerProvider);
+    final reminder = ref.watch(studyReminderProvider).valueOrNull;
+    final reminderOn = reminder != null && reminder.enabled && push.enabled;
     final lang = ref.watch(languageProvider);
     final isSw = lang == 'sw';
     final contact = ref.watch(supportContactProvider).valueOrNull;
@@ -141,23 +177,61 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   SettingsRow(
                     icon: Icons.notifications_none_rounded,
                     title: t('App notifications', 'Arifa za app'),
-                    subtitle: t('New lessons, quizzes and announcements', 'Masomo mapya, quizzes na matangazo'),
+                    subtitle: !push.available
+                        ? t('Not available in this version of the app', 'Hazipatikani kwenye toleo hili la app')
+                        : push.permission == PushPermission.denied && push.wantsPush
+                            ? t('Blocked in your phone settings', 'Zimezuiwa kwenye mipangilio ya simu')
+                            : t('Announcements and your study reminder', 'Matangazo na kikumbusho chako cha kusoma'),
                     trailing: Switch.adaptive(
                       key: const Key('settings-notifications'),
-                      value: notificationsEnabled,
+                      value: push.enabled,
                       activeTrackColor: isDark ? AppColors.primaryLight : AppColors.primary,
-                      onChanged: (val) {
-                        ref.read(notificationsEnabledProvider.notifier).setEnabled(val);
-                        ScaffoldMessenger.of(context)
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(SnackBar(
-                            content: Text(val ? t('Notifications on', 'Arifa zimewashwa') : t('Notifications off', 'Arifa zimezimwa')),
-                            duration: const Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
-                          ));
-                      },
+                      onChanged: !push.available || _busyPush
+                          ? null
+                          : (val) => _runPush(() async {
+                                if (val) {
+                                  if (await turnOnNotifications(context, ref)) {
+                                    _say(t('Notifications on', 'Arifa zimewashwa'));
+                                  }
+                                } else {
+                                  await ref.read(pushControllerProvider).disable();
+                                  _say(t('Notifications off', 'Arifa zimezimwa'));
+                                }
+                              }),
                     ),
                   ),
+                  SettingsRow(
+                    key: const Key('settings-reminder'),
+                    icon: Icons.alarm_rounded,
+                    title: t('Daily study reminder', 'Kikumbusho cha kusoma kila siku'),
+                    subtitle: reminderOn
+                        ? t('Every day at ${StudyReminder.formatTime(reminder.time)}. Tap to change.',
+                            'Kila siku saa ${StudyReminder.formatTime(reminder.time)}. Gusa kubadilisha.')
+                        : t('Off', 'Kimezimwa'),
+                    onTap: !push.available || _busyPush ? null : () => _runPush(() => setUpStudyReminder(context, ref)),
+                    trailing: Switch.adaptive(
+                      key: const Key('settings-reminder-switch'),
+                      value: reminderOn,
+                      activeTrackColor: isDark ? AppColors.primaryLight : AppColors.primary,
+                      onChanged: !push.available || _busyPush
+                          ? null
+                          : (val) => _runPush(() async {
+                                if (val) {
+                                  await setUpStudyReminder(context, ref);
+                                } else {
+                                  await turnOffStudyReminder(context, ref);
+                                }
+                              }),
+                    ),
+                  ),
+                  if (push.enabled)
+                    SettingsRow(
+                      key: const Key('settings-test-push'),
+                      icon: Icons.send_outlined,
+                      title: t('Send a test notification', 'Tuma arifa ya majaribio'),
+                      subtitle: t('Check that this phone receives them', 'Hakikisha simu hii inazipokea'),
+                      onTap: _busyPush ? null : () => _runPush(() => _sendTest(isSw)),
+                    ),
                 ]),
 
                 SettingsGroup(label: t('Support', 'Msaada'), children: [

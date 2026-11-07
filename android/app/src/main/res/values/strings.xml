@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification channels (Android Settings > Apps > SomaSmart > Notifications). -->
+    <string name="channel_study_reminders">Study reminders</string>
+    <string name="channel_study_reminders_description">Your daily reminder to study, at the time you chose.</string>
+    <string name="channel_announcements">Announcements</string>
+    <string name="channel_announcements_description">News from the SomaSmart team.</string>
+</resources>

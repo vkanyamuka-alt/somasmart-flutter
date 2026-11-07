@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_study_reminders">Vikumbusho vya kusoma</string>
+    <string name="channel_study_reminders_description">Kikumbusho chako cha kila siku cha kusoma, saa uliyochagua.</string>
+    <string name="channel_announcements">Matangazo</string>
+    <string name="channel_announcements_description">Habari kutoka kwa timu ya SomaSmart.</string>
+</resources>
