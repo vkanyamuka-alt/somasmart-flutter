@@ -40,6 +40,7 @@ import '../../features/auth/presentation/screens/welcome_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../../features/auth/presentation/screens/complete_profile_screen.dart';
 import '../theme/app_theme.dart';
 import '../../features/auth/presentation/screens/contact_support_screen.dart';
 
@@ -155,6 +156,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: Theme(
             data: AppTheme.lightTheme,
             child: const ForgotPasswordScreen(),
+          ),
+        ),
+      ),
+      // First Google sign-in: phone number and form (signed-in only).
+      GoRoute(
+        path: '/complete-profile',
+        name: 'complete-profile',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => MaterialPage(
+          child: Theme(
+            data: AppTheme.lightTheme,
+            child: const CompleteProfileScreen(),
           ),
         ),
       ),

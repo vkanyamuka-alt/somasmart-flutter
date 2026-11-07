@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/google_profile.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 
 /// Official SomaSmart splash screen.
@@ -90,9 +92,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted) return;
     try {
       final client = ref.read(supabaseClientProvider);
-      context.go(client.auth.currentUser != null ? '/home' : '/welcome');
+      final user = client.auth.currentUser;
+      if (user != null && await _googleProfileUnfinished(client, user)) {
+        if (mounted) context.go('/complete-profile');
+        return;
+      }
+      if (!mounted) return;
+      context.go(user != null ? '/home' : '/welcome');
     } catch (_) {
-      context.go('/welcome');
+      if (mounted) context.go('/welcome');
+    }
+  }
+
+  /// A Google student who closed the app before adding a phone number and
+  /// form. Offline or slow: open the app as usual and ask next time.
+  Future<bool> _googleProfileUnfinished(SupabaseClient client, User user) async {
+    if (!signedInWithGoogle(user)) return false;
+    try {
+      final row = await client
+          .from('profiles')
+          .select('phone')
+          .eq('id', user.id)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 5));
+      return row != null && needsProfileCompletion(user, row['phone'] as String?);
+    } catch (_) {
+      return false;
     }
   }
 

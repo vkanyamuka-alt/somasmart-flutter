@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:somasmart_flutter/features/auth/presentation/widgets/auth_layout.dart';
 import 'package:somasmart_flutter/core/theme/app_colors.dart';
 import 'package:somasmart_flutter/core/theme/app_theme.dart';
 import 'package:somasmart_flutter/core/theme/theme_provider.dart';
@@ -98,7 +99,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-      expect(scaffold.backgroundColor, AppColors.lightBgSurface);
+      expect(scaffold.backgroundColor, AuthColors.page);
       expect(find.byType(LoginScreen), findsOneWidget);
     });
 
@@ -123,7 +124,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-      expect(scaffold.backgroundColor, AppColors.lightBgSurface);
+      expect(scaffold.backgroundColor, AuthColors.page);
       expect(find.byType(SignUpScreen), findsOneWidget);
     });
   });
