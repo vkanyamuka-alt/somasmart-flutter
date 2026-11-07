@@ -93,6 +93,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               AuthErrorBox(_errorMessage!),
               const SizedBox(height: 16),
             ],
+            // Google first: the form below is taller than a phone screen.
+            GoogleSignInSection(
+              atTop: true,
+              onError: (message) => setState(() => _errorMessage = message),
+            ),
             AuthField(
               label: isSw ? 'Jina kamili' : 'Full name',
               child: TextFormField(
@@ -199,9 +204,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               text: isSw ? 'Fungua akaunti' : 'Create account',
               isLoading: isLoading,
               onPressed: _handleSignUp,
-            ),
-            GoogleSignInSection(
-              onError: (message) => setState(() => _errorMessage = message),
             ),
             const SizedBox(height: 20),
             AuthFooter(

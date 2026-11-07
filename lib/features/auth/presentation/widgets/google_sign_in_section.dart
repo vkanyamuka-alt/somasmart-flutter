@@ -6,8 +6,10 @@ import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
 import 'auth_layout.dart';
 
-/// "or" divider + "Continue with Google", shown under the phone sign-in and
-/// sign-up forms. Hidden in builds without GOOGLE_WEB_CLIENT_ID.
+/// "Continue with Google" plus an "or" divider. Log in shows it under the
+/// form (divider first); Sign up shows it above the form (`atTop`), because
+/// the sign-up form is taller than a phone screen and a button under it is
+/// only found by scrolling. Hidden in builds without GOOGLE_WEB_CLIENT_ID.
 class GoogleSignInSection extends ConsumerWidget {
   /// Shows an error from Google on the screen's own error banner.
   final ValueChanged<String?> onError;
@@ -15,7 +17,10 @@ class GoogleSignInSection extends ConsumerWidget {
   /// Builds without a client ID show nothing; tests can force the section on.
   final bool? enabledOverride;
 
-  const GoogleSignInSection({super.key, required this.onError, this.enabledOverride});
+  /// Button first, then "au jisajili kwa namba ya simu" (Sign up).
+  final bool atTop;
+
+  const GoogleSignInSection({super.key, required this.onError, this.enabledOverride, this.atTop = false});
 
   Future<void> _continue(BuildContext context, WidgetRef ref) async {
     onError(null);
@@ -37,12 +42,7 @@ class GoogleSignInSection extends ConsumerWidget {
     final isSw = ref.watch(languageProvider) == 'sw';
     final isLoading = ref.watch(authControllerProvider).isLoading;
 
-    return Column(
-      children: [
-        const SizedBox(height: 18),
-        AuthDivider(isSw ? 'au' : 'or'),
-        const SizedBox(height: 18),
-        SizedBox(
+    final button = SizedBox(
           width: double.infinity,
           height: 50,
           child: OutlinedButton(
@@ -71,7 +71,24 @@ class GoogleSignInSection extends ConsumerWidget {
               ],
             ),
           ),
-        ),
+        );
+
+    if (atTop) {
+      return Column(
+        children: [
+          button,
+          const SizedBox(height: 18),
+          AuthDivider(isSw ? 'au jisajili kwa namba ya simu' : 'or sign up with your phone number'),
+          const SizedBox(height: 18),
+        ],
+      );
+    }
+    return Column(
+      children: [
+        const SizedBox(height: 18),
+        AuthDivider(isSw ? 'au' : 'or'),
+        const SizedBox(height: 18),
+        button,
       ],
     );
   }
