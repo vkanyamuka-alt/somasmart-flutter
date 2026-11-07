@@ -150,11 +150,12 @@ void main() {
       );
 
       expect(find.byType(Image), findsOneWidget);
+      expect(find.text('SomaSmart'), findsOneWidget);
       expect(find.text('Karibu tena'), findsOneWidget);
       expect(find.text('Ingia uendelee kujisomea.'), findsOneWidget);
       expect(find.byKey(const Key('tab-login')), findsOneWidget);
       expect(find.byKey(const Key('tab-register')), findsOneWidget);
-      expect(find.text('Namba ya simu'), findsOneWidget);
+      expect(find.text('Namba ya simu au email'), findsOneWidget);
       expect(find.text('Neno la siri'), findsOneWidget);
       expect(find.text('Umesahau neno la siri?'), findsOneWidget);
       expect(find.text('Mgeni SomaSmart? '), findsOneWidget);
@@ -165,7 +166,7 @@ void main() {
       await tester.tap(find.byKey(const Key('login-submit')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Weka namba yako ya simu.'), findsOneWidget);
+      expect(find.text('Weka namba ya simu au email.'), findsOneWidget);
     });
 
     testWidgets('renders login in English when language is en', (tester) async {
@@ -185,7 +186,7 @@ void main() {
 
       expect(find.text('Welcome back'), findsOneWidget);
       expect(find.text('Log in to continue studying.'), findsOneWidget);
-      expect(find.text('Phone number'), findsOneWidget);
+      expect(find.text('Phone number or email'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
       expect(find.text('Forgot password?'), findsOneWidget);
       expect(find.text('Sign up'), findsOneWidget);
@@ -235,6 +236,31 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Namba ya simu si sahihi.'), findsOneWidget);
+    });
+
+    testWidgets('accepts an email like the website, and checks its shape', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: const MaterialApp(
+            home: LoginScreen(),
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byKey(const Key('login-phone')), 'juma@');
+      await tester.enterText(find.byKey(const Key('login-password')), '123456');
+      await tester.tap(find.byKey(const Key('login-submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Email si sahihi.'), findsOneWidget);
+
+      await tester.enterText(find.byKey(const Key('login-phone')), 'juma@example.com');
+      await tester.tap(find.byKey(const Key('login-submit')));
+      await tester.pump();
+      expect(find.text('Email si sahihi.'), findsNothing);
+      expect(find.text('Namba ya simu si sahihi.'), findsNothing);
     });
   });
 

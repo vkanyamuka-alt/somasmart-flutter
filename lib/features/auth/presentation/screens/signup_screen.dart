@@ -7,7 +7,7 @@ import '../controllers/auth_controller.dart';
 import '../widgets/auth_layout.dart';
 import '../widgets/google_sign_in_section.dart';
 
-/// Sign up, same card as the website's "Jisajili" tab: name, phone, optional
+/// Sign up (the "Jisajili" tab): the website's fields and wording in the app's own page: name, phone, optional
 /// email, password, then "Continue with Google".
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});

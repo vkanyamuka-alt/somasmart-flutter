@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/primary_button.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 
-/// Shared look of the sign-in screens (Log in, Sign up, Finish your account),
-/// the same as the website's `AuthLayout` + `AuthPages.css`: grey page, one
-/// white card, logo, title, plain labels, 48px fields and buttons, logo navy.
-/// Always light, like the website and the `/login` route's forced light theme.
+/// Shared pieces of the sign-in screens (Log in, Sign up, Finish your account).
+///
+/// The app keeps its own full-page look (white page, logo + "SomaSmart", grey
+/// filled fields, the standard button); from the website it takes the
+/// Ingia | Jisajili tabs, the SW | EN switch and the wording. Always light,
+/// like the `/login` route's forced light theme.
 class AuthColors {
-  static const page = Color(0xFFF4F6F9);
-  static const card = Colors.white;
-  static const cardBorder = Color(0xFFE2E8F0);
-  static const ink = Color(0xFF0F172A);
-  static const label = Color(0xFF334155);
-  static const muted = Color(0xFF64748B);
-  static const faint = Color(0xFF94A3B8);
-  static const inputBorder = Color(0xFFCBD5E1);
-  static const tabsBg = Color(0xFFF1F5F9);
-  static const navy = Color(0xFF184E78);
-  static const navyDark = Color(0xFF123B5B);
-  static const errorBg = Color(0xFFFEF2F2);
-  static const errorBorder = Color(0xFFFECACA);
-  static const errorText = Color(0xFFB91C1C);
+  static const page = AppColors.lightBgSurface;
+  static const ink = AppColors.lightTextPrimary;
+  static const label = AppColors.lightTextPrimary;
+  static const muted = AppColors.lightTextSecondary;
+  static const faint = AppColors.lightTextMuted;
+  static const field = AppColors.lightBgContainer;
+  static const fieldBorder = AppColors.lightBorderSubtle;
+  static const line = AppColors.lightBorder;
+  static const tabsBg = AppColors.lightBgContainer;
+  static const navy = AppColors.primary;
 }
 
 class AuthLayout extends ConsumerWidget {
@@ -36,49 +36,30 @@ class AuthLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AuthColors.page,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        leading: showBack
+            ? IconButton(
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AuthColors.ink),
+                onPressed: () => context.canPop() ? context.pop() : context.go('/welcome'),
+              )
+            : null,
+        actions: const [
+          Padding(padding: EdgeInsets.only(right: 16), child: Center(child: AuthLanguageSwitch())),
+        ],
+      ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        top: false,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight - 36),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          if (showBack)
-                            IconButton(
-                              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AuthColors.label),
-                              onPressed: () => context.canPop() ? context.pop() : context.go('/welcome'),
-                            ),
-                          const Spacer(),
-                          const AuthLanguageSwitch(),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.fromLTRB(22, 28, 22, 24),
-                        decoration: BoxDecoration(
-                          color: AuthColors.card,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AuthColors.cardBorder),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0x0F0F172A), blurRadius: 3, offset: Offset(0, 1)),
-                            BoxShadow(color: Color(0x0F0F172A), blurRadius: 24, offset: Offset(0, 8)),
-                          ],
-                        ),
-                        child: child,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: child,
             ),
           ),
         ),
@@ -87,7 +68,7 @@ class AuthLayout extends ConsumerWidget {
   }
 }
 
-/// SW | EN pill, top right (same as the website).
+/// SW | EN pill, top right (same switch as the website).
 class AuthLanguageSwitch extends ConsumerWidget {
   const AuthLanguageSwitch({super.key});
 
@@ -118,7 +99,7 @@ class AuthLanguageSwitch extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: selected ? AuthColors.navy : const Color(0xFF475569),
+                color: selected ? AuthColors.navy : AuthColors.muted,
               ),
             ),
           ),
@@ -128,13 +109,14 @@ class AuthLanguageSwitch extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(color: AuthColors.cardBorder, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(color: AuthColors.line, borderRadius: BorderRadius.circular(999)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [option('sw', 'SW'), option('en', 'EN')]),
     );
   }
 }
 
-/// Logo, title, subtitle and an optional highlighted line (an email address).
+/// Logo, "SomaSmart", title, subtitle and an optional highlighted line (an
+/// email address) — the app's own header.
 class AuthHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -148,36 +130,35 @@ class AuthHeader extends StatelessWidget {
       children: [
         Image.asset(
           'assets/images/logo.png',
-          width: 52,
-          height: 52,
+          width: 64,
+          height: 64,
           fit: BoxFit.contain,
           semanticLabel: 'SomaSmart',
           errorBuilder: (context, error, stackTrace) => Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(color: AuthColors.navy, borderRadius: BorderRadius.circular(14)),
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(color: AuthColors.navy, borderRadius: BorderRadius.circular(16)),
             alignment: Alignment.center,
-            child: const Text('S', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26)),
+            child: const Text('S', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 32)),
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
+        const Text(
+          'SomaSmart',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: AuthColors.ink),
+        ),
+        const SizedBox(height: 24),
         Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 24,
-            height: 1.25,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
-            color: AuthColors.ink,
-          ),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: AuthColors.ink),
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 6),
           Text(
             subtitle!,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, height: 1.5, color: AuthColors.muted),
+            style: const TextStyle(fontSize: 13.5, color: AuthColors.muted),
           ),
         ],
         if (note != null && note!.isNotEmpty) ...[
@@ -226,7 +207,7 @@ class AuthTabs extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: selected ? AuthColors.navy : AuthColors.muted,
+                    color: selected ? AuthColors.navy : AuthColors.faint,
                   ),
                 ),
               ),
@@ -247,7 +228,7 @@ class AuthTabs extends ConsumerWidget {
   }
 }
 
-/// Red box for errors, like `.auth-alert--error`.
+/// The app's red error banner.
 class AuthErrorBox extends StatelessWidget {
   final String message;
 
@@ -259,13 +240,24 @@ class AuthErrorBox extends StatelessWidget {
       liveRegion: true,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AuthColors.errorBg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AuthColors.errorBorder),
+          color: AppColors.error.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
         ),
-        child: Text(message, style: const TextStyle(fontSize: 13, height: 1.5, color: AuthColors.errorText)),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: AppColors.error, fontSize: 12.5, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -297,7 +289,7 @@ class AuthField extends StatelessWidget {
                     if (optional != null)
                       TextSpan(
                         text: ' $optional',
-                        style: const TextStyle(fontWeight: FontWeight.w400, color: AuthColors.faint),
+                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w400, color: AuthColors.faint),
                       ),
                   ],
                 ),
@@ -314,31 +306,27 @@ class AuthField extends StatelessWidget {
   }
 }
 
-/// White 48px input with a grey outline and a navy focus ring.
+/// The app's grey filled field with a navy focus outline.
 InputDecoration authInputDecoration({required String hint, required IconData icon, Widget? suffix}) {
   OutlineInputBorder border(Color color, [double width = 1]) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: color, width: width),
       );
   return InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: AuthColors.faint),
-    prefixIcon: Icon(icon, size: 18, color: AuthColors.faint),
+    hintStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w400, color: AuthColors.faint),
+    prefixIcon: Icon(icon, size: 20, color: AuthColors.muted),
     suffixIcon: suffix,
     filled: true,
-    fillColor: Colors.white,
-    isDense: true,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-    border: border(AuthColors.inputBorder),
-    enabledBorder: border(AuthColors.inputBorder),
+    fillColor: AuthColors.field,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    border: border(AuthColors.line),
+    enabledBorder: border(AuthColors.fieldBorder),
     focusedBorder: border(AuthColors.navy, 1.5),
-    errorBorder: border(AuthColors.errorText),
-    focusedErrorBorder: border(AuthColors.errorText, 1.5),
-    errorStyle: const TextStyle(fontSize: 12, color: AuthColors.errorText),
   );
 }
 
-const authInputTextStyle = TextStyle(fontSize: 15, color: AuthColors.ink);
+const authInputTextStyle = TextStyle(color: AuthColors.ink);
 
 /// Navy link text ("Forgot password?", "Create an account").
 class AuthLink extends StatelessWidget {
@@ -354,13 +342,13 @@ class AuthLink extends StatelessWidget {
       borderRadius: BorderRadius.circular(6),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-        child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AuthColors.navy)),
+        child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AuthColors.navy)),
       ),
     );
   }
 }
 
-/// Navy 48px button with an arrow, like `.auth-primary`.
+/// The app's standard navy button.
 class AuthPrimaryButton extends StatelessWidget {
   final String text;
   final bool isLoading;
@@ -370,43 +358,7 @@ class AuthPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ButtonStyle(
-          elevation: const WidgetStatePropertyAll(0),
-          shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-          foregroundColor: const WidgetStatePropertyAll(Colors.white),
-          backgroundColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.disabled)) return AuthColors.navy.withValues(alpha: 0.7);
-            if (states.contains(WidgetState.pressed)) return AuthColors.navyDark;
-            return AuthColors.navy;
-          }),
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      text,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, size: 18),
-                ],
-              ),
-      ),
-    );
+    return PrimaryButton(text: text, isLoading: isLoading, onPressed: isLoading ? null : onPressed);
   }
 }
 
@@ -420,18 +372,18 @@ class AuthDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: AuthColors.cardBorder, height: 1)),
+        const Expanded(child: Divider(color: AuthColors.line, height: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(text, style: const TextStyle(fontSize: 12.5, color: AuthColors.faint)),
+          child: Text(text, style: const TextStyle(fontSize: 12.5, color: AuthColors.muted)),
         ),
-        const Expanded(child: Divider(color: AuthColors.cardBorder, height: 1)),
+        const Expanded(child: Divider(color: AuthColors.line, height: 1)),
       ],
     );
   }
 }
 
-/// "Mgeni SomaSmart? Fungua akaunti" style line under the card's buttons.
+/// "Mgeni SomaSmart? Fungua akaunti" style line under the buttons.
 class AuthFooter extends StatelessWidget {
   final String text;
   final String linkText;

@@ -39,22 +39,22 @@ class GoogleSignInSection extends ConsumerWidget {
 
     return Column(
       children: [
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         AuthDivider(isSw ? 'au' : 'or'),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
         SizedBox(
           width: double.infinity,
-          height: 48,
+          height: 50,
           child: OutlinedButton(
             key: const Key('google-sign-in'),
             onPressed: isLoading ? null : () => _continue(context, ref),
             style: OutlinedButton.styleFrom(
               // Google's rules: white button, grey outline, the "G" unchanged.
-              // The sign-in screens are always light (like the website).
+              // The sign-in screens are always light.
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF1F1F1F),
-              side: const BorderSide(color: AuthColors.inputBorder),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              side: const BorderSide(color: Color(0xFFCBD5E1)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
