@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/supabase_service.dart';
+import '../../../../core/services/push/push_providers.dart';
+import '../../../settings/data/study_reminder.dart';
 
 /// User Profile model matching Supabase `profiles` & `student_profiles` tables.
 class UserProfile {
@@ -266,10 +268,13 @@ class UserProfileNotifier extends AsyncNotifier<UserProfile?> {
     }
   }
 
-  /// Signs out from Supabase auth.
+  /// Signs out from Supabase auth. This phone's push token is removed first,
+  /// while the session can still delete it.
   Future<void> signOut() async {
+    await unregisterPushBeforeSignOut(ref);
     final client = ref.read(supabaseClientProvider);
     await client.auth.signOut();
+    ref.invalidate(studyReminderProvider);
     state = const AsyncValue.data(null);
   }
 }

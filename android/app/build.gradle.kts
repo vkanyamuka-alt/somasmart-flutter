@@ -4,6 +4,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Push notifications need android/app/google-services.json from the Firebase
+// console. Without it the app still builds; it just never asks for a push token.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.example.somasmart_flutter"
     compileSdk = flutter.compileSdkVersion
