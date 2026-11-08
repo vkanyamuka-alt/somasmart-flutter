@@ -6,8 +6,8 @@ import '../controllers/auth_controller.dart';
 import '../widgets/auth_layout.dart';
 import '../widgets/google_sign_in_section.dart';
 
-/// Log in, same layout as the website's sign-in page: one white card with the
-/// logo, "Karibu tena", Ingia | Jisajili tabs, phone + password, then
+/// Log in: the app's full-page look with the website's Ingia | Jisajili tabs,
+/// SW | EN switch and wording. Phone number or email + password, then
 /// "Continue with Google" under an "or" line. ("Remember me" is gone: the
 /// session is always kept, so the box did nothing.)
 class LoginScreen extends ConsumerStatefulWidget {
@@ -19,7 +19,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
@@ -27,7 +27,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -39,10 +39,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     final lang = ref.read(languageProvider);
     final authNotifier = ref.read(authControllerProvider.notifier);
-    final normalizedPhone = AuthController.normalizePhoneNumber(_phoneController.text.trim());
+    // Phone number or email, like the website (`resolveLoginIdentifier`):
+    // anything with "@" is used as the email, everything else is a phone
+    // number (signed in through its 255…@phone.somasmart.com address).
+    final identifier = _identifierController.text.trim();
 
     final result = await authNotifier.signIn(
-      phone: normalizedPhone,
+      phone: identifier.contains('@') ? identifier : AuthController.normalizePhoneNumber(identifier),
       password: _passwordController.text,
     );
 
@@ -78,20 +81,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 16),
             ],
             AuthField(
-              label: isSw ? 'Namba ya simu' : 'Phone number',
+              label: isSw ? 'Namba ya simu au email' : 'Phone number or email',
               child: TextFormField(
                 key: const Key('login-phone'),
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
+                controller: _identifierController,
+                keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.telephoneNumber],
+                autocorrect: false,
+                autofillHints: const [AutofillHints.telephoneNumber, AutofillHints.email],
                 style: authInputTextStyle,
-                decoration: authInputDecoration(hint: '07XXXXXXXX', icon: Icons.phone_iphone_rounded),
+                decoration: authInputDecoration(
+                  hint: isSw ? '07XXXXXXXX au email' : '07XXXXXXXX or email',
+                  icon: Icons.person_outline_rounded,
+                ),
                 validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return isSw ? 'Weka namba yako ya simu.' : 'Please enter your phone number.';
+                  final v = val?.trim() ?? '';
+                  if (v.isEmpty) {
+                    return isSw ? 'Weka namba ya simu au email.' : 'Please enter your phone number or email.';
                   }
-                  final cleaned = val.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+                  if (v.contains('@')) {
+                    final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(v);
+                    return ok ? null : (isSw ? 'Email si sahihi.' : 'Please enter a valid email address.');
+                  }
+                  final cleaned = v.replaceAll(RegExp(r'[\s\-\(\)]'), '');
                   if (cleaned.length < 9) {
                     return isSw ? 'Namba ya simu si sahihi.' : 'Please enter a valid phone number.';
                   }

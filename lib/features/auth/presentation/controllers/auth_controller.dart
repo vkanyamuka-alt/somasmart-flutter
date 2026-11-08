@@ -460,8 +460,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         msg.contains('invalid_grant') ||
         msg.contains('invalid credentials')) {
       return isSw
-          ? 'Namba ya simu au nenosiri si sahihi. Tafadhali jaribu tena.'
-          : 'Invalid phone number or password. Please check your credentials.';
+          ? 'Namba ya simu/email au neno la siri si sahihi. Tafadhali jaribu tena.'
+          : 'Wrong phone number/email or password. Please try again.';
     }
     if (msg.contains('user already registered') ||
         msg.contains('user already exists') ||
