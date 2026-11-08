@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/config/env.dart';
+import '../../../../core/services/push/push_providers.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../data/google_profile.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -389,6 +390,9 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
   /// Sign out of Supabase auth and clear session profile.
   Future<void> signOut() async {
+    // Stop notifications to this phone while the session can still delete
+    // its own device_tokens row.
+    await unregisterPushBeforeSignOut(_ref);
     // Forget the Google account too, so the next student on a shared phone
     // gets the account picker instead of being signed straight back in.
     if (_googleInit != null) {
