@@ -103,9 +103,12 @@ void main() {
 
     // 8 & 10. Calendar-month subscription expiry & no fixed 30-day assumption
     test('8 & 10. Calendar-month subscription respects actual month boundaries (e.g., 31-day, 28-day months)', () {
-      final start = DateTime.utc(2026, 10, 3, 12, 0, 0);
+      // Next year's October, so the subscription is always still running when
+      // the test runs (a fixed 2026 date expired on 2026-11-03 and broke it).
+      final year = DateTime.now().toUtc().year + 1;
+      final start = DateTime.utc(year, 10, 3, 12, 0, 0);
       // Backend 1 calendar month starting Oct 3 arrives at Nov 3 (31 days in October)
-      final endNov3 = DateTime.utc(2026, 11, 3, 12, 0, 0);
+      final endNov3 = DateTime.utc(year, 11, 3, 12, 0, 0);
 
       final octSub = UserProfile(
         id: 'user_oct',
