@@ -6,7 +6,6 @@
 ///   flutter build apk
 ///     --dart-define=SUPABASE_URL=https://eflfzxhyzjkdwbddrsha.supabase.co
 ///     --dart-define=SUPABASE_ANON_KEY=STAGING_ANON_KEY
-///     --dart-define=GOOGLE_WEB_CLIENT_ID=WEB_CLIENT_ID.apps.googleusercontent.com
 class Env {
   Env._();
 
@@ -23,8 +22,15 @@ class Env {
   /// The *Web application* OAuth client ID from Google Cloud (not the Android
   /// one): Google signs the ID token for it, and Supabase checks it is on the
   /// Google provider's client ID list. Client IDs are public, not secrets.
-  /// Empty = no "Continue with Google" button in this build.
-  static const String googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+  ///
+  /// Built in, so every build shows "Continue with Google": a build made
+  /// without this setting once shipped the old sign-in screen. The same client
+  /// serves staging and production. Only for a build that must have no Google
+  /// button: --dart-define=GOOGLE_WEB_CLIENT_ID= (empty).
+  static const String googleWebClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+    defaultValue: '710755566531-uejo4li8h4jkoiod9h2qaf7063502a7r.apps.googleusercontent.com',
+  );
 
   static bool get googleSignInConfigured => googleWebClientId.isNotEmpty;
 }
