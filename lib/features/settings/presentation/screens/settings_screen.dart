@@ -77,7 +77,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _sendTest(bool isSw) async {
     try {
+      final startedAt = DateTime.now();
       final sent = await ref.read(pushControllerProvider).sendTest(isSw ? 'sw' : 'en');
+      // The push often lands before the server's reply. Its banner is the proof,
+      // so do not cover it with "Sent".
+      final arrived = lastForegroundPushAt;
+      if (sent > 0 && arrived != null && !arrived.isBefore(startedAt)) return;
       _say(sent > 0
           ? (isSw ? 'Imetumwa. Itafika baada ya sekunde chache.' : 'Sent. It should arrive in a few seconds.')
           : (isSw ? 'Haikutumwa. Jaribu tena baadaye.' : 'Not sent. Try again later.'));

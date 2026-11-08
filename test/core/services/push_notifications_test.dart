@@ -318,10 +318,10 @@ void main() {
       messaging = FakeMessaging();
     });
 
-    Future<PushController> started({bool signedIn = true}) async {
+    Future<PushController> started({bool signedIn = true, PushBackend? backend}) async {
       final c = PushController(
         messaging: messaging,
-        backend: FakeBackend(),
+        backend: backend ?? FakeBackend(),
         prefs: prefs,
         isSignedIn: () => signedIn,
         signedInChanges: const Stream.empty(),
@@ -411,6 +411,27 @@ void main() {
       expect(tester.widget<Switch>(find.byKey(const Key('settings-reminder-switch'))).value, isTrue);
     });
 
+    testWidgets('settings: the test push banner is not covered by "Sent" when it lands first', (tester) async {
+      messaging.current = PushPermission.granted;
+      final backend = _PushFirstBackend();
+      final c = await started(backend: backend);
+      await tester.pumpWidget(wrap(const SettingsScreen(), c));
+      await tester.pumpAndSettle();
+
+      // On the Pixel the push arrived before the server's reply.
+      backend.pushFirst = true;
+      await tester.tap(find.byKey(const Key('settings-test-push')));
+      await tester.pump();
+      expect(find.textContaining('Sent.'), findsNothing);
+
+      // No banner during the send (e.g. a slow phone): say it was sent.
+      lastForegroundPushAt = null;
+      backend.pushFirst = false;
+      await tester.tap(find.byKey(const Key('settings-test-push')));
+      await tester.pump();
+      expect(find.text('Sent. It should arrive in a few seconds.'), findsOneWidget);
+    });
+
     testWidgets('settings: builds without Firebase say so and disable the switches', (tester) async {
       messaging.configured = false;
       final c = await started();
@@ -421,6 +442,16 @@ void main() {
       expect(tester.widget<Switch>(find.byKey(const Key('settings-reminder-switch'))).onChanged, isNull);
     });
   });
+}
+
+/// Simulates the foreground banner arriving before push-send answers.
+class _PushFirstBackend extends FakeBackend {
+  bool pushFirst = false;
+  @override
+  Future<int> sendTest(String language) async {
+    if (pushFirst) lastForegroundPushAt = DateTime.now();
+    return 1;
+  }
 }
 
 class _Lang extends StateNotifier<String> implements LanguageNotifier {

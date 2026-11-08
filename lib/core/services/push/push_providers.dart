@@ -126,6 +126,9 @@ final pushNavigatorProvider = Provider<PushNavigator>((ref) => PushNavigator(
       refreshAnnouncements: () => ref.invalidate(announcementsProvider),
     ));
 
+/// When the last in-app push banner was shown (Settings' test button uses it).
+DateTime? lastForegroundPushAt;
+
 /// A message that arrives while the app is open: Android does not show it, so
 /// the app shows a navy banner with an "Open" button.
 void showForegroundPush(Ref ref, PushMessage m) {
@@ -133,6 +136,7 @@ void showForegroundPush(Ref ref, PushMessage m) {
   if (target.openAnnouncements) ref.invalidate(announcementsProvider);
   final messenger = pushMessengerKey.currentState;
   if (messenger == null || (m.title == null && m.body == null)) return;
+  lastForegroundPushAt = DateTime.now();
   final isSw = ref.read(languageProvider) == 'sw';
   messenger
     ..hideCurrentSnackBar()
