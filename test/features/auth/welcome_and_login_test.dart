@@ -137,8 +137,7 @@ void main() {
   });
 
   group('LoginScreen Widget Tests', () {
-    testWidgets('renders login form, branding, and validates empty input fields',
-        (tester) async {
+    testWidgets('renders the website-style card and validates empty fields', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -151,21 +150,25 @@ void main() {
       );
 
       expect(find.byType(Image), findsOneWidget);
-      expect(find.text('SomaSmart'), findsOneWidget);
-      expect(find.text('Karibu Tena'), findsOneWidget);
-      expect(find.text('Ingia'), findsOneWidget);
-      expect(find.text('Nikumbuke'), findsOneWidget);
-      expect(find.text('Umesahau nenosiri?'), findsOneWidget);
+      expect(find.text('Karibu tena'), findsOneWidget);
+      expect(find.text('Ingia uendelee kujisomea.'), findsOneWidget);
+      expect(find.byKey(const Key('tab-login')), findsOneWidget);
+      expect(find.byKey(const Key('tab-register')), findsOneWidget);
+      expect(find.text('Namba ya simu'), findsOneWidget);
+      expect(find.text('Neno la siri'), findsOneWidget);
+      expect(find.text('Umesahau neno la siri?'), findsOneWidget);
+      expect(find.text('Mgeni SomaSmart? '), findsOneWidget);
+      // "Remember me" did nothing (the session is always kept) and is gone.
+      expect(find.text('Nikumbuke'), findsNothing);
+      expect(find.byType(Checkbox), findsNothing);
 
-      // Tap Sign In without filling form
-      await tester.tap(find.text('Ingia'));
+      await tester.tap(find.byKey(const Key('login-submit')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Tafadhali weka nambari yako ya simu.'), findsOneWidget);
+      expect(find.text('Weka namba yako ya simu.'), findsOneWidget);
     });
 
-    testWidgets('renders login in English when language is en',
-        (tester) async {
+    testWidgets('renders login in English when language is en', (tester) async {
       SharedPreferences.setMockInitialValues({'somasmart_language': 'en'});
       final enPrefs = await SharedPreferences.getInstance();
 
@@ -180,16 +183,37 @@ void main() {
         ),
       );
 
-      expect(find.text('Welcome Back'), findsOneWidget);
-      expect(find.text('Sign in to continue your learning journey.'), findsOneWidget);
-      expect(find.text('Phone Number'), findsOneWidget);
+      expect(find.text('Welcome back'), findsOneWidget);
+      expect(find.text('Log in to continue studying.'), findsOneWidget);
+      expect(find.text('Phone number'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
-      expect(find.text('Remember me'), findsOneWidget);
       expect(find.text('Forgot password?'), findsOneWidget);
-      expect(find.text('Sign In'), findsOneWidget);
+      expect(find.text('Sign up'), findsOneWidget);
+      expect(find.text('Remember me'), findsNothing);
 
       // Guest access was removed: every app route needs a session.
       expect(find.text('Continue as Guest'), findsNothing);
+    });
+
+    testWidgets('SW | EN switch changes the language on the spot', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+          child: const MaterialApp(
+            home: LoginScreen(),
+          ),
+        ),
+      );
+
+      expect(find.text('Karibu tena'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('auth-lang-en')));
+      await tester.pumpAndSettle();
+      expect(find.text('Welcome back'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('auth-lang-sw')));
+      await tester.pumpAndSettle();
+      expect(find.text('Karibu tena'), findsOneWidget);
     });
 
     testWidgets('validates invalid phone number format', (tester) async {
@@ -204,19 +228,18 @@ void main() {
         ),
       );
 
-      await tester.enterText(find.byType(TextFormField).first, '123');
-      await tester.enterText(find.byType(TextFormField).last, '123456');
+      await tester.enterText(find.byKey(const Key('login-phone')), '123');
+      await tester.enterText(find.byKey(const Key('login-password')), '123456');
 
-      await tester.tap(find.text('Ingia'));
+      await tester.tap(find.byKey(const Key('login-submit')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nambari ya simu si sahihi.'), findsOneWidget);
+      expect(find.text('Namba ya simu si sahihi.'), findsOneWidget);
     });
   });
 
   group('SignUpScreen Widget Tests', () {
-    testWidgets('renders only Full Name, Phone, Password, and collapsible optional Email (no Form Level)',
-        (tester) async {
+    testWidgets('renders name, phone, optional email and password (no form level)', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -228,39 +251,34 @@ void main() {
         ),
       );
 
-      expect(find.text('Fungua Akaunti Mpya'), findsOneWidget);
-      expect(find.text('Jisajili'), findsOneWidget);
+      expect(find.text('Fungua akaunti'), findsWidgets); // title + button
+      expect(find.text('Akaunti ya mwanafunzi, bure kuanza.'), findsOneWidget);
+      expect(find.byKey(const Key('tab-register')), findsOneWidget);
 
-      // Confirm required fields
-      expect(find.text('Jina Kamili *'), findsOneWidget);
-      expect(find.text('Nambari ya Simu *'), findsOneWidget);
-      expect(find.text('Nenosiri *'), findsOneWidget);
+      expect(find.text('Jina kamili'), findsOneWidget);
+      expect(find.text('Namba ya simu'), findsOneWidget);
+      expect(find.byKey(const Key('register-email')), findsOneWidget);
+      expect(find.text('Neno la siri'), findsOneWidget);
 
-      // Confirm Form Level / Class picker is removed
+      // Form Level / Class picker is not on the phone sign-up.
       expect(find.text('Darasa / Kidato'), findsNothing);
-      expect(find.text('Academic Form Level'), findsNothing);
       expect(find.text('Kidato cha 4 (O-Level)'), findsNothing);
 
-      // Verify instructional placeholders exist
-      expect(find.text('Weka jina lako kamili'), findsOneWidget);
-      expect(find.text('Weka nambari yako ya simu'), findsOneWidget);
-      expect(find.text('Tengeneza nenosiri'), findsOneWidget);
-
-      // Email field is initially collapsed
-      expect(find.text('+ Ongeza Barua Pepe (Si lazima)'), findsOneWidget);
-
-      // Tap + Add Email to reveal email input
-      await tester.tap(find.text('+ Ongeza Barua Pepe (Si lazima)'));
+      // Empty submit: required fields complain, the optional email does not.
+      await tester.ensureVisible(find.byKey(const Key('register-submit')));
+      await tester.tap(find.byKey(const Key('register-submit')));
       await tester.pumpAndSettle();
+      expect(find.text('Weka jina lako kamili.'), findsOneWidget);
+      expect(find.text('Weka namba yako ya simu.'), findsOneWidget);
+      expect(find.text('Weka neno la siri.'), findsOneWidget);
+      expect(find.textContaining('Barua pepe si sahihi'), findsNothing);
 
-      expect(find.text('Barua Pepe'), findsOneWidget);
-      expect(find.text('Weka barua pepe yako'), findsOneWidget);
-
-      // Tap close icon to collapse again
-      await tester.tap(find.byIcon(Icons.close_rounded));
+      // A bad email is rejected.
+      await tester.enterText(find.byKey(const Key('register-email')), 'not-an-email');
+      await tester.ensureVisible(find.byKey(const Key('register-submit')));
+      await tester.tap(find.byKey(const Key('register-submit')));
       await tester.pumpAndSettle();
-
-      expect(find.text('+ Ongeza Barua Pepe (Si lazima)'), findsOneWidget);
+      expect(find.textContaining('Barua pepe si sahihi'), findsOneWidget);
     });
   });
 
