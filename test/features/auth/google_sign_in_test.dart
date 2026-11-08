@@ -47,9 +47,10 @@ void main() {
     });
   });
 
-  test('a build without GOOGLE_WEB_CLIENT_ID has no Google sign-in', () {
-    expect(Env.googleWebClientId, isEmpty);
-    expect(Env.googleSignInConfigured, isFalse);
+  test('a build made without any --dart-define has Google sign-in', () {
+    // Guards against shipping the old sign-in screen again.
+    expect(Env.googleWebClientId, endsWith('.apps.googleusercontent.com'));
+    expect(Env.googleSignInConfigured, isTrue);
     // Release builds without --dart-define still point at production.
     expect(Env.supabaseUrl, 'https://jgdsinabjhytasybgtix.supabase.co');
   });
@@ -77,14 +78,20 @@ void main() {
           child: MaterialApp(home: Scaffold(body: home)),
         );
 
-    testWidgets('the login screen shows no Google button without a client ID', (tester) async {
+    testWidgets('the login screen shows Continue with Google', (tester) async {
       await tester.pumpWidget(ProviderScope(
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
         child: const MaterialApp(home: LoginScreen()),
       ));
       await tester.pumpAndSettle();
+      expect(find.byKey(const Key('google-sign-in')), findsOneWidget);
+      expect(find.text('Continue with Google'), findsOneWidget);
+    });
+
+    testWidgets('the Google section draws nothing when turned off', (tester) async {
+      await tester.pumpWidget(app(GoogleSignInSection(onError: (_) {}, enabledOverride: false)));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('google-sign-in')), findsNothing);
-      expect(find.text('Continue with Google'), findsNothing);
     });
 
     testWidgets('the Google section draws the divider and button when configured', (tester) async {

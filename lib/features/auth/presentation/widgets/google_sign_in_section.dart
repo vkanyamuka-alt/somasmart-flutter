@@ -6,8 +6,10 @@ import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
 import 'auth_layout.dart';
 
-/// "or" divider + "Continue with Google", shown under the phone sign-in and
-/// sign-up forms. Hidden in builds without GOOGLE_WEB_CLIENT_ID.
+/// "Continue with Google" plus an "or" divider. Log in shows it under the
+/// form (divider first); Sign up shows it above the form (`atTop`), because
+/// the sign-up form is taller than a phone screen and a button under it is
+/// only found by scrolling. Hidden in builds without GOOGLE_WEB_CLIENT_ID.
 class GoogleSignInSection extends ConsumerWidget {
   /// Shows an error from Google on the screen's own error banner.
   final ValueChanged<String?> onError;
@@ -15,7 +17,10 @@ class GoogleSignInSection extends ConsumerWidget {
   /// Builds without a client ID show nothing; tests can force the section on.
   final bool? enabledOverride;
 
-  const GoogleSignInSection({super.key, required this.onError, this.enabledOverride});
+  /// Button first, then "au jisajili kwa namba ya simu" (Sign up).
+  final bool atTop;
+
+  const GoogleSignInSection({super.key, required this.onError, this.enabledOverride, this.atTop = false});
 
   Future<void> _continue(BuildContext context, WidgetRef ref) async {
     onError(null);
@@ -37,24 +42,19 @@ class GoogleSignInSection extends ConsumerWidget {
     final isSw = ref.watch(languageProvider) == 'sw';
     final isLoading = ref.watch(authControllerProvider).isLoading;
 
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-        AuthDivider(isSw ? 'au' : 'or'),
-        const SizedBox(height: 20),
-        SizedBox(
+    final button = SizedBox(
           width: double.infinity,
-          height: 48,
+          height: 50,
           child: OutlinedButton(
             key: const Key('google-sign-in'),
             onPressed: isLoading ? null : () => _continue(context, ref),
             style: OutlinedButton.styleFrom(
               // Google's rules: white button, grey outline, the "G" unchanged.
-              // The sign-in screens are always light (like the website).
+              // The sign-in screens are always light.
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF1F1F1F),
-              side: const BorderSide(color: AuthColors.inputBorder),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              side: const BorderSide(color: Color(0xFFCBD5E1)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -71,7 +71,24 @@ class GoogleSignInSection extends ConsumerWidget {
               ],
             ),
           ),
-        ),
+        );
+
+    if (atTop) {
+      return Column(
+        children: [
+          button,
+          const SizedBox(height: 18),
+          AuthDivider(isSw ? 'au jisajili kwa namba ya simu' : 'or sign up with your phone number'),
+          const SizedBox(height: 18),
+        ],
+      );
+    }
+    return Column(
+      children: [
+        const SizedBox(height: 18),
+        AuthDivider(isSw ? 'au' : 'or'),
+        const SizedBox(height: 18),
+        button,
       ],
     );
   }

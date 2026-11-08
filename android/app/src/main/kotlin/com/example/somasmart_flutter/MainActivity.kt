@@ -15,7 +15,9 @@ class MainActivity : FlutterActivity() {
     /**
      * Push messages name one of these channels (Edge Functions push-send and
      * push-reminders). Students can mute each one in Android's app settings.
-     * Creating an existing channel again only refreshes its name (language).
+     * Both are IMPORTANCE_HIGH so the notification pops up on screen (heads-up).
+     * Creating an existing channel again only refreshes its name (language):
+     * Android never raises the importance of a channel a phone already has.
      */
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -24,7 +26,7 @@ class MainActivity : FlutterActivity() {
             NotificationChannel(
                 "study_reminders",
                 getString(R.string.channel_study_reminders),
-                NotificationManager.IMPORTANCE_DEFAULT,
+                NotificationManager.IMPORTANCE_HIGH,
             ).apply { description = getString(R.string.channel_study_reminders_description) },
         )
         manager.createNotificationChannel(

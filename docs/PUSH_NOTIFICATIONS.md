@@ -41,8 +41,8 @@ website repo, `vkanyamuka-alt/SomaSmart-app`, like every other migration:
 | `lib/core/services/push/push_providers.dart` | Supabase backend, foreground banner, tap navigation (waits past splash/sign-in) |
 | `lib/features/settings/data/study_reminder.dart` | the reminder row in `study_reminders` |
 | `lib/features/settings/presentation/widgets/study_reminder_flow.dart` | permission → time picker → save; the Home card |
-| `android/app/src/main/kotlin/.../MainActivity.kt` | creates the channels "Study reminders" / "Announcements" (Swahili names on Swahili phones) |
-| `android/app/src/main/res/drawable/ic_stat_somasmart.xml` | white status-bar icon; accent colour is logo navy |
+| `android/app/src/main/kotlin/.../MainActivity.kt` | creates the channels "Study reminders" / "Announcements" (Swahili names on Swahili phones), both IMPORTANCE_HIGH so they pop up on screen. Android never raises a channel a phone already has: a phone that had an older build keeps the old setting until the app is reinstalled. |
+| `android/app/src/main/res/drawable-*/ic_stat_somasmart.png` | the SomaSmart "S" logo as a white silhouette (Android allows one colour), shown in a logo-navy circle. Made from `assets/images/logo.png` by a script; 24/36/48/72/96 px. |
 
 **Permission (Android 13+).** Android's "Allow notifications?" dialog appears
 only when the student turns notifications or the reminder on. Phones on Android
