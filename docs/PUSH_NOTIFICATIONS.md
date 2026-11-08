@@ -105,13 +105,22 @@ Supabase project the build talks to.
    "Android key (auto created by Firebase)" → Application restrictions:
    **Android apps**, add `com.example.somasmart_flutter` + the SHA-1 above.
 
-### Is `google-services.json` committed? Yes.
+### Is `google-services.json` committed? No.
 
-It is not a secret: it names the Firebase project and holds an API key that
-only identifies the app (Firebase's own guidance), and the repo is private.
-Every build that should receive notifications needs it, and keeping it out of
-git means a release built on another machine silently ships without push.
-The service-account key (step 6) is the secret, and it stays in Supabase only.
+It is not really a secret (it names the Firebase project and holds an API key
+that only identifies the app), but this repo is **public** and `.gitignore`
+already lists it: a public Google API key triggers GitHub and Google
+"exposed key" alerts. So it stays out of git:
+
+- The copy kept for builds: `Desktop\somasmart_backups\firebase\google-services.json`.
+  Before any build that should receive notifications, copy it to
+  `android/app/google-services.json`. Or download it again: Firebase console →
+  Project settings → General → SomaSmart Android → `google-services.json`.
+- **A build without it still works, but has no push** ("Not available in this
+  version of the app"). Check before shipping a release.
+- If the repo becomes private, committing it is fine (`git add -f`).
+
+The service-account key (step 6) is the real secret, and it stays in Supabase only.
 
 ## Staging builds
 
@@ -129,7 +138,8 @@ Build numbers must keep rising (the test Pixel has 2015).
    `select vault.create_secret('https://jgdsinabjhytasybgtix.supabase.co', 'project_url', 'Used by pg_cron to call Edge Functions');`
 2. Deploy `push-send` and `push-reminders` with `--project-ref jgdsinabjhytasybgtix`.
 3. Set the same `FIREBASE_SERVICE_ACCOUNT` secret on production.
-4. Merge this PR and ship a build that includes `google-services.json`.
+4. Merge this PR and ship a build made with `android/app/google-services.json`
+   in place (it is not in git; see above).
 5. Before Google Play: `com.example.*` is not accepted, so a new package name
    means a new Android app in Firebase (and a new `google-services.json`).
 
