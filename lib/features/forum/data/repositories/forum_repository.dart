@@ -13,12 +13,18 @@ class ForumRepository {
 
   ForumRepository(this._client);
 
+  /// Author name and role from the `forum_authors` view, never the `profiles`
+  /// table (students may read only their own profile). The `profiles:` alias
+  /// keeps the JSON key that [DiscussionModel.fromMap] and
+  /// [DiscussionReplyModel.fromMap] read.
+  static const authorEmbed = 'profiles:forum_authors(full_name, role)';
+
   /// Fetch all discussions ordered by created_at descending
   Future<List<DiscussionModel>> getDiscussions({String? searchQuery}) async {
     try {
       final query = _client
           .from('discussions')
-          .select('*, profiles(full_name, role), discussion_replies(id)')
+          .select('*, $authorEmbed, discussion_replies(id)')
           .order('created_at', ascending: false);
 
       final response = await query;
@@ -67,7 +73,7 @@ class ForumRepository {
     try {
       final response = await _client
           .from('discussions')
-          .select('*, profiles(full_name, role), discussion_replies(id)')
+          .select('*, $authorEmbed, discussion_replies(id)')
           .eq('id', id)
           .single();
 
@@ -88,7 +94,7 @@ class ForumRepository {
     try {
       final response = await _client
           .from('discussion_replies')
-          .select('*, profiles(full_name, role)')
+          .select('*, $authorEmbed')
           .eq('discussion_id', discussionId)
           .order('created_at', ascending: true);
 
@@ -141,7 +147,7 @@ class ForumRepository {
     final res = await _client
         .from('discussions')
         .insert(insertData)
-        .select('*, profiles(full_name, role)')
+        .select('*, $authorEmbed')
         .single();
 
     final model = DiscussionModel.fromMap(res);
@@ -167,7 +173,7 @@ class ForumRepository {
     final res = await _client
         .from('discussion_replies')
         .insert(insertData)
-        .select('*, profiles(full_name, role)')
+        .select('*, $authorEmbed')
         .single();
 
     return DiscussionReplyModel.fromMap(res);
