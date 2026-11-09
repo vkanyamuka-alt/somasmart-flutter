@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:somasmart_flutter/features/forum/data/repositories/forum_repository.dart';
 import 'package:somasmart_flutter/features/forum/domain/models/forum_models.dart';
 
 void main() {
@@ -166,6 +167,13 @@ void main() {
 
       // Admin can delete any discussion
       expect(canDelete(discA, 'random-admin', 'admin'), true);
+    });
+
+    test('author names come from forum_authors, never the profiles table', () {
+      // Students may read only their own profiles row; the forum_authors view
+      // returns name + role. The alias keeps the "profiles" key fromMap reads.
+      expect(ForumRepository.authorEmbed, 'profiles:forum_authors(full_name, role)');
+      expect(ForumRepository.authorEmbed.startsWith('profiles('), false);
     });
   });
 }
