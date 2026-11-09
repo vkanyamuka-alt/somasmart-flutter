@@ -161,7 +161,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                                   ),
                                 ),
                                 Text(
-                                  lang == 'sw' ? 'Mwezi 1 (Siku 30)' : '1 Month (30 Days)',
+                                  lang == 'sw' ? 'Mwezi 1' : '1 month',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: isDark
@@ -780,8 +780,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       const SizedBox(height: 6),
                       Text(
                         lang == 'sw'
-                            ? 'Akaunti yako imesasishwa kuwa SomaSmart Premium kwa siku 30.'
-                            : 'Your account has been upgraded to SomaSmart Premium for 30 days.',
+                            ? 'Akaunti yako imesasishwa kuwa SomaSmart Premium kwa mwezi mmoja.'
+                            : 'Your account has been upgraded to SomaSmart Premium for one month.',
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,

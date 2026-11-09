@@ -23,11 +23,11 @@ void main() {
 
       expect(paidUser.isPremium, isTrue);
       expect(paidUser.isExpired, isFalse);
-      expect(paidUser.subscriptionDaysRemaining, inInclusiveRange(14, 16));
+      expect(paidUser.access.days, inInclusiveRange(15, 16));
     });
 
     // 2. Subscription expiring today
-    test('2. Subscription expiring today returns 0 days remaining and is not negative', () {
+    test('2. Subscription expiring later today shows 1 day remaining', () {
       // Last moment of today (UTC). "Now + 2 hours" was tomorrow after 22:00 UTC.
       final now = DateTime.now().toUtc();
       final expiringToday = DateTime.utc(now.year, now.month, now.day, 23, 59, 59, 999);
@@ -43,8 +43,8 @@ void main() {
       );
 
       expect(paidToday.isPremium, isTrue);
-      expect(paidToday.subscriptionDaysRemaining, 0);
-      expect(paidToday.subscriptionDaysRemaining, isNot(isNegative));
+      // The last hours of a paid month count as a day, like the trial (never 0 while it still opens content).
+      expect(paidToday.access.days, 1);
     });
 
     // 3. Expired subscription
@@ -62,7 +62,7 @@ void main() {
 
       expect(expiredUser.isPremium, isFalse);
       expect(expiredUser.isExpired, isTrue);
-      expect(expiredUser.subscriptionDaysRemaining, 0);
+      expect(expiredUser.access.days, isNull);
     });
 
     // 4. Active six-day trial
@@ -80,7 +80,7 @@ void main() {
       expect(trialUser.isPremium, isFalse);
       expect(trialUser.isTrialActive, isTrue);
       expect(trialUser.isExpired, isFalse);
-      expect(trialUser.trialDaysLeft, inInclusiveRange(3, 5));
+      expect(trialUser.access.days, inInclusiveRange(3, 5));
     });
 
     // 5. No subscription (never subscribed, trial expired)
@@ -98,7 +98,7 @@ void main() {
       expect(noSubUser.isPremium, isFalse);
       expect(noSubUser.isTrialActive, isFalse);
       expect(noSubUser.isExpired, isTrue);
-      expect(noSubUser.subscriptionDaysRemaining, 0);
+      expect(noSubUser.access.days, isNull);
     });
 
     // 8 & 10. Calendar-month subscription expiry & no fixed 30-day assumption
@@ -138,8 +138,8 @@ void main() {
         subscriptionExpiresAt: DateTime.now().toUtc().add(const Duration(days: 196)),
       );
 
-      expect(sub.subscriptionDaysRemaining, inInclusiveRange(195, 197));
-      expect(sub.subscriptionDaysRemaining, isNot(5));
+      expect(sub.access.days, inInclusiveRange(195, 197));
+      expect(sub.access.days, isNot(5));
     });
   });
 

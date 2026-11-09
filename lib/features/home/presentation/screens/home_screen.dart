@@ -93,54 +93,48 @@ class HomeScreen extends ConsumerWidget {
         ? rawName.split(' ').first
         : (isSwahili ? 'Mwanafunzi' : 'Student');
 
-    // Authoritative dynamic subscription state
-    final bool isPaidActive = profile?.isPremium == true;
-    final bool isTrialActive =
-        profile != null && !isPaidActive && profile.isTrialActive;
+    // One rule for every screen (UserProfile.accessAt = the server's
+    // has_active_subscription). No card until the profile has loaded, so a
+    // slow or failed load never shows "Usajili Umeisha".
+    final access = profile?.access;
 
-    final int? daysCount;
-    final String statusTitle;
-    final String? statusSubtext;
-    final String badgeLabel;
-    final Color badgeTextColor;
-    final Color badgeBgColor;
-    final Color badgeDotColor;
+    int? daysCount;
+    String statusTitle = '';
+    String? statusSubtext;
+    String badgeLabel = '';
+    Color badgeTextColor = AppColors.error;
+    Color badgeBgColor = Colors.transparent;
+    Color badgeDotColor = AppColors.error;
 
-    if (isPaidActive) {
-      daysCount = profile?.subscriptionDaysRemaining ?? 0;
-      statusTitle = isSwahili ? 'Siku Zilizobaki' : 'Days Remaining';
-      final expiryStr = _formatDate(profile?.subscriptionExpiresAt);
+    if (access != null && access.kind != AccessKind.expired) {
+      daysCount = access.days;
+      statusTitle = daysCount != null
+          ? (isSwahili ? 'Siku Zilizobaki' : 'Days Remaining')
+          : (isSwahili ? 'Ufikiaji Kamili' : 'Full Access');
+      final expiryStr = _formatDate(access.endsAt);
       statusSubtext = expiryStr.isNotEmpty
           ? (isSwahili ? 'Inaisha tarehe $expiryStr' : 'Expires $expiryStr')
           : null;
-      badgeLabel = 'Premium';
-      badgeTextColor = isDark ? const Color(0xFF2FA866) : AppColors.success;
-      badgeBgColor = AppColors.success.withValues(alpha: isDark ? 0.16 : 0.12);
-      badgeDotColor = badgeTextColor;
-    } else if (isTrialActive) {
-      daysCount = profile.trialDaysLeft;
-      statusTitle = isSwahili ? 'Siku Zilizobaki' : 'Days Remaining';
-      final trialEnd = profile.createdAt?.add(const Duration(days: 6));
-      final expiryStr = _formatDate(trialEnd);
-      statusSubtext = expiryStr.isNotEmpty
-          ? (isSwahili ? 'Inaisha tarehe $expiryStr' : 'Expires $expiryStr')
-          : null;
-      badgeLabel = isSwahili ? 'Jaribio la Bure' : 'Free Trial';
-      badgeTextColor = isDark ? const Color(0xFFE0AA4F) : AppColors.warning;
-      badgeBgColor = isDark
-          ? AppColors.brandGold.withValues(alpha: 0.14)
-          : AppColors.brandGoldSoft;
-      badgeDotColor = isDark ? const Color(0xFFE0AA4F) : AppColors.brandGold;
-    } else {
-      daysCount = null;
+      if (access.kind == AccessKind.paid) {
+        badgeLabel = 'Premium';
+        badgeTextColor = isDark ? const Color(0xFF2FA866) : AppColors.success;
+        badgeBgColor = AppColors.success.withValues(alpha: isDark ? 0.16 : 0.12);
+        badgeDotColor = badgeTextColor;
+      } else {
+        badgeLabel = isSwahili ? 'Jaribio la Bure' : 'Free Trial';
+        badgeTextColor = isDark ? const Color(0xFFE0AA4F) : AppColors.warning;
+        badgeBgColor = isDark
+            ? AppColors.brandGold.withValues(alpha: 0.14)
+            : AppColors.brandGoldSoft;
+        badgeDotColor = isDark ? const Color(0xFFE0AA4F) : AppColors.brandGold;
+      }
+    } else if (access != null) {
       statusTitle = isSwahili ? 'Usajili Umeisha' : 'Subscription Expired';
       statusSubtext = isSwahili
           ? 'Boresha uendelee kusoma'
           : 'Upgrade to continue';
       badgeLabel = isSwahili ? 'Umeisha' : 'Expired';
-      badgeTextColor = AppColors.error;
       badgeBgColor = AppColors.error.withValues(alpha: isDark ? 0.16 : 0.10);
-      badgeDotColor = AppColors.error;
     }
 
     return Scaffold(
@@ -169,6 +163,7 @@ class HomeScreen extends ConsumerWidget {
             const StudyReminderPrompt(),
 
             // ===== 2. SUBSCRIPTION STATUS CARD =====
+            if (access != null) ...[
             InkWell(
               onTap: () => context.push('/subscription'),
               borderRadius: BorderRadius.circular(14),
@@ -310,6 +305,7 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 14),
+            ],
 
             // ===== 3. FEATURE GRID (2-Column) =====
             // ===== 3. FEATURE GRID: two per row, the forum tile across the full width =====

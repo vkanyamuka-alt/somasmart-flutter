@@ -46,7 +46,7 @@ void main() {
 
       expect(recentUser.isPremium, isFalse);
       expect(recentUser.isTrialActive, isTrue);
-      expect(recentUser.trialDaysLeft, inInclusiveRange(3, 5));
+      expect(recentUser.access.days, inInclusiveRange(3, 5));
       expect(recentUser.isExpired, isFalse);
     });
 
@@ -63,7 +63,7 @@ void main() {
 
       expect(expiredUser.isPremium, isFalse);
       expect(expiredUser.isTrialActive, isFalse);
-      expect(expiredUser.trialDaysLeft, 0);
+      expect(expiredUser.access.days, isNull);
       expect(expiredUser.isExpired, isTrue);
     });
 

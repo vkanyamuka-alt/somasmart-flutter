@@ -24,10 +24,13 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final profileAsync = ref.watch(userProfileProvider);
 
     final profile = profileAsync.value;
-    final isPremium = profile?.isPremium ?? false;
-    final isTrialActive = profile?.isTrialActive ?? false;
-    final isExpired = profile?.isExpired ?? false;
-    final daysLeft = profile?.trialDaysLeft ?? 0;
+    // Same rule as the home card and the server (UserProfile.accessAt).
+    final access = profile?.access;
+    final isPremium = access?.kind == AccessKind.paid;
+    final isTrialActive = access?.kind == AccessKind.trial;
+    final isExpired = access?.kind == AccessKind.expired;
+    final daysLeft = isTrialActive ? access?.days ?? 0 : 0;
+    final paidUntil = isPremium ? access?.endsAt : null;
 
     final faqItems = [
       _FaqItem(
@@ -183,8 +186,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 footerWidget: isPremium
                     ? _StatusBox(
                         icon: Icons.verified_rounded,
-                        text: profile?.subscriptionExpiresAt != null
-                            ? '${lang == "sw" ? "Inaisha tarehe" : "Expires"} ${profile!.subscriptionExpiresAt!.day}/${profile.subscriptionExpiresAt!.month}/${profile.subscriptionExpiresAt!.year}'
+                        text: paidUntil != null
+                            ? '${lang == "sw" ? "Inaisha tarehe" : "Expires"} ${paidUntil.day}/${paidUntil.month}/${paidUntil.year}'
                             : (lang == 'sw' ? 'Uanachama Hai' : 'Active Membership'),
                         color: AppColors.success,
                         isDark: isDark,

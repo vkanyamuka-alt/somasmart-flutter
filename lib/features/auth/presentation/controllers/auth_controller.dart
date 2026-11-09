@@ -202,21 +202,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
       final user = response.user;
       if (user != null) {
-        // 3. Create initial profile record (marked is_verified: false)
-        try {
-          await _client.from('profiles').upsert({
-            'id': user.id,
-            'phone': normPhone,
-            'email': cleanEmail ?? '',
-            'full_name': fullName.trim(),
-            'role': 'student',
-            'is_verified': false,
-            'subscription_status': 'trial',
-          });
-        } catch (dbErr, dbSt) {
-          debugPrint('⚠️ [PROFILES DB UPSERT NON-FATAL ERROR]: $dbErr\n$dbSt');
-        }
-
+        // The profile row is made by the database's sign-up trigger
+        // (handle_new_user) from the metadata above. The app used to upsert it
+        // with subscription_status 'trial', which is not a valid status, so
+        // that write always failed.
         try {
           await _client.from('student_profiles').upsert({
             'id': user.id,

@@ -55,12 +55,12 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  Widget app(Widget home, {String lang = 'en', ThemeData? theme, UserProfile? profile, SupportContact contact = const SupportContact()}) => ProviderScope(
+  Widget app(Widget home, {String lang = 'en', ThemeData? theme, UserProfile? profile, SupportContact contact = const SupportContact(), UserProfileNotifier? profileNotifier}) => ProviderScope(
         overrides: [
           supportContactProvider.overrideWith((ref) async => contact),
           sharedPreferencesProvider.overrideWithValue(prefs),
           languageProvider.overrideWith((ref) => _TestLanguageNotifier(lang)),
-          userProfileProvider.overrideWith(() => _MockProfileNotifier(profile ?? _trialStudent)),
+          userProfileProvider.overrideWith(() => profileNotifier ?? _MockProfileNotifier(profile ?? _trialStudent)),
         ],
         child: MaterialApp(theme: _deviceFont(theme ?? AppTheme.lightTheme), home: home),
       );
@@ -77,12 +77,37 @@ void main() {
         );
 
     test('a brand-new account shows 6 days, not 7', () {
-      expect(createdDaysAgo(0).trialDaysLeft, 6);
+      expect(createdDaysAgo(0).access.days, 6);
     });
 
     test('part of a day counts as a day', () {
-      expect(createdDaysAgo(2.5).trialDaysLeft, 4);
-      expect(createdDaysAgo(5.9).trialDaysLeft, 1);
+      expect(createdDaysAgo(2.5).access.days, 4);
+      expect(createdDaysAgo(5.9).access.days, 1);
+    });
+  });
+
+  group('Home access card', () {
+    testWidgets('a profile that fails to load shows no card, never "Subscription Expired"', (tester) async {
+      await tester.pumpWidget(app(const HomeScreen(), profileNotifier: _FailingProfileNotifier()));
+      await tester.pumpAndSettle();
+      expect(find.text('Subscription Expired'), findsNothing);
+      expect(find.text('Days Remaining'), findsNothing);
+    });
+
+    testWidgets('a trial student sees the trial days from the one rule', (tester) async {
+      await tester.pumpWidget(app(const HomeScreen()));
+      await tester.pumpAndSettle();
+      expect(find.text('${_trialStudent.access.days} '), findsOneWidget);
+      expect(find.text('Days Remaining'), findsOneWidget);
+      expect(find.text('Free Trial'), findsOneWidget);
+    });
+
+    testWidgets('free access shows "Full Access", not a day count', (tester) async {
+      final free = UserProfile(id: 'f', email: 'f@x.tz', fullName: 'Asha Free', phone: '', role: 'student', subscriptionStatus: 'free', freeAccess: true);
+      await tester.pumpWidget(app(const HomeScreen(), profile: free));
+      await tester.pumpAndSettle();
+      expect(find.text('Full Access'), findsOneWidget);
+      expect(find.text('Days Remaining'), findsNothing);
     });
   });
 
@@ -287,4 +312,9 @@ class _MockProfileNotifier extends UserProfileNotifier {
 
   @override
   Future<UserProfile?> build() async => _profile;
+}
+
+class _FailingProfileNotifier extends UserProfileNotifier {
+  @override
+  Future<UserProfile?> build() async => throw Exception('offline');
 }

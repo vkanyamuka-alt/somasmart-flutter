@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/services/push/push_providers.dart';
@@ -68,64 +69,55 @@ class UserProfile {
     );
   }
 
-  /// Whether user has active paid premium subscription or admin or free access.
-  bool get isPremium {
-    if (role == 'admin') return true;
-    if (freeAccess) return true;
-    if (subscriptionStatus == 'paid') {
-      if (subscriptionExpiresAt != null) {
-        return subscriptionExpiresAt!.isAfter(DateTime.now().toUtc());
-      }
-      return true;
+  /// The one access rule, a copy of the database function
+  /// public.has_active_subscription (what the server lets a student open):
+  /// admin, free access from an admin, a paid month that has not ended, or the
+  /// first 6 days after the account was created. The expiry date is set only
+  /// by a payment; sign-up sets none, so the trial always comes from createdAt.
+  ///
+  /// The website has the same rule in src/lib/accessStatus.js; both are tested
+  /// against test/fixtures/access_status_cases.json (= the website's
+  /// src/lib/accessStatusCases.json, keep in step).
+  AccessStatus accessAt(DateTime now) {
+    if (role == 'admin' || freeAccess) return const AccessStatus(AccessKind.paid);
+
+    final expiresAt = subscriptionExpiresAt;
+    if (subscriptionStatus == 'paid' && expiresAt != null && expiresAt.isAfter(now)) {
+      return AccessStatus(AccessKind.paid, days: _daysUntil(expiresAt, now), endsAt: expiresAt);
     }
-    return false;
+
+    final created = createdAt;
+    if (created != null) {
+      final trialEnd = created.add(const Duration(days: trialDays));
+      // Like the server (now - created_at < 6 days): a phone clock that runs
+      // behind still gets the trial, never more than 6 days.
+      if (now.isBefore(trialEnd)) {
+        final days = _daysUntil(trialEnd, now);
+        return AccessStatus(AccessKind.trial, days: days > trialDays ? trialDays : days, endsAt: trialEnd);
+      }
+    }
+    return const AccessStatus(AccessKind.expired);
   }
 
-  /// Days remaining on the active paid subscription until [subscriptionExpiresAt].
-  /// Uses calendar-date difference in UTC.
-  /// Never negative. If expiry is today or in the past, returns 0.
-  int get subscriptionDaysRemaining {
-    if (subscriptionExpiresAt == null) return 0;
-    final now = DateTime.now().toUtc();
-    if (subscriptionExpiresAt!.isBefore(now)) return 0;
-    final expDate = DateTime.utc(
-      subscriptionExpiresAt!.year,
-      subscriptionExpiresAt!.month,
-      subscriptionExpiresAt!.day,
-    );
-    final nowDate = DateTime.utc(
-      now.year,
-      now.month,
-      now.day,
-    );
-    final diffDays = expDate.difference(nowDate).inDays;
-    return diffDays < 0 ? 0 : diffDays;
-  }
+  static const int trialDays = 6;
 
-  /// Whether user is within the 6-day free trial period from account creation.
-  bool get isTrialActive {
-    if (isPremium) return false;
-    if (createdAt == null) return false;
-    final now = DateTime.now().toUtc();
-    final trialDuration = const Duration(days: 6);
-    final elapsed = now.difference(createdAt!);
-    return elapsed >= Duration.zero && elapsed < trialDuration;
-  }
+  /// Part of a day still counts as a day: 6 at sign-up, 1 on the last day.
+  static int _daysUntil(DateTime end, DateTime now) =>
+      (end.difference(now).inMicroseconds / Duration.microsecondsPerDay).ceil();
 
-  /// Days remaining on the 6-day trial.
-  int get trialDaysLeft {
-    if (createdAt == null) return 0;
-    final now = DateTime.now().toUtc();
-    final trialEnd = createdAt!.add(const Duration(days: 6));
-    final diff = trialEnd.difference(now);
-    if (diff.isNegative) return 0;
-    // Part of a day still counts as a day: 6 at sign-up, 1 on the last day
-    // (inDays + 1 showed 7 for a brand-new account).
-    return (diff.inMicroseconds / Duration.microsecondsPerDay).ceil();
-  }
+  AccessStatus get access => accessAt(DateTime.now().toUtc());
 
-  /// Whether the user's trial and subscription are both expired/locked.
-  bool get isExpired => !isPremium && !isTrialActive;
+  /// May the student open premium content (notes, quizzes, lab, forum, Ask Me).
+  bool get hasAccess => access.kind != AccessKind.expired;
+
+  /// Paid month running, admin or free access.
+  bool get isPremium => access.kind == AccessKind.paid;
+
+  /// In the 6-day free trial (and not paid).
+  bool get isTrialActive => access.kind == AccessKind.trial;
+
+  /// Neither paid nor in the trial: content is locked.
+  bool get isExpired => access.kind == AccessKind.expired;
 
   UserProfile copyWith({
     String? fullName,
@@ -157,6 +149,18 @@ class UserProfile {
   }
 }
 
+enum AccessKind { paid, trial, expired }
+
+/// Result of [UserProfile.accessAt]. [days] and [endsAt] are null for admins
+/// and free access (no end) and when expired.
+class AccessStatus {
+  final AccessKind kind;
+  final int? days;
+  final DateTime? endsAt;
+
+  const AccessStatus(this.kind, {this.days, this.endsAt});
+}
+
 /// Provider for fetching and managing current user profile.
 final userProfileProvider =
     AsyncNotifierProvider<UserProfileNotifier, UserProfile?>(() {
@@ -181,7 +185,7 @@ class UserProfileNotifier extends AsyncNotifier<UserProfile?> {
         fullName: 'Mwanafunzi SomaSmart',
         phone: '+255 700 000 000',
         role: 'student',
-        subscriptionStatus: 'trial',
+        subscriptionStatus: 'free',
         formLevel: 4,
       );
     }
@@ -218,22 +222,23 @@ class UserProfileNotifier extends AsyncNotifier<UserProfile?> {
 
       return UserProfile.fromSupabase(profileRes, studentRes);
     } catch (e) {
-      return UserProfile(
-        id: user.id,
-        email: user.email ?? '',
-        fullName: 'User',
-        phone: '',
-        role: 'student',
-        subscriptionStatus: 'free',
-        formLevel: 4,
-      );
+      // No made-up profile: it had no sign-up date, so a slow or failed load
+      // (no internet) showed "Usajili Umeisha" to students in their trial or
+      // paid month. The error reaches the screens, which show nothing or Retry.
+      debugPrint('Profile load failed: $e');
+      rethrow;
     }
   }
 
   /// Forces a fresh reload of the authenticated profile from Supabase.
+  /// Screens keep the last profile while it reloads (and if the reload
+  /// fails), so the home card does not flash "Usajili Umeisha".
   Future<void> refreshProfile() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async => await _fetchProfile());
+    final uid = ref.read(supabaseClientProvider).auth.currentUser?.id;
+    final previous = state.valueOrNull?.id == uid ? state : const AsyncData<UserProfile?>(null);
+    state = const AsyncLoading<UserProfile?>().copyWithPrevious(previous);
+    final next = await AsyncValue.guard(() async => await _fetchProfile());
+    state = next.hasError ? next.copyWithPrevious(previous) : next;
   }
 
   /// Updates profile name and phone in Supabase and local state.
