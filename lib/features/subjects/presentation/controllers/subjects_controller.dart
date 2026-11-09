@@ -252,7 +252,7 @@ final subjectDetailProvider =
   final topics = syllabusTopicsData[key]?[formLevel] ?? [];
 
   // 6. Access entitlement verification (Server-aligned check)
-  final hasAccess = userProfile != null && (userProfile.isPremium || userProfile.isTrialActive);
+  final hasAccess = userProfile != null && userProfile.hasAccess;
 
   return SubjectDetailData(
     subject: subject,

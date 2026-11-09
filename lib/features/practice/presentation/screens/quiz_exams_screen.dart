@@ -43,7 +43,7 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
 
   bool _hasAccess(UserProfile? profile) {
     if (profile == null) return false;
-    return profile.isPremium || profile.isTrialActive;
+    return profile.hasAccess;
   }
 
   void _handleStartQuiz(BuildContext context, QuizModel quiz, bool hasAccess, String lang) {
