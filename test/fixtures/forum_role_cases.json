@@ -1,0 +1,9 @@
+[
+  { "role": "teacher", "lang": "sw", "label": "Mwalimu", "kind": "teacher" },
+  { "role": "teacher", "lang": "en", "label": "Teacher", "kind": "teacher" },
+  { "role": "admin", "lang": "sw", "label": "Admin", "kind": "admin" },
+  { "role": "admin", "lang": "en", "label": "Admin", "kind": "admin" },
+  { "role": "student", "lang": "sw", "label": null, "kind": null },
+  { "role": null, "lang": "en", "label": null, "kind": null },
+  { "role": "TEACHER", "lang": "en", "label": "Teacher", "kind": "teacher" }
+]

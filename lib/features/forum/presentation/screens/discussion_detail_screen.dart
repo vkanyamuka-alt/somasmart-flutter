@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/forum_controller.dart';
+import '../widgets/forum_role_badge.dart';
 
 class DiscussionDetailScreen extends ConsumerStatefulWidget {
   final String discussionId;
@@ -402,25 +403,7 @@ class _DiscussionDetailScreenState extends ConsumerState<DiscussionDetailScreen>
                                                 ),
                                               ),
                                             ),
-                                            if (disc.isAdmin) ...[
-                                              const SizedBox(width: 6),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                    horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue.withValues(alpha: 0.12),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: const Text(
-                                                  'Admin',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.blue,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                            ForumRoleBadge(role: disc.authorRole),
                                           ],
                                         ),
                                         Text(
@@ -596,25 +579,7 @@ class _DiscussionDetailScreenState extends ConsumerState<DiscussionDetailScreen>
                                                 ),
                                               ),
                                             ),
-                                            if (reply.isAdmin) ...[
-                                              const SizedBox(width: 6),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                    horizontal: 5, vertical: 1),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue.withValues(alpha: 0.12),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                child: const Text(
-                                                  'Admin',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.blue,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                            ForumRoleBadge(role: reply.authorRole),
                                           ],
                                         ),
                                       ),
