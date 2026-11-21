@@ -6,6 +6,7 @@ import '../../../account/presentation/controllers/account_controller.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/models/forum_models.dart';
 import '../controllers/forum_controller.dart';
+import '../widgets/forum_role_badge.dart';
 
 class ForumScreen extends ConsumerStatefulWidget {
   const ForumScreen({super.key});
@@ -808,24 +809,7 @@ class _DiscussionCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          if (discussion.isAdmin) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'Admin',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ),
-                          ],
+                          ForumRoleBadge(role: discussion.authorRole),
                         ],
                       ),
                     ),
