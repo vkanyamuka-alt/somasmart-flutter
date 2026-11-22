@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import '../../../../core/widgets/soma_icon.dart';
 
 /// Subject data model matching Supabase `subjects` table.
 class SubjectModel {
@@ -38,49 +38,12 @@ class SubjectModel {
     );
   }
 
-  IconData get iconData {
-    switch (iconKey.toLowerCase()) {
-      case 'calculator':
-      case 'mathematics':
-      case 'math':
-        return Icons.calculate_rounded;
-      case 'atom':
-      case 'physics':
-        return Icons.biotech_rounded;
-      case 'flask':
-      case 'chemistry':
-        return Icons.science_rounded;
-      case 'dna':
-      case 'biology':
-        return Icons.coronavirus_rounded;
-      case 'bookopen':
-      case 'kiswahili':
-        return Icons.menu_book_rounded;
-      case 'languages':
-      case 'english':
-        return Icons.translate_rounded;
-      case 'history':
-        return Icons.history_edu_rounded;
-      case 'globe':
-      case 'geography':
-        return Icons.public_rounded;
-      case 'users':
-      case 'civics':
-        return Icons.account_balance_rounded;
-      case 'trendingup':
-      case 'economics':
-        return Icons.trending_up_rounded;
-      case 'shoppingbag':
-      case 'commerce':
-        return Icons.shopping_bag_rounded;
-      case 'filespreadsheet':
-      case 'bam':
-        return Icons.functions_rounded;
-      case 'compass':
-      case 'general studies':
-        return Icons.explore_rounded;
-      default:
-        return Icons.school_rounded;
+  /// The SomaSmart drawing for this subject (lib/core/widgets/soma_icon.dart).
+  String get somaIcon {
+    for (final v in [id, nameEn, nameSw, iconKey]) {
+      final k = subjectIconKey(v);
+      if (k != 'default') return k;
     }
+    return 'default';
   }
 }
