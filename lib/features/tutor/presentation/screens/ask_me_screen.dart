@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/soma_icon.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -86,8 +87,8 @@ class _AskMeScreenState extends ConsumerState<AskMeScreen> {
                   color: AppColors.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.auto_awesome_rounded,
+                child: const SomaIcon(
+                  'ask',
                   color: AppColors.primary,
                   size: 34,
                 ),
@@ -259,8 +260,8 @@ class _AskMeScreenState extends ConsumerState<AskMeScreen> {
                 color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
+              child: const SomaIcon(
+                'ask',
                 color: AppColors.primary,
                 size: 20,
               ),
@@ -358,8 +359,8 @@ class _AskMeScreenState extends ConsumerState<AskMeScreen> {
                             color: AppColors.primary.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.auto_awesome_rounded,
+                          child: const SomaIcon(
+                            'ask',
                             size: 15,
                             color: AppColors.primary,
                           ),
@@ -425,11 +426,9 @@ class _AskMeScreenState extends ConsumerState<AskMeScreen> {
                                 : AppColors.primary.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
-                            msg.isError ? Icons.error_outline_rounded : Icons.auto_awesome_rounded,
-                            size: 15,
-                            color: msg.isError ? AppColors.error : AppColors.primary,
-                          ),
+                          child: msg.isError
+                            ? const Icon(Icons.error_outline_rounded, size: 15, color: AppColors.error)
+                            : const SomaIcon('ask', size: 15, color: AppColors.primary),
                         ),
                         const SizedBox(width: 10),
                       ],

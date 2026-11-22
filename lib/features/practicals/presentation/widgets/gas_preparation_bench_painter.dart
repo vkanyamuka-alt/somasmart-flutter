@@ -517,7 +517,7 @@ class GasPreparationBenchPainter extends CustomPainter {
       canvas.drawCircle(Offset(testX - 18, baseY - 77), 4.0, innerFlame);
 
       textPainter.text = const TextSpan(
-        text: '🔥 RELIGHTS!',
+        text: 'RELIGHTS!',
         style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFFF59E0B)),
       );
       textPainter.layout();
@@ -537,7 +537,7 @@ class GasPreparationBenchPainter extends CustomPainter {
       canvas.drawRRect(RRect.fromRectAndRadius(tubeRect, const Radius.circular(6)), tubeBorder);
 
       textPainter.text = const TextSpan(
-        text: '☁️ MILKY',
+        text: 'MILKY',
         style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF475569)),
       );
       textPainter.layout();
@@ -557,7 +557,7 @@ class GasPreparationBenchPainter extends CustomPainter {
       canvas.drawCircle(Offset(testX - 18, baseY - 75), 10.0 + (animationValue * 6), popPaint);
 
       textPainter.text = const TextSpan(
-        text: '💥 "POP!"',
+        text: '"POP!"',
         style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFFEF4444)),
       );
       textPainter.layout();

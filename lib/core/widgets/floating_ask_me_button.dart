@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'soma_icon.dart';
 import '../../features/tutor/presentation/widgets/ask_me_floating_panel.dart';
 import '../theme/app_colors.dart';
 
@@ -43,8 +44,8 @@ class FloatingAskMeButton extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
+              child: const SomaIcon(
+                'ask',
                 color: Colors.white,
                 size: 24,
               ),

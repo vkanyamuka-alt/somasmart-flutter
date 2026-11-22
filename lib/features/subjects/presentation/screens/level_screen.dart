@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/widgets/soma_icon.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -70,7 +71,7 @@ class LevelScreen extends ConsumerWidget {
                   : [
                       for (final id in current.subjectIds)
                         _NameCard(
-                          leading: Icon(_subject(id).iconData, size: 19),
+                          leading: SomaIcon(_subject(id).somaIcon, size: 24),
                           title: sw ? _subject(id).nameSw : _subject(id).nameEn,
                           onTap: () {
                             // The subject screen reads the form from here.

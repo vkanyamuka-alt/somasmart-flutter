@@ -604,7 +604,7 @@ class OsmosisBenchPainter extends CustomPainter {
     canvas.drawRRect(RRect.fromRectAndRadius(stationRect, const Radius.circular(8)), stationBorder);
 
     // Station Header
-    final title = isStep5 ? '📄 Filter Paper Blotting Station' : '🔪 Ceramic Cutting Tile & Cork Borer';
+    final title = isStep5 ? 'Filter Paper Blotting Station' : 'Ceramic Cutting Tile & Cork Borer';
     final span = TextSpan(
       text: title,
       style: TextStyle(
