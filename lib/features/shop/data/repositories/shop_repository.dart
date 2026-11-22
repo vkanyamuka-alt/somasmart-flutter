@@ -38,6 +38,8 @@ class ShopRepository {
             .from('shop_items')
             .select('*')
             .eq('is_archived', false)
+            // The admin hides a product with status Draft (website: same rule).
+            .not('status', 'in', '(draft,hidden)')
             .order('display_priority', ascending: false)
             .order('created_at', ascending: false);
 
@@ -52,6 +54,7 @@ class ShopRepository {
         final matResponse = await _client
             .from('learning_materials')
             .select('*')
+            .eq('status', 'published')
             .order('created_at', ascending: false);
 
         final matList = matResponse as List<dynamic>;
