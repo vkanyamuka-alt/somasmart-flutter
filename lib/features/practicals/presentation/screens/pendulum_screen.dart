@@ -45,7 +45,6 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
       nameSw: 'Standi na Kishikio cha Chuma',
       roleEn: 'Provides a rigid, stable vertical support for the pendulum pivot.',
       roleSw: 'Inashikilia kishikio cha juu bila kutetereka wakati wa mtetemo.',
-      icon: '🏗️',
     ),
     ApparatusInspectItem(
       key: 'bob',
@@ -53,7 +52,6 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
       nameSw: 'Tufe ya Metali Nzito',
       roleEn: 'High-density brass sphere providing a concentrated point mass and minimizing air drag.',
       roleSw: 'Tufe nzito ya shaba inayopunguza msuguano wa hewa wakati wa mtetemo.',
-      icon: '⚪',
     ),
     ApparatusInspectItem(
       key: 'thread',
@@ -61,7 +59,6 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
       nameSw: 'Uzi Usionyooka wa Nailoni',
       roleEn: 'Light inextensible string ensuring constant length during oscillation.',
       roleSw: 'Uzi mwepesi usionyooka unaodumisha urefu thabiti wakati wa mtetemo.',
-      icon: '🧵',
     ),
     ApparatusInspectItem(
       key: 'ruler',
@@ -69,7 +66,6 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
       nameSw: 'Rula ya Mita (cm 0–100)',
       roleEn: 'Measures length L accurately from the suspension point to the center of the bob.',
       roleSw: 'Inapima urefu L kutoka eneo la kuning’inizia hadi katikati ya tufe.',
-      icon: '📏',
     ),
     ApparatusInspectItem(
       key: 'stopwatch',
@@ -77,7 +73,6 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
       nameSw: 'Saa ya Kidijitali ya Kupimia',
       roleEn: 'Times 20 complete oscillations with 0.01s electronic accuracy.',
       roleSw: 'Inapima muda wa mitetemo 20 kamili kwa usahihi wa sekunde 0.01.',
-      icon: '⏱️',
     ),
   ];
 
@@ -504,8 +499,6 @@ class _PendulumScreenState extends ConsumerState<PendulumScreen> with TickerProv
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(item.icon, style: const TextStyle(fontSize: 16)),
-                      const SizedBox(width: 6),
                       Text(
                         isSwahili ? item.nameSw : item.nameEn,
                         style: TextStyle(

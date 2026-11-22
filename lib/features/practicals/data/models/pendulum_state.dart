@@ -30,7 +30,6 @@ class ApparatusInspectItem {
   final String nameSw;
   final String roleEn;
   final String roleSw;
-  final String icon;
 
   const ApparatusInspectItem({
     required this.key,
@@ -38,7 +37,6 @@ class ApparatusInspectItem {
     required this.nameSw,
     required this.roleEn,
     required this.roleSw,
-    required this.icon,
   });
 }
 

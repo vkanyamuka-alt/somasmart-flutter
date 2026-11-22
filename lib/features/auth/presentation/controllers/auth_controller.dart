@@ -183,7 +183,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       final cleanEmail = email?.trim().isNotEmpty == true ? email!.trim() : null;
       final authEmail = cleanEmail ?? '${normPhone.replaceAll('+', '')}@phone.somasmart.com';
 
-      debugPrint('🔵 [SUPABASE AUTH SIGNUP ATTEMPT] authEmail=$authEmail, phone=$normPhone');
+      debugPrint('[SUPABASE AUTH SIGNUP ATTEMPT] authEmail=$authEmail, phone=$normPhone');
 
       final response = await _client.auth.signUp(
         email: authEmail,
@@ -198,7 +198,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         },
       );
 
-      debugPrint('🟢 [SUPABASE AUTH SIGNUP SUCCESS] user.id=${response.user?.id}, hasSession=${response.session != null}');
+      debugPrint('[SUPABASE AUTH SIGNUP SUCCESS] user.id=${response.user?.id}, hasSession=${response.session != null}');
 
       final user = response.user;
       if (user != null) {
@@ -213,7 +213,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
             'stream': 'none',
           });
         } catch (studentDbErr, studentDbSt) {
-          debugPrint('⚠️ [STUDENT PROFILES DB UPSERT NON-FATAL ERROR]: $studentDbErr\n$studentDbSt');
+          debugPrint('[STUDENT PROFILES DB UPSERT NON-FATAL ERROR]: $studentDbErr\n$studentDbSt');
         }
 
         // No phone verification step (see class comment).
@@ -227,7 +227,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         throw const AuthException('Registration failed. Please try again.');
       }
     } on AuthException catch (e, st) {
-      debugPrint('🔴 [SUPABASE AUTH EXCEPTION]');
+      debugPrint('[SUPABASE AUTH EXCEPTION]');
       debugPrint('  Error Type: ${e.runtimeType}');
       debugPrint('  Error Message: ${e.message}');
       debugPrint('  Status Code: ${e.statusCode}');
@@ -236,7 +236,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       state = AsyncValue.error(e, st);
       return AuthResult.failure(e.message);
     } catch (e, st) {
-      debugPrint('🔴 [UNEXPECTED AUTH EXCEPTION]');
+      debugPrint('[UNEXPECTED AUTH EXCEPTION]');
       debugPrint('  Error Type: ${e.runtimeType}');
       debugPrint('  Error: $e');
       debugPrint('  Stack Trace:\n$st');
