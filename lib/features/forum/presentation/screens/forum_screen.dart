@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
@@ -25,7 +26,9 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
   }
 
   void _handleAskQuestion() {
-    final hasAccess = ref.read(forumControllerProvider.notifier).checkEntitlement();
+    final hasAccess = ref
+        .read(forumControllerProvider.notifier)
+        .checkEntitlement();
     final isSwahili = ref.read(languageProvider) == 'sw';
 
     if (!hasAccess) {
@@ -90,7 +93,9 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
                   height: 1.4,
                 ),
               ),
@@ -160,8 +165,12 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkBgSurface : AppColors.lightBgSurface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  color: isDark
+                      ? AppColors.darkBgSurface
+                      : AppColors.lightBgSurface,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
                 ),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 child: Column(
@@ -187,12 +196,18 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.help_outline_rounded, color: AppColors.primary, size: 20),
+                          child: const Icon(
+                            Icons.help_outline_rounded,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            isSwahili ? 'Uliza Swali Jipya' : 'Ask a New Question',
+                            isSwahili
+                                ? 'Uliza Swali Jipya'
+                                : 'Ask a New Question',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -211,7 +226,9 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -227,18 +244,27 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                           color: isDark ? Colors.white30 : Colors.black38,
                         ),
                         filled: true,
-                        fillColor: isDark ? AppColors.darkBgContainer : Colors.grey.shade50,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        fillColor: isDark
+                            ? AppColors.darkBgContainer
+                            : Colors.grey.shade50,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
                           ),
                         ),
                       ),
@@ -249,7 +275,9 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -265,18 +293,24 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                           color: isDark ? Colors.white30 : Colors.black38,
                         ),
                         filled: true,
-                        fillColor: isDark ? AppColors.darkBgContainer : Colors.grey.shade50,
+                        fillColor: isDark
+                            ? AppColors.darkBgContainer
+                            : Colors.grey.shade50,
                         contentPadding: const EdgeInsets.all(14),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                            color: isDark
+                                ? AppColors.darkBorder
+                                : AppColors.lightBorder,
                           ),
                         ),
                       ),
@@ -323,7 +357,8 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                                         ),
                                       ),
                                     );
-                                    if (created != null && created.id.isNotEmpty) {
+                                    if (created != null &&
+                                        created.id.isNotEmpty) {
                                       context.push('/forum/${created.id}');
                                     }
                                   }
@@ -333,7 +368,9 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         backgroundColor: AppColors.error,
-                                        content: Text('Hitilafu: ${e.toString()}'),
+                                        content: Text(
+                                          'Hitilafu: ${e.toString()}',
+                                        ),
                                       ),
                                     );
                                   }
@@ -376,7 +413,11 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
     );
   }
 
-  void _handleDeleteDiscussion(BuildContext context, String id, bool isSwahili) {
+  void _handleDeleteDiscussion(
+    BuildContext context,
+    String id,
+    bool isSwahili,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) {
@@ -396,11 +437,15 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
               onPressed: () async {
                 Navigator.of(ctx).pop();
                 try {
-                  await ref.read(forumControllerProvider.notifier).deleteDiscussion(id);
+                  await ref
+                      .read(forumControllerProvider.notifier)
+                      .deleteDiscussion(id);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isSwahili ? 'Swali limefutwa.' : 'Post deleted.'),
+                        content: Text(
+                          isSwahili ? 'Swali limefutwa.' : 'Post deleted.',
+                        ),
                       ),
                     );
                   }
@@ -491,7 +536,9 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                   ),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    color: isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
                   ),
                 ),
                 child: Row(
@@ -529,7 +576,9 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                                 : 'Ask study questions and collaborate with fellow scholars.',
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
                             ),
                           ),
                         ],
@@ -540,17 +589,27 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
               ),
             ),
 
+            // Subject groups: announced, not built yet.
+            SliverToBoxAdapter(
+              child: _GroupsComingSoon(isSwahili: isSwahili, isDark: isDark),
+            ),
+
             // Search Bar
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) {
                     ref.read(forumSearchQueryProvider.notifier).state = val;
                   },
                   decoration: InputDecoration(
-                    hintText: isSwahili ? 'Tafuta majadiliano...' : 'Search discussions...',
+                    hintText: isSwahili
+                        ? 'Tafuta majadiliano...'
+                        : 'Search discussions...',
                     hintStyle: TextStyle(
                       fontSize: 14,
                       color: isDark ? Colors.white30 : Colors.black38,
@@ -561,23 +620,33 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                             icon: const Icon(Icons.clear_rounded, size: 18),
                             onPressed: () {
                               _searchController.clear();
-                              ref.read(forumSearchQueryProvider.notifier).state = '';
+                              ref
+                                      .read(forumSearchQueryProvider.notifier)
+                                      .state =
+                                  '';
                             },
                           )
                         : null,
                     filled: true,
                     fillColor: isDark ? AppColors.darkBgSurface : Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 16,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
                       ),
                     ),
                   ),
@@ -602,13 +671,17 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: isDark ? AppColors.darkBgSurface : Colors.grey.shade100,
+                                color: isDark
+                                    ? AppColors.darkBgSurface
+                                    : Colors.grey.shade100,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.chat_bubble_outline_rounded,
                                 size: 48,
-                                color: isDark ? Colors.white38 : Colors.grey.shade400,
+                                color: isDark
+                                    ? Colors.white38
+                                    : Colors.grey.shade400,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -629,14 +702,20 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextSecondary,
                               ),
                             ),
                             const SizedBox(height: 20),
                             ElevatedButton.icon(
                               onPressed: _handleAskQuestion,
                               icon: const Icon(Icons.add_rounded, size: 18),
-                              label: Text(isSwahili ? 'Uliza Swali Sasa' : 'Ask a Question'),
+                              label: Text(
+                                isSwahili
+                                    ? 'Uliza Swali Sasa'
+                                    : 'Ask a Question',
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
@@ -655,29 +734,31 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                 return SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final disc = discussions[index];
-                        final canDelete = isModerator || (currentUserId != null && disc.userId == currentUserId);
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final disc = discussions[index];
+                      final canDelete =
+                          isModerator ||
+                          (currentUserId != null &&
+                              disc.userId == currentUserId);
 
-                        return _DiscussionCard(
-                          discussion: disc,
-                          canDelete: canDelete,
-                          isSwahili: isSwahili,
-                          isDark: isDark,
-                          onTap: () => context.push('/forum/${disc.id}'),
-                          onDelete: () => _handleDeleteDiscussion(context, disc.id, isSwahili),
-                        );
-                      },
-                      childCount: discussions.length,
-                    ),
+                      return _DiscussionCard(
+                        discussion: disc,
+                        canDelete: canDelete,
+                        isSwahili: isSwahili,
+                        isDark: isDark,
+                        onTap: () => context.push('/forum/${disc.id}'),
+                        onDelete: () => _handleDeleteDiscussion(
+                          context,
+                          disc.id,
+                          isSwahili,
+                        ),
+                      );
+                    }, childCount: discussions.length),
                   ),
                 );
               },
               loading: () => const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
+                child: Center(child: CircularProgressIndicator()),
               ),
               error: (err, stack) => SliverFillRemaining(
                 hasScrollBody: false,
@@ -687,11 +768,20 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 40),
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: AppColors.error,
+                          size: 40,
+                        ),
                         const SizedBox(height: 12),
                         Text(
-                          isSwahili ? 'Hitilafu ya kupakia majadiliano' : 'Error loading discussions',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          isSwahili
+                              ? 'Hitilafu ya kupakia majadiliano'
+                              : 'Error loading discussions',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -699,7 +789,9 @@ class _ForumScreenState extends ConsumerState<ForumScreen> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -783,7 +875,9 @@ class _DiscussionCard extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 14,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.12,
+                      ),
                       child: Text(
                         discussion.authorName.isNotEmpty
                             ? discussion.authorName[0].toUpperCase()
@@ -817,13 +911,19 @@ class _DiscussionCard extends StatelessWidget {
                       _formatDate(discussion.createdAt),
                       style: TextStyle(
                         fontSize: 11,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
                       ),
                     ),
                     if (canDelete) ...[
                       const SizedBox(width: 4),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                          color: AppColors.error,
+                        ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         tooltip: isSwahili ? 'Futa' : 'Delete',
@@ -850,7 +950,9 @@ class _DiscussionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 13,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
                     height: 1.4,
                   ),
                 ),
@@ -859,9 +961,14 @@ class _DiscussionCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkBgContainer : Colors.grey.shade100,
+                        color: isDark
+                            ? AppColors.darkBgContainer
+                            : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -870,7 +977,9 @@ class _DiscussionCard extends StatelessWidget {
                           Icon(
                             Icons.chat_bubble_outline_rounded,
                             size: 13,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -878,7 +987,9 @@ class _DiscussionCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
                             ),
                           ),
                         ],
@@ -896,6 +1007,88 @@ class _DiscussionCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// "Subject groups" is an upcoming update: a quiet card that says what is
+/// coming, with nothing to tap.
+class _GroupsComingSoon extends StatelessWidget {
+  final bool isSwahili;
+  final bool isDark;
+
+  const _GroupsComingSoon({required this.isSwahili, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    return Container(
+      key: const ValueKey('groups-coming-soon'),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBgSurface : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.groups_2_outlined, color: AppColors.accentGold, size: 26),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      isSwahili ? 'Vikundi vya masomo' : 'Subject groups',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentGold.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        isSwahili ? 'INAKUJA HIVI KARIBUNI' : 'COMING SOON',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.accentGold,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isSwahili
+                      ? 'Hivi karibuni: chati na wanafunzi wenzako kwenye vikundi kama Fizikia na Biolojia, mtaje mtu kwa @, na tuma maoni yako moja kwa moja kwa msimamizi.'
+                      : 'Soon: chat with classmates in groups like Physics and Biology, tag people with @, and send your opinion straight to the admin.',
+                  style: TextStyle(fontSize: 12, height: 1.4, color: secondary),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

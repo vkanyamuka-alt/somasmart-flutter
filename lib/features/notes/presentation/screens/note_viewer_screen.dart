@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/soma_markdown.dart';
@@ -16,8 +17,10 @@ import '../../../../core/utils/learning_language.dart';
 // note was opened through that path the data is already present.
 // As a fallback we query Supabase directly.
 // ---------------------------------------------------------------------------
-final noteDetailProvider =
-    FutureProvider.family<SubjectNoteItem?, String>((ref, noteId) async {
+final noteDetailProvider = FutureProvider.family<SubjectNoteItem?, String>((
+  ref,
+  noteId,
+) async {
   // Try finding the note in any already-loaded subject detail provider cache.
   // We can also query Supabase directly for the full content.
   final supabase = ref.watch(supabaseClientProvider);
@@ -46,8 +49,7 @@ class NoteViewerScreen extends ConsumerStatefulWidget {
   final String? noteId;
 
   const NoteViewerScreen({super.key, this.note, this.noteId})
-      : assert(note != null || noteId != null,
-            'Provide either note or noteId');
+    : assert(note != null || noteId != null, 'Provide either note or noteId');
 
   @override
   ConsumerState<NoteViewerScreen> createState() => _NoteViewerScreenState();
@@ -83,7 +85,12 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
     // If a note was passed directly, use it; otherwise fetch.
     if (widget.note != null) {
       return _buildScaffold(
-          context, isDark, lang, widget.note!, isLoaded: true);
+        context,
+        isDark,
+        lang,
+        widget.note!,
+        isLoaded: true,
+      );
     }
 
     final noteAsync = ref.watch(noteDetailProvider(widget.noteId!));
@@ -101,9 +108,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
         appBar: AppBar(
           elevation: 0,
           backgroundColor: isDark ? AppColors.darkBgSurface : Colors.white,
-          leading: BackButton(
-            onPressed: () => Navigator.maybePop(context),
-          ),
+          leading: BackButton(onPressed: () => Navigator.maybePop(context)),
         ),
         body: Center(
           child: Padding(
@@ -111,21 +116,26 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline_rounded,
-                    size: 48, color: AppColors.error),
+                const Icon(
+                  Icons.error_outline_rounded,
+                  size: 48,
+                  color: AppColors.error,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   lang == 'sw'
                       ? 'Hitilafu wakati wa kupakia muhtasari.'
                       : 'Failed to load note.',
                   style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => ref.invalidate(
-                      noteDetailProvider(widget.noteId!)),
+                  onPressed: () =>
+                      ref.invalidate(noteDetailProvider(widget.noteId!)),
                   child: Text(lang == 'sw' ? 'Jaribu Tena' : 'Retry'),
                 ),
               ],
@@ -138,22 +148,24 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
           return Scaffold(
             appBar: AppBar(
               elevation: 0,
-              backgroundColor:
-                  isDark ? AppColors.darkBgSurface : Colors.white,
-              leading: BackButton(
-                  onPressed: () => Navigator.maybePop(context)),
+              backgroundColor: isDark ? AppColors.darkBgSurface : Colors.white,
+              leading: BackButton(onPressed: () => Navigator.maybePop(context)),
             ),
             body: Center(
               child: Text(
-                lang == 'sw'
-                    ? 'Muhtasari haukupatikana.'
-                    : 'Note not found.',
+                lang == 'sw' ? 'Muhtasari haukupatikana.' : 'Note not found.',
                 style: const TextStyle(fontSize: 15),
               ),
             ),
           );
         }
-        return _buildScaffold(context, isDark, learningLanguage(note.subjectId), note, isLoaded: true);
+        return _buildScaffold(
+          context,
+          isDark,
+          learningLanguage(note.subjectId),
+          note,
+          isLoaded: true,
+        );
       },
     );
   }
@@ -169,8 +181,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
     required bool isLoaded,
   }) {
     final bgColor = isDark ? AppColors.darkBgSurface : Colors.white;
-    final borderColor =
-        isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
     final textSecondary = isDark
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
@@ -189,21 +200,14 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
             ? '${note.description.substring(0, 100)}...'
             : note.description,
       ),
-      _Flashcard(
-        front: lang == 'sw' ? 'Lugha ya Notes' : 'Note Language',
-        back: note.language == 'both'
-            ? 'Swahili & English'
-            : note.language.toUpperCase(),
-      ),
     ];
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor:
-            isDark ? AppColors.darkBgBase : AppColors.lightBgContainer,
+        backgroundColor: isDark
+            ? AppColors.darkBgBase
+            : AppColors.lightBgContainer,
         appBar: AppBar(
           elevation: 0,
           backgroundColor: bgColor,
@@ -226,15 +230,16 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
           children: [
             // Where the note belongs, then the three views in one row
             // (same order as the web note page).
-            _buildHeaderCard(
-                context, isDark, lang, note, bgColor, borderColor),
+            _buildHeaderCard(context, isDark, lang, note, bgColor, borderColor),
             Container(
               color: bgColor,
               child: TabBar(
                 controller: _tabController,
                 labelColor: isDark ? AppColors.primaryLight : AppColors.primary,
                 unselectedLabelColor: textSecondary,
-                indicatorColor: isDark ? AppColors.primaryLight : AppColors.primary,
+                indicatorColor: isDark
+                    ? AppColors.primaryLight
+                    : AppColors.primary,
                 indicatorWeight: 3,
                 dividerColor: borderColor,
                 labelStyle: const TextStyle(
@@ -257,7 +262,13 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
                   _buildNotesTab(context, isDark, lang, note),
                   // Tab 2: Understand (Q&A)
                   _buildUnderstandTab(
-                      context, isDark, lang, note, bgColor, borderColor),
+                    context,
+                    isDark,
+                    lang,
+                    note,
+                    bgColor,
+                    borderColor,
+                  ),
                   // Tab 3: Memorize (Flashcards)
                   _buildMemorizeTab(
                     context,
@@ -288,10 +299,12 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
     Color bgColor,
     Color borderColor,
   ) {
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    final textMuted =
-        isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    final textMuted = isDark
+        ? AppColors.darkTextMuted
+        : AppColors.lightTextMuted;
 
     final subjectName = _subjectName(note.subjectId, lang);
     return Container(
@@ -374,8 +387,8 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
                 note.description.isNotEmpty
                     ? note.description
                     : (lang == 'sw'
-                        ? 'Maudhui ya muhtasari huu bado hayajawekwa.'
-                        : 'The content of this note is not yet available.'),
+                          ? 'Maudhui ya muhtasari huu bado hayajawekwa.'
+                          : 'The content of this note is not yet available.'),
                 style: TextStyle(
                   fontSize: 13,
                   color: isDark
@@ -402,8 +415,10 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
           children: [
             for (final seg in segments)
               switch (seg) {
-                NoteMarkdown(:final text) =>
-                  _SomaNoteMarkdown(data: text, isDark: isDark),
+                NoteMarkdown(:final text) => _SomaNoteMarkdown(
+                  data: text,
+                  isDark: isDark,
+                ),
                 NoteDiagramBlock() => NoteDiagram(block: seg, lang: lang),
               },
           ],
@@ -438,10 +453,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
             const SizedBox(height: 16),
             Text(
               lang == 'sw' ? 'Hati ya PDF' : 'PDF Document',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
@@ -474,8 +486,9 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
     Color bgColor,
     Color borderColor,
   ) {
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
 
     final qaItems = [
       _QaItem(
@@ -485,8 +498,8 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
         a: note.description.isNotEmpty
             ? note.description
             : (lang == 'sw'
-                ? 'Tazama muhtasari kamili kwenye kichupo cha Notes.'
-                : 'See the full note in the Notes tab.'),
+                  ? 'Tazama muhtasari kamili kwenye kichupo cha Notes.'
+                  : 'See the full note in the Notes tab.'),
       ),
       _QaItem(
         q: lang == 'sw'
@@ -513,10 +526,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
           lang == 'sw'
               ? 'Maswali na Majibu ya Kujifunza'
               : 'Q&A Study Explorer',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 16),
         ...qaItems.map(
@@ -569,20 +579,16 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
     Color borderColor,
   ) {
     final current = flashcards[_flashcardIndex];
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          lang == 'sw'
-              ? 'Flashcards za Kukariri'
-              : 'Active Recall Flashcards',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
+          lang == 'sw' ? 'Flashcards za Kukariri' : 'Active Recall Flashcards',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 20),
 
@@ -594,9 +600,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
           decoration: BoxDecoration(
             color: AppColors.primary.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
           ),
           child: Column(
             children: [
@@ -680,8 +684,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
                           });
                         },
                         style: OutlinedButton.styleFrom(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -710,8 +713,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.success,
                           foregroundColor: Colors.white,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -764,25 +766,23 @@ class _SomaNoteMarkdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    final borderColor =
-        isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    final codeBackground =
-        isDark ? AppColors.darkBgBase : const Color(0xFFF3F4F6);
+    final textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextPrimary;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final codeBackground = isDark
+        ? AppColors.darkBgBase
+        : const Color(0xFFF3F4F6);
 
     return SomaMarkdown(
       data: data,
       errorColor: isDark ? Colors.amber : Colors.deepOrange,
       styleSheet: MarkdownStyleSheet(
         // Paragraphs
-        p: TextStyle(
-          fontSize: 15.5,
-          height: 1.75,
-          color: textColor,
-        ),
+        p: TextStyle(fontSize: 15.5, height: 1.75, color: textColor),
         // Headings
         h1: TextStyle(
           fontSize: 22,
@@ -826,13 +826,13 @@ class _SomaNoteMarkdown extends StatelessWidget {
         // Blockquote
         blockquote: TextStyle(fontSize: 14.5, color: textSecondary),
         blockquoteDecoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(color: AppColors.primary, width: 4),
-          ),
+          border: Border(left: BorderSide(color: AppColors.primary, width: 4)),
           color: AppColors.primary.withValues(alpha: 0.06),
         ),
-        blockquotePadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        blockquotePadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
+        ),
         // Code (inline)
         code: TextStyle(
           fontFamily: 'monospace',
@@ -861,8 +861,7 @@ class _SomaNoteMarkdown extends StatelessWidget {
         ),
         // Strong / em
         strong: TextStyle(fontWeight: FontWeight.w800, color: textColor),
-        em: TextStyle(
-            fontStyle: FontStyle.italic, color: textSecondary),
+        em: TextStyle(fontStyle: FontStyle.italic, color: textSecondary),
       ),
     );
   }
