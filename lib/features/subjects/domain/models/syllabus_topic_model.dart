@@ -24,6 +24,9 @@ class SubjectNoteItem {
   /// 'text' (default) or 'pdf'.
   final String fileType;
 
+  /// The subject tab the admin chose: notes, understand_master or memorize.
+  final String? section;
+
   const SubjectNoteItem({
     required this.id,
     required this.subjectId,
@@ -36,6 +39,7 @@ class SubjectNoteItem {
     this.topic,
     this.textContent,
     this.fileType = 'text',
+    this.section,
   });
 
   factory SubjectNoteItem.fromMap(Map<String, dynamic> map) {
@@ -54,6 +58,7 @@ class SubjectNoteItem {
       topic: map['topic'] as String?,
       textContent: map['text_content'] as String?,
       fileType: map['file_type'] as String? ?? 'text',
+      section: map['section'] as String?,
     );
   }
 }
@@ -74,6 +79,9 @@ class SubjectMaterialItem {
   final String language;
   final String? topic;
   final DateTime? publishedAt;
+
+  /// The subject tab the admin chose: notes, understand_master or memorize.
+  final String? section;
 
   /// Where the student opens this material: the Wistia player for a video
   /// with a Wistia ID (as the website does), otherwise the file or link the
@@ -104,6 +112,7 @@ class SubjectMaterialItem {
     this.language = 'both',
     this.topic,
     this.publishedAt,
+    this.section,
   });
 
   factory SubjectMaterialItem.fromMap(Map<String, dynamic> map) {
@@ -124,6 +133,7 @@ class SubjectMaterialItem {
       publishedAt: map['published_at'] != null
           ? DateTime.tryParse(map['published_at'] as String)
           : null,
+      section: map['section'] as String?,
     );
   }
 }
