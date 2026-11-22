@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../notes/presentation/screens/note_viewer_screen.dart';
 import '../../domain/models/syllabus_topic_model.dart';
@@ -12,10 +14,7 @@ import '../../../../core/utils/learning_language.dart';
 class SubjectDetailScreen extends ConsumerStatefulWidget {
   final String subjectId;
 
-  const SubjectDetailScreen({
-    super.key,
-    required this.subjectId,
-  });
+  const SubjectDetailScreen({super.key, required this.subjectId});
 
   @override
   ConsumerState<SubjectDetailScreen> createState() =>
@@ -81,7 +80,10 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
               ),
               color: isDark ? AppColors.darkBgSurface : Colors.white,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
@@ -101,8 +103,11 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.keyboard_arrow_down_rounded,
-                        size: 16, color: AppColors.primary),
+                    const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
                   ],
                 ),
               ),
@@ -134,8 +139,11 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline_rounded,
-                    size: 48, color: AppColors.error),
+                const Icon(
+                  Icons.error_outline_rounded,
+                  size: 48,
+                  color: AppColors.error,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   lang == 'sw'
@@ -170,7 +178,9 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
                 SliverToBoxAdapter(
                   child: Padding(
                     // Only the Premium banner sits here; no gap without it.
-                    padding: hasAccess ? EdgeInsets.zero : const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    padding: hasAccess
+                        ? EdgeInsets.zero
+                        : const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -185,13 +195,18 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
                               color: AppColors.primary.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.35),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.35,
+                                ),
                               ),
                             ),
                             child: Column(
                               children: [
-                                const Icon(Icons.lock_outline_rounded,
-                                    size: 32, color: AppColors.primary),
+                                const Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: 32,
+                                  color: AppColors.primary,
+                                ),
                                 const SizedBox(height: 8),
                                 Text(
                                   lang == 'sw'
@@ -218,7 +233,8 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
                                 ),
                                 const SizedBox(height: 10),
                                 ElevatedButton(
-                                  onPressed: () => context.push('/subscription'),
+                                  onPressed: () =>
+                                      context.push('/subscription'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.primary,
                                     foregroundColor: Colors.white,
@@ -267,7 +283,9 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
                       tabs: [
                         // Text only, so the three views stay one short row.
                         Tab(text: lang == 'sw' ? 'Muhtasari' : 'Notes'),
-                        Tab(text: lang == 'sw' ? 'Elewa na Miliki' : 'Understand'),
+                        Tab(
+                          text: lang == 'sw' ? 'Elewa na Miliki' : 'Understand',
+                        ),
                         Tab(text: lang == 'sw' ? 'Kumbuka' : 'Memorize'),
                       ],
                     ),
@@ -324,7 +342,10 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Container(
       color: isDark ? AppColors.darkBgBase : AppColors.lightBgContainer,
       child: tabBar,
@@ -358,7 +379,6 @@ class _NotesTabContent extends StatelessWidget {
     return text.contains(topic.en.toLowerCase()) ||
         text.contains(topic.sw.toLowerCase());
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -404,8 +424,9 @@ class _NotesTabContent extends StatelessWidget {
     final perTopic = [
       for (final t in topics) notes.where((n) => _belongsTo(n, t)).toList(),
     ];
-    final extra =
-        notes.where((n) => !perTopic.any((list) => list.contains(n))).toList();
+    final extra = notes
+        .where((n) => !perTopic.any((list) => list.contains(n)))
+        .toList();
 
     final rows = <Widget>[
       for (var i = 0; i < topics.length; i++)
@@ -457,16 +478,21 @@ class _TopicRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted;
-    final secondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final secondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
     // Navy is lifted in dark mode so it stays readable (as on the web).
     final accent = isDark ? AppColors.primaryLight : AppColors.primary;
 
     return Container(
       decoration: BoxDecoration(
-        color: isEmpty ? null : (isDark ? AppColors.darkBgSurface : Colors.white),
+        color: isEmpty
+            ? null
+            : (isDark ? AppColors.darkBgSurface : Colors.white),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
       ),
       padding: EdgeInsets.fromLTRB(14, 12, 14, child == null ? 12 : 14),
       child: Column(
@@ -507,10 +533,7 @@ class _TopicRow extends StatelessWidget {
               ),
             ],
           ),
-          if (child != null) ...[
-            const SizedBox(height: 10),
-            child!,
-          ],
+          if (child != null) ...[const SizedBox(height: 10), child!],
         ],
       ),
     );
@@ -553,12 +576,17 @@ class _NoteLinks extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(minHeight: 48),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     child: Row(
                       children: [
-                        Icon(Icons.description_outlined,
-                            size: 18, color: accent),
+                        Icon(
+                          Icons.description_outlined,
+                          size: 18,
+                          color: accent,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -577,8 +605,11 @@ class _NoteLinks extends StatelessWidget {
                             color: accent,
                           ),
                         ),
-                        Icon(Icons.chevron_right_rounded,
-                            size: 18, color: accent),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: accent,
+                        ),
                       ],
                     ),
                   ),
@@ -647,72 +678,104 @@ class _UnderstandTabContent extends StatelessWidget {
         final mat = materials[index];
         final isVideo = mat.materialType == 'video';
 
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkBgSurface : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        return InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _openMaterial(context, mat),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkBgSurface : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              ),
             ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 16:9 Thumbnail container
-              Container(
-                width: 90,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkBgBase : Colors.black87,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Icon(
-                    isVideo
-                        ? Icons.play_arrow_rounded
-                        : Icons.headphones_rounded,
-                    color: Colors.white,
-                    size: 24,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 16:9 Thumbnail container
+                Container(
+                  width: 90,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkBgBase : Colors.black87,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      isVideo
+                          ? Icons.play_arrow_rounded
+                          : mat.materialType == 'audio'
+                          ? Icons.headphones_rounded
+                          : Icons.description_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      mat.title,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mat.title,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      mat.shortDescription.isNotEmpty
-                          ? mat.shortDescription
-                          : mat.description,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
+                      const SizedBox(height: 4),
+                      Text(
+                        mat.shortDescription.isNotEmpty
+                            ? mat.shortDescription
+                            : mat.description,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
+  }
+
+  Future<void> _openMaterial(
+    BuildContext context,
+    SubjectMaterialItem mat,
+  ) async {
+    final uri = mat.openUri;
+    final messenger = ScaffoldMessenger.of(context);
+    if (uri == null) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Kifaa hiki bado hakina faili. / This material has no file yet.',
+          ),
+        ),
+      );
+      return;
+    }
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Imeshindwa kufungua. / Could not open it.'),
+        ),
+      );
+    }
   }
 }
 
@@ -787,8 +850,10 @@ class _MemorizeTabContent extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.accentGold.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
