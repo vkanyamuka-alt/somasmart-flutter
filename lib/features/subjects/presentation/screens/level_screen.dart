@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/soma_icon.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -71,7 +70,6 @@ class LevelScreen extends ConsumerWidget {
                   : [
                       for (final id in current.subjectIds)
                         _NameCard(
-                          leading: SomaIcon(_subject(id).somaIcon, size: 24),
                           title: sw ? _subject(id).nameSw : _subject(id).nameEn,
                           onTap: () {
                             // The subject screen reads the form from here.
@@ -142,12 +140,13 @@ class _CardRows extends StatelessWidget {
   }
 }
 
-/// A form, stream or subject: a small square mark and the name.
+/// A form, stream or subject: the name, with a small square mark for forms
+/// and streams (subjects show the name only).
 class _NameCard extends StatelessWidget {
-  final Widget leading;
+  final Widget? leading;
   final String title;
   final VoidCallback onTap;
-  const _NameCard({required this.leading, required this.title, required this.onTap});
+  const _NameCard({this.leading, required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -169,20 +168,22 @@ class _NameCard extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                  child: IconTheme(
-                    data: IconThemeData(color: accent),
-                    child: DefaultTextStyle.merge(
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: accent),
-                      child: leading,
+                if (leading != null) ...[
+                  Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                    child: IconTheme(
+                      data: IconThemeData(color: accent),
+                      child: DefaultTextStyle.merge(
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: accent),
+                        child: leading!,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: Text(title,
                       maxLines: 2,

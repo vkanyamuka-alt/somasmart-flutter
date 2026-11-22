@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/soma_icon.dart';
 import '../../domain/models/syllabus_document_model.dart';
 import '../controllers/syllabus_library_controller.dart';
 
@@ -105,22 +104,7 @@ class _SyllabusBookCover extends StatelessWidget {
           Positioned.fill(
             child: Column(
               children: [
-                SizedBox(height: height * 0.12),
-                Container(
-                  width: width * 0.32,
-                  height: width * 0.32,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(width * 0.07),
-                  ),
-                  child: SomaIcon(
-                    subjectIconKey(doc.subjectName),
-                    size: width * 0.2,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: height * 0.03),
+                SizedBox(height: height * 0.3),
 
                 // Subject name
                 Padding(
