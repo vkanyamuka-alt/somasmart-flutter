@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/soma_icon.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -61,31 +60,9 @@ class _SubjectDetailScreenState extends ConsumerState<SubjectDetailScreen>
           },
         ),
         title: detailAsync.when(
-          data: (data) => Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: (isDark ? AppColors.primaryLight : AppColors.primary).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: SomaIcon(
-                  data.subject.somaIcon,
-                  size: 24,
-                  color: isDark ? AppColors.primaryLight : AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Text(
-                  lang == 'sw' ? data.subject.nameSw : data.subject.nameEn,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
+          data: (data) => Text(
+            lang == 'sw' ? data.subject.nameSw : data.subject.nameEn,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
           ),
           loading: () => const Text(''),
           error: (error, stackTrace) => const Text(''),

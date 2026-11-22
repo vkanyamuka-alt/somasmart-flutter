@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/soma_icon.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -44,7 +43,11 @@ class LevelScreen extends ConsumerWidget {
         final width = box.maxWidth;
         final columns = current == null
             ? (_isO && width >= 720 ? 4 : 2)
-            : (width >= 1240 ? 5 : width >= 960 ? 4 : width >= 600 ? 3 : 2);
+            : (width >= 600 ? 3 : 2);
+        // Wide screens: a readable width (3 subjects to a row, so 9 and 6
+        // subjects fill their rows) instead of stretching edge to edge.
+        final maxGrid = current == null && !_isO ? 640.0 : 960.0;
+        final wide = width >= 600;
         return ListView(
           padding: const EdgeInsets.fromLTRB(AppSpacing.l, AppSpacing.m, AppSpacing.l, AppSpacing.xxl),
           children: [
@@ -57,29 +60,36 @@ class LevelScreen extends ConsumerWidget {
               style: TextStyle(fontSize: 13.5, color: muted),
             ),
             const SizedBox(height: AppSpacing.m),
-            _CardRows(
-              columns: columns,
-              children: current == null
-                  ? [
-                      for (final c in choices)
-                        _NameCard(
-                          leading: c.icon != null ? Icon(c.icon, size: 19) : Text(c.badge ?? ''),
-                          title: c.title,
-                          onTap: () => context.push('/subjects/$level/${c.key}'),
-                        ),
-                    ]
-                  : [
-                      for (final id in current.subjectIds)
-                        _NameCard(
-                          leading: SomaIcon(_subject(id).somaIcon, size: 24),
-                          title: sw ? _subject(id).nameSw : _subject(id).nameEn,
-                          onTap: () {
-                            // The subject screen reads the form from here.
-                            ref.read(pickedFormLevelProvider.notifier).state = current.form;
-                            context.push('/subjects/$id');
-                          },
-                        ),
-                    ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxGrid),
+                child: _CardRows(
+                  columns: columns,
+                  children: current == null
+                      ? [
+                          for (final c in choices)
+                            _NameCard(
+                              leading: c.icon != null ? Icon(c.icon, size: 19) : Text(c.badge ?? ''),
+                              title: c.title,
+                              arrow: wide,
+                              onTap: () => context.push('/subjects/$level/${c.key}'),
+                            ),
+                        ]
+                      : [
+                          for (final id in current.subjectIds)
+                            _NameCard(
+                              title: sw ? _subject(id).nameSw : _subject(id).nameEn,
+                              arrow: wide,
+                              onTap: () {
+                                // The subject screen reads the form from here.
+                                ref.read(pickedFormLevelProvider.notifier).state = current.form;
+                                context.push('/subjects/$id');
+                              },
+                            ),
+                        ],
+                ),
+              ),
             ),
           ],
         );
@@ -142,12 +152,14 @@ class _CardRows extends StatelessWidget {
   }
 }
 
-/// A form, stream or subject: a small square mark and the name.
+/// A form, stream or subject: the name, with a small square mark for forms
+/// and streams (subjects show the name only).
 class _NameCard extends StatelessWidget {
-  final Widget leading;
+  final Widget? leading;
   final String title;
+  final bool arrow;
   final VoidCallback onTap;
-  const _NameCard({required this.leading, required this.title, required this.onTap});
+  const _NameCard({this.leading, required this.title, this.arrow = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -165,24 +177,26 @@ class _NameCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 64),
+            constraints: BoxConstraints(minHeight: arrow ? 72 : 64),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                  child: IconTheme(
-                    data: IconThemeData(color: accent),
-                    child: DefaultTextStyle.merge(
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: accent),
-                      child: leading,
+                if (leading != null) ...[
+                  Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+                    child: IconTheme(
+                      data: IconThemeData(color: accent),
+                      child: DefaultTextStyle.merge(
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: accent),
+                        child: leading!,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: Text(title,
                       maxLines: 2,
@@ -193,6 +207,10 @@ class _NameCard extends StatelessWidget {
                           height: 1.25,
                           color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary)),
                 ),
+                if (arrow) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right_rounded, size: 20, color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+                ],
               ]),
             ),
           ),

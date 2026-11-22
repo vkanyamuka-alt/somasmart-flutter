@@ -116,11 +116,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('wider screens fit more subjects to a row and still do not overflow', (tester) async {
-    await pump(tester, '/subjects/o-level/2', width: 1024);
+  testWidgets('wide screens show 3 subjects to a row in a readable width', (tester) async {
+    await pump(tester, '/subjects/o-level/2', width: 1600);
     final a = tester.getRect(find.text('Mathematics'));
+    final c = tester.getRect(find.text('Chemistry'));
     final d = tester.getRect(find.text('Biology'));
-    expect((a.top - d.top).abs(), lessThan(2), reason: 'four to a row at 1024px');
+    expect((a.top - c.top).abs(), lessThan(2), reason: 'three to a row');
+    expect(d.top, greaterThan(a.bottom), reason: 'the fourth subject starts the next row');
+    expect(c.right - a.left, lessThan(960), reason: 'the grid does not stretch edge to edge');
     expect(tester.takeException(), isNull);
   });
 }

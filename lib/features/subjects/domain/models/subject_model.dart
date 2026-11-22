@@ -1,5 +1,3 @@
-import '../../../../core/widgets/soma_icon.dart';
-
 /// Subject data model matching Supabase `subjects` table.
 class SubjectModel {
   final String id;
@@ -36,14 +34,5 @@ class SubjectModel {
       iconKey: map['icon'] as String? ?? 'BookOpen',
       description: map['description'] as String?,
     );
-  }
-
-  /// The SomaSmart drawing for this subject (lib/core/widgets/soma_icon.dart).
-  String get somaIcon {
-    for (final v in [id, nameEn, nameSw, iconKey]) {
-      final k = subjectIconKey(v);
-      if (k != 'default') return k;
-    }
-    return 'default';
   }
 }
