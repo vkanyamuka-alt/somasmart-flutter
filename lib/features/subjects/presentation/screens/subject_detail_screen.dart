@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/documents.dart';
+import '../../../../core/widgets/pdf_viewer_screen.dart';
 import '../../../notes/presentation/screens/note_viewer_screen.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/models/syllabus_topic_model.dart';
@@ -702,9 +704,15 @@ class _UnderstandTabContent extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (ctx, index) {
         final mat = materials[index];
-        final isVideo = mat.materialType == 'video';
+        final kind = materialOpenKind(
+          materialType: mat.materialType,
+          url: mat.externalUrl,
+          wistiaVideoId: mat.wistiaVideoId,
+        );
+        final isPdf = kind == MaterialOpenKind.pdf;
+        final isFile = kind == MaterialOpenKind.file;
 
-        return Container(
+        final card = Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isDark ? AppColors.darkBgSurface : Colors.white,
@@ -726,9 +734,13 @@ class _UnderstandTabContent extends StatelessWidget {
                 ),
                 child: Center(
                   child: Icon(
-                    isVideo
-                        ? Icons.play_arrow_rounded
-                        : Icons.headphones_rounded,
+                    isPdf
+                        ? Icons.picture_as_pdf_rounded
+                        : isFile
+                            ? Icons.insert_drive_file_rounded
+                            : kind == MaterialOpenKind.audio
+                                ? Icons.headphones_rounded
+                                : Icons.play_arrow_rounded,
                     color: Colors.white,
                     size: 24,
                   ),
@@ -762,10 +774,55 @@ class _UnderstandTabContent extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (isPdf) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(Icons.menu_book_rounded, size: 14, color: isDark ? AppColors.primaryLight : AppColors.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            lang == 'sw' ? 'Fungua' : 'Open',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? AppColors.primaryLight : AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
             ],
+          ),
+        );
+
+        // PDFs open in the in-app viewer. A Word or other office file cannot
+        // be shown in the app, so say where it can be opened.
+        if (!isPdf && !isFile) return card;
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              if (isPdf) {
+                PdfViewerScreen.open(
+                  context,
+                  url: mat.externalUrl!,
+                  title: mat.title,
+                  subtitle: mat.topic,
+                  lang: lang,
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(lang == 'sw'
+                      ? 'Faili hili haliwezi kuonyeshwa kwenye programu. Lipakue kwenye tovuti ya SomaMkononi.'
+                      : 'This file cannot be shown in the app. Download it on the SomaMkononi website.'),
+                ));
+              }
+            },
+            child: card,
           ),
         );
       },

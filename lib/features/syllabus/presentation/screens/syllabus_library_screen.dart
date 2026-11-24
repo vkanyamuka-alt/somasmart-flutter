@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/pdf_viewer_screen.dart';
 import '../../domain/models/syllabus_document_model.dart';
 import '../controllers/syllabus_library_controller.dart';
 
@@ -1112,8 +1113,20 @@ class _DocumentDetailsSheet extends ConsumerWidget {
                         label: 'Fungua Mtaala (View PDF)',
                         isPrimary: true,
                         onTap: () {
-                          Navigator.of(context).pop();
-                          _launchUrl(context, doc.fileUrl!);
+                          final navigator = Navigator.of(context);
+                          navigator.pop();
+                          // Read inside the app, never in an outside browser.
+                          navigator.push(MaterialPageRoute<void>(
+                            builder: (_) => PdfViewerScreen(
+                              url: doc.fileUrl!,
+                              title: doc.title,
+                              subtitle: [doc.subjectName, doc.coverage]
+                                  .whereType<String>()
+                                  .where((s) => s.isNotEmpty)
+                                  .join(' · '),
+                              lang: 'sw',
+                            ),
+                          ));
                         },
                       ),
 
