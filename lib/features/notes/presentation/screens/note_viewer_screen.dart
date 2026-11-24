@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:markdown/markdown.dart' as md;
 import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/documents.dart';
+import '../../../../core/widgets/pdf_viewer_screen.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../../subjects/domain/models/syllabus_topic_model.dart';
 
@@ -364,7 +366,7 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
   ) {
     final content = note.textContent;
 
-    if (note.fileType == 'pdf') {
+    if (note.fileType == 'pdf' || ((content == null || content.trim().isEmpty) && isPdfUrl(note.fileUrl))) {
       return _buildPdfPlaceholder(context, isDark, lang, note);
     }
 
@@ -449,9 +451,13 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              lang == 'sw'
-                  ? 'Hati hii ipo katika muundo wa PDF. Msaada wa PDF utaongezwa hivi karibuni.'
-                  : 'This note is in PDF format. PDF viewing support is coming soon.',
+              isPdfUrl(note.fileUrl)
+                  ? (lang == 'sw'
+                      ? 'Noti hii ni hati ya PDF. Isome hapa hapa kwenye programu.'
+                      : 'This note is a PDF document. Read it right here in the app.')
+                  : (lang == 'sw'
+                      ? 'Faili la noti hii halipatikani bado.'
+                      : 'The file for this note is not available yet.'),
               style: TextStyle(
                 fontSize: 13,
                 color: isDark
@@ -461,6 +467,20 @@ class _NoteViewerScreenState extends ConsumerState<NoteViewerScreen>
               ),
               textAlign: TextAlign.center,
             ),
+            if (isPdfUrl(note.fileUrl)) ...[
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => PdfViewerScreen.open(
+                  context,
+                  url: note.fileUrl!,
+                  title: note.title,
+                  subtitle: note.topic,
+                  lang: lang,
+                ),
+                icon: const Icon(Icons.menu_book_rounded),
+                label: Text(lang == 'sw' ? 'Fungua' : 'Open'),
+              ),
+            ],
           ],
         ),
       ),

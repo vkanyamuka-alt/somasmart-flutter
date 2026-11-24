@@ -21,6 +21,8 @@ class SubjectNoteItem {
   final String? textContent;
   /// 'text' (default) or 'pdf'.
   final String fileType;
+  /// The file of an older note saved as a PDF (read in the in-app viewer).
+  final String? fileUrl;
 
   const SubjectNoteItem({
     required this.id,
@@ -34,6 +36,7 @@ class SubjectNoteItem {
     this.topic,
     this.textContent,
     this.fileType = 'text',
+    this.fileUrl,
   });
 
   factory SubjectNoteItem.fromMap(Map<String, dynamic> map) {
@@ -53,6 +56,7 @@ class SubjectNoteItem {
       topic: map['topic'] as String?,
       textContent: map['text_content'] as String?,
       fileType: map['file_type'] as String? ?? 'text',
+      fileUrl: map['file_url'] as String?,
     );
   }
 }
@@ -66,6 +70,7 @@ class SubjectMaterialItem {
   final String shortDescription;
   final String materialType; // video, audio, document
   final String? externalUrl;
+  final String? wistiaVideoId;
   final String? thumbnailUrl;
   final int durationSeconds;
   final int formLevel;
@@ -81,6 +86,7 @@ class SubjectMaterialItem {
     this.shortDescription = '',
     required this.materialType,
     this.externalUrl,
+    this.wistiaVideoId,
     this.thumbnailUrl,
     this.durationSeconds = 0,
     required this.formLevel,
@@ -98,6 +104,7 @@ class SubjectMaterialItem {
       shortDescription: map['short_description'] as String? ?? '',
       materialType: map['material_type'] as String? ?? 'video',
       externalUrl: map['external_url'] as String?,
+      wistiaVideoId: map['wistia_video_id'] as String?,
       thumbnailUrl: map['thumbnail_url'] as String?,
       durationSeconds: (map['duration_seconds'] as num?)?.toInt() ?? 0,
       formLevel: (map['form_level'] as num?)?.toInt() ?? 4,
