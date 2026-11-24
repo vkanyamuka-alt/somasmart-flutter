@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-/// Domain model representing a Quiz in SomaSmart.
+/// Domain model representing a Quiz in SomaMkononi.
 /// Mirrors Supabase `public.quizzes` table.
 class QuizModel {
   final String id;

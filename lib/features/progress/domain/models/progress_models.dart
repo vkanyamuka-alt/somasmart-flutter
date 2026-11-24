@@ -1,5 +1,5 @@
 // Domain models for Progress & Learning Analytics.
-// Matches React SomaSmart's progress calculations and data structures.
+// Matches React SomaMkononi's progress calculations and data structures.
 
 import 'package:somasmart_flutter/features/practice/domain/models/quiz_models.dart';
 

@@ -38,7 +38,7 @@ class NotificationDrawer extends ConsumerWidget {
         isUnread: true,
       ),
       _NotifItemData(
-        titleEn: 'SomaSmart 6-Day Access Policy Update',
+        titleEn: 'SomaMkononi 6-Day Access Policy Update',
         titleSw: 'Marekebisho ya Mfumo wa Siku 6 za Majaribio',
         version: 'v2.0.2',
         dateEn: 'Jul 6, 2026',
@@ -68,16 +68,16 @@ class NotificationDrawer extends ConsumerWidget {
         isUnread: false,
       ),
       _NotifItemData(
-        titleEn: 'SomaSmart Platform Release',
-        titleSw: 'Uzinduzi wa SomaSmart Platform',
+        titleEn: 'SomaMkononi Platform Release',
+        titleSw: 'Uzinduzi wa SomaMkononi Platform',
         version: 'v2.0.0',
         dateEn: 'Jun 25, 2026',
         dateSw: '25 Jun, 2026',
         type: 'announcement',
         descEn:
-            "Welcome to SomaSmart! Study anytime and anywhere using our adaptive NECTA syllabus quiz engine and study summaries prepared by Tanzania's best tutors.",
+            "Welcome to SomaMkononi! Study anytime and anywhere using our adaptive NECTA syllabus quiz engine and study summaries prepared by Tanzania's best tutors.",
         descSw:
-            'Karibu SomaSmart! Soma wakati wowote na mahali popote kwa kutumia mfumo wetu unaojirekebisha wa quizzes za syllabus ya NECTA na summaries zilizoandaliwa na wataalamu hodari.',
+            'Karibu SomaMkononi! Soma wakati wowote na mahali popote kwa kutumia mfumo wetu unaojirekebisha wa quizzes za syllabus ya NECTA na summaries zilizoandaliwa na wataalamu hodari.',
         icon: Icons.info_outline_rounded,
         iconColor: AppColors.accentPurple,
         isUnread: false,

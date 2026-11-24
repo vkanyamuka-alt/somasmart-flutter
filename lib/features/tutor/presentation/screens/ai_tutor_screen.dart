@@ -40,7 +40,7 @@ class AiTutorScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'SomaSmart AI Tutor',
+                              'SomaMkononi AI Tutor',
                               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w700,
                                   ),

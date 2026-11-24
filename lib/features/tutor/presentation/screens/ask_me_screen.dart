@@ -272,7 +272,7 @@ class _AskMeScreenState extends ConsumerState<AskMeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'SomaSmart AI',
+                    'SomaMkononi AI',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -391,7 +391,7 @@ class _AskMeScreenState extends ConsumerState<AskMeScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                isSwahili ? 'SomaSmart AI inafikiria...' : 'SomaSmart AI is thinking...',
+                                isSwahili ? 'SomaMkononi AI inafikiria...' : 'SomaMkononi AI is thinking...',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontStyle: FontStyle.italic,
@@ -587,8 +587,8 @@ class _AskMeScreenState extends ConsumerState<AskMeScreen> {
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
                         hintText: isSwahili
-                            ? 'Uliza swali lolote kwa SomaSmart AI...'
-                            : 'Ask SomaSmart AI anything about your studies...',
+                            ? 'Uliza swali lolote kwa SomaMkononi AI...'
+                            : 'Ask SomaMkononi AI anything about your studies...',
                         hintStyle: TextStyle(
                           fontSize: 13.5,
                           color: isDark ? Colors.white30 : Colors.black38,

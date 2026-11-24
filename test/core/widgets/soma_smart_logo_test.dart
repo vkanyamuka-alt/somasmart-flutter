@@ -6,7 +6,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('SomaSmartLogo Widget Tests', () {
-    testWidgets('renders official S logo mark with live SomaSmart wordmark',
+    testWidgets('renders official S logo mark with live SomaMkononi wordmark',
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -17,9 +17,9 @@ void main() {
       );
 
       expect(find.byType(Image), findsOneWidget);
-      expect(find.text('SomaSmart'), findsOneWidget);
+      expect(find.text('SomaMkononi'), findsOneWidget);
 
-      final textWidget = tester.widget<Text>(find.text('SomaSmart'));
+      final textWidget = tester.widget<Text>(find.text('SomaMkononi'));
       expect(textWidget.style?.fontWeight, FontWeight.w800);
       expect(textWidget.style?.fontSize, 20.0);
     });
@@ -35,7 +35,7 @@ void main() {
       );
 
       expect(find.byType(Image), findsOneWidget);
-      expect(find.text('SomaSmart'), findsNothing);
+      expect(find.text('SomaMkononi'), findsNothing);
 
       final imageWidget = tester.widget<Image>(find.byType(Image));
       expect(imageWidget.height, 40);
@@ -53,7 +53,7 @@ void main() {
       );
 
       expect(find.byType(Image), findsOneWidget);
-      expect(find.text('SomaSmart'), findsOneWidget);
+      expect(find.text('SomaMkononi'), findsOneWidget);
     });
 
     testWidgets('supports custom text styling and custom size', (tester) async {
@@ -70,7 +70,7 @@ void main() {
         ),
       );
 
-      final textWidget = tester.widget<Text>(find.text('SomaSmart'));
+      final textWidget = tester.widget<Text>(find.text('SomaMkononi'));
       expect(textWidget.style?.fontSize, 24.0);
       expect(textWidget.style?.color, Colors.amber);
     });

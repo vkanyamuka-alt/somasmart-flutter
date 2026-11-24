@@ -3,7 +3,7 @@ import '../../features/tutor/presentation/widgets/ask_me_floating_panel.dart';
 import '../theme/app_colors.dart';
 
 /// Floating "Ask Me" action button with Sparkles icon and brand blue style.
-/// Tapping opens the liquid-glass floating SomaSmart AI assistant overlay.
+/// Tapping opens the liquid-glass floating SomaMkononi AI assistant overlay.
 class FloatingAskMeButton extends StatelessWidget {
   final VoidCallback? onTap;
 

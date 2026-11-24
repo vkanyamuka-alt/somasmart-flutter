@@ -2,7 +2,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'SomaSmart';
+  static const String appName = 'SomaMkononi';
   static const String appTagline = 'Smart Learning for O-Level & A-Level';
   
   // Storage Keys

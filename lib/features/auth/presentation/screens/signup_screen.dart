@@ -7,7 +7,7 @@ import '../../../../core/widgets/soma_smart_logo.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
 
-/// Official SomaSmart Registration / Sign Up Screen (Phone-First).
+/// Official SomaMkononi Registration / Sign Up Screen (Phone-First).
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
@@ -66,8 +66,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       ? 'Akaunti imeundwa! Tafadhali ingia.'
                       : 'Account created! Please sign in.')
                   : (lang == 'sw'
-                      ? 'Akaunti imeundwa! Karibu SomaSmart.'
-                      : 'Account created! Welcome to SomaSmart.'),
+                      ? 'Akaunti imeundwa! Karibu SomaMkononi.'
+                      : 'Account created! Welcome to SomaMkononi.'),
             ),
             backgroundColor: AppColors.success,
           ),

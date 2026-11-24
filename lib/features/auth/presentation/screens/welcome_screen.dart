@@ -5,17 +5,17 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
 
-/// Official SomaSmart Welcome & Onboarding Screen.
+/// Official SomaMkononi Welcome & Onboarding Screen.
 ///
 /// Designed to match the official design reference:
 /// 1. Upper Photo Section (~44-46% height): Hero student photograph with
 ///    top-right "A Brighter Future Starts Here" headline and gold accent bar.
 /// 2. Wave Transition: Subtle, elegant flowing light-blue curves connecting the photo into the lower section.
 /// 3. Lower Content Section:
-///    - Centered SomaSmart branding ([S Logo] + "SomaSmart")
+///    - Centered SomaMkononi branding ([S Logo] + "SomaMkononi")
 ///    - Value proposition headline: "O-level & A-level notes, Videos, practical simulations and AI tutor."
 ///    - Gold accent line
-///    - Supporting tagline: "Study smarter. Go further with SomaSmart."
+///    - Supporting tagline: "Study smarter. Go further with SomaMkononi."
 ///    - 4 Feature Pillars: Comprehensive Notes, Videos, Practical Simulations, AI Tutor Support
 ///    - Primary Action: Prominent "Get Started ->" button routing to Login/Sign Up.
 ///
@@ -157,7 +157,7 @@ class WelcomeScreen extends ConsumerWidget {
                       children: [
                         const SizedBox(height: 12),
 
-                        // 1. Centered SomaSmart Branding ([S Logo] SomaSmart)
+                        // 1. Centered SomaMkononi Branding ([S Logo] SomaMkononi)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
@@ -203,7 +203,7 @@ class WelcomeScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 Text(
-                                  'Smart',
+                                  'Mkononi',
                                   style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w800,
@@ -250,8 +250,8 @@ class WelcomeScreen extends ConsumerWidget {
                         // 4. Supporting Tagline
                         Text(
                           isSw
-                              ? 'Jifunze kwa ufanisi. Fika mbali na SomaSmart.'
-                              : 'Study smarter. Go further with SomaSmart.',
+                              ? 'Jifunze kwa ufanisi. Fika mbali na SomaMkononi.'
+                              : 'Study smarter. Go further with SomaMkononi.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 13.0,

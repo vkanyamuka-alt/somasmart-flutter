@@ -4,7 +4,7 @@ import 'package:somasmart_flutter/features/progress/data/repositories/progress_r
 import 'package:somasmart_flutter/features/progress/domain/models/progress_models.dart';
 
 /// Provider that calculates real student progress and learning analytics.
-/// Adheres 1:1 to React SomaSmart calculations in `Progress.jsx`.
+/// Adheres 1:1 to React SomaMkononi calculations in `Progress.jsx`.
 final progressAnalyticsProvider =
     FutureProvider.autoDispose<ProgressAnalyticsModel>((ref) async {
   final userProfile = ref.watch(userProfileProvider).value;

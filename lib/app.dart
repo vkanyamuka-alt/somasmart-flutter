@@ -5,7 +5,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 
-/// Root Application Widget for SomaSmart Flutter.
+/// Root Application Widget for SomaMkononi Flutter.
 class SomaSmartApp extends ConsumerWidget {
   const SomaSmartApp({super.key});
 

@@ -1,5 +1,5 @@
 // ==============================================================================
-// SOMASMART SUPABASE EDGE FUNCTION: simulate-payment-webhook
+// SOMAMKONONI SUPABASE EDGE FUNCTION: simulate-payment-webhook
 // Fallback & Testing simulated payment webhook handler (Preserved)
 // ==============================================================================
 

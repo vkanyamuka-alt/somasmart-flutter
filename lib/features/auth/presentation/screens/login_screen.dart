@@ -6,11 +6,11 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
 
-/// Official SomaSmart Login Screen (Phone-First).
+/// Official SomaMkononi Login Screen (Phone-First).
 ///
 /// Implements the polished branding hierarchy:
 /// 1. Centered official S logo mark
-/// 2. Live "SomaSmart" typography directly below the logo
+/// 2. Live "SomaMkononi" typography directly below the logo
 /// 3. "Welcome Back" and learning journey subtitle
 /// 4. Phone Number and Password fields with visibility toggle
 /// 5. Remember Me and Forgot Password options
@@ -140,9 +140,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   const SizedBox(height: 10),
 
-                  // Live "SomaSmart" typography directly below logo
+                  // Live "SomaMkononi" typography directly below logo
                   Text(
-                    'SomaSmart',
+                    'SomaMkononi',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,

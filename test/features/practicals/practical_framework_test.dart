@@ -95,7 +95,7 @@ void main() {
       expect(registry.resolveEngine('unimplemented_engine'), isNull);
     });
 
-    test('Catalog Repository contains 27 authentic SomaSmart practicals', () {
+    test('Catalog Repository contains 27 authentic SomaMkononi practicals', () {
       final repo = PracticalRepositoryImpl();
       final all = repo.getAllPracticals();
       expect(all.length, equals(27));

@@ -236,8 +236,8 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
             SnackBar(
               content: Text(
                 isSw
-                    ? 'Akaunti yako imethibitishwa kikamilifu! Karibu SomaSmart.'
-                    : 'Account verified successfully! Welcome to SomaSmart.',
+                    ? 'Akaunti yako imethibitishwa kikamilifu! Karibu SomaMkononi.'
+                    : 'Account verified successfully! Welcome to SomaMkononi.',
               ),
               backgroundColor: AppColors.success,
             ),

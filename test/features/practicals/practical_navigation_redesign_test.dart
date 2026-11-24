@@ -32,7 +32,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('SomaSmart Simulation Laboratory'), findsOneWidget);
+      expect(find.text('SomaMkononi Simulation Laboratory'), findsOneWidget);
       expect(find.text('Master Practical Science'), findsOneWidget);
       expect(find.text('Select Academic Level'), findsOneWidget);
       expect(find.text('O-Level Secondary'), findsOneWidget);
@@ -148,7 +148,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Maabara ya Vitendo ya SomaSmart'), findsOneWidget);
+      expect(find.text('Maabara ya Vitendo ya SomaMkononi'), findsOneWidget);
       expect(find.text('Jifunze Sayansi kwa Vitendo'), findsOneWidget);
       expect(find.text('Kidato cha 1–4 (O-Level)'), findsOneWidget);
 

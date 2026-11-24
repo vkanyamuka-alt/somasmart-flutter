@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
-/// ThemeData definitions for SomaSmart.
+/// ThemeData definitions for SomaMkononi.
 class AppTheme {
   AppTheme._();
 

@@ -108,7 +108,7 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
             Text(
               lang == 'sw'
                   ? 'Fanya mazoezi ya mitihani na majaribio yote kwa kulipia TSh 2,500 tu kwa mwezi.'
-                  : 'Practice exams and quizzes require an active SomaSmart Premium subscription (TSh 2,500/month).',
+                  : 'Practice exams and quizzes require an active SomaMkononi Premium subscription (TSh 2,500/month).',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: isDark

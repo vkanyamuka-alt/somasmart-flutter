@@ -23,7 +23,7 @@ class PracticalLevelScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          isSwahili ? 'Maabara ya Vitendo ya SomaSmart' : 'SomaSmart Simulation Laboratory',
+          isSwahili ? 'Maabara ya Vitendo ya SomaMkononi' : 'SomaMkononi Simulation Laboratory',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         leading: IconButton(
