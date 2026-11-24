@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Official reusable SomaSmart Logo widget.
+/// Official reusable SomaMkononi Logo widget.
 ///
-/// Combines the official "S" logo mark asset with live Flutter typography for "SomaSmart".
+/// Combines the official "S" logo mark asset with live Flutter typography for "SomaMkononi".
 /// Supports both mark-only and full mark+text configurations, customizable size,
 /// and automatic light/dark theme adaptation.
 class SomaSmartLogo extends StatelessWidget {
   /// The width and height of the S logo mark icon.
   final double size;
 
-  /// Whether to display the "SomaSmart" live text next to the logo mark.
+  /// Whether to display the "SomaMkononi" live text next to the logo mark.
   final bool showText;
 
-  /// Optional custom font size for the "SomaSmart" wordmark.
+  /// Optional custom font size for the "SomaMkononi" wordmark.
   final double? fontSize;
 
   /// Optional custom text color override.
@@ -89,7 +89,7 @@ class SomaSmartLogo extends StatelessWidget {
         logoMark,
         SizedBox(width: spacing),
         Text(
-          'SomaSmart',
+          'SomaMkononi',
           style: TextStyle(
             fontSize: resolvedFontSize,
             fontWeight: FontWeight.w800,

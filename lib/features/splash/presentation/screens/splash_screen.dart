@@ -6,9 +6,9 @@ import '../../../../core/services/supabase_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 
-/// Official SomaSmart Splash & Startup Screen.
+/// Official SomaMkononi Splash & Startup Screen.
 ///
-/// Features the official "S" logo mark, live "SomaSmart" typography,
+/// Features the official "S" logo mark, live "SomaMkononi" typography,
 /// and localized tagline with a smooth, subtle startup animation sequence.
 class SplashScreen extends ConsumerStatefulWidget {
   final Duration animationDuration;
@@ -58,7 +58,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       ),
     );
 
-    // 2. Title "SomaSmart" fades and slides smoothly (0.35 -> 0.8)
+    // 2. Title "SomaMkononi" fades and slides smoothly (0.35 -> 0.8)
     _titleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -173,13 +173,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                   const SizedBox(height: 20),
 
-                  // 2. Live "SomaSmart" Typography Wordmark
+                  // 2. Live "SomaMkononi" Typography Wordmark
                   SlideTransition(
                     position: _titleSlideAnimation,
                     child: FadeTransition(
                       opacity: _titleFadeAnimation,
                       child: const Text(
-                        'SomaSmart',
+                        'SomaMkononi',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,

@@ -19,7 +19,7 @@ void main() {
   });
 
   group('WelcomeScreen Widget Tests', () {
-    testWidgets('renders official S logo mark, SomaSmart branding, Swahili headline & value proposition, and Get Started button',
+    testWidgets('renders official S logo mark, SomaMkononi branding, Swahili headline & value proposition, and Get Started button',
         (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -35,7 +35,7 @@ void main() {
       // Logo and background image assets
       expect(find.byType(Image), findsNWidgets(2));
       expect(find.text('Soma', findRichText: true), findsOneWidget);
-      expect(find.text('Smart', findRichText: true), findsOneWidget);
+      expect(find.text('Mkononi', findRichText: true), findsOneWidget);
       expect(find.text('Mustakabali\nMzuri Unaanzia\nHapa'), findsOneWidget);
       expect(find.text('Anza Sasa'), findsOneWidget);
       expect(find.byIcon(Icons.arrow_forward_rounded), findsOneWidget);
@@ -46,7 +46,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('Jifunze kwa ufanisi. Fika mbali na SomaSmart.'),
+        find.text('Jifunze kwa ufanisi. Fika mbali na SomaMkononi.'),
         findsOneWidget,
       );
       // 4 Feature Pillars (Swahili)
@@ -83,7 +83,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('Study smarter. Go further with SomaSmart.'),
+        find.text('Study smarter. Go further with SomaMkononi.'),
         findsOneWidget,
       );
       // 4 Feature Pillars (English)
@@ -109,7 +109,7 @@ void main() {
       );
 
       expect(find.text('Soma', findRichText: true), findsOneWidget);
-      expect(find.text('Smart', findRichText: true), findsOneWidget);
+      expect(find.text('Mkononi', findRichText: true), findsOneWidget);
       expect(find.text('Muhtasari\nwa Masomo'), findsOneWidget);
     });
   });
@@ -129,7 +129,7 @@ void main() {
       );
 
       expect(find.byType(Image), findsOneWidget);
-      expect(find.text('SomaSmart'), findsOneWidget);
+      expect(find.text('SomaMkononi'), findsOneWidget);
       expect(find.text('Karibu Tena'), findsOneWidget);
       expect(find.text('Ingia'), findsOneWidget);
       expect(find.text('Nikumbuke'), findsOneWidget);

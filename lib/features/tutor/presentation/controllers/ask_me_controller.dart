@@ -70,14 +70,14 @@ class AskMeController extends StateNotifier<AskMeState> {
       return ChatMessageModel(
         id: 'welcome-init',
         role: 'assistant',
-        content: 'Mimi ni **SomaSmart AI**. Ninawezaje kukusaidia kujifunza leo?',
+        content: 'Mimi ni **SomaMkononi AI**. Ninawezaje kukusaidia kujifunza leo?',
         createdAt: DateTime.now(),
       );
     } else {
       return ChatMessageModel(
         id: 'welcome-init',
         role: 'assistant',
-        content: "I'm **SomaSmart AI**. How can I help you learn today?",
+        content: "I'm **SomaMkononi AI**. How can I help you learn today?",
         createdAt: DateTime.now(),
       );
     }
@@ -121,8 +121,8 @@ class AskMeController extends StateNotifier<AskMeState> {
       final isSwahili = lang == 'sw';
       final errorReply = ChatMessageModel.assistant(
         isSwahili
-            ? 'Samahani, SomaSmart AI imeshindwa kujibu kwa sasa kutokana na hitilafu ya mtandao au huduma. Tafadhali jaribu tena.'
-            : 'Sorry, SomaSmart AI was unable to respond at this time due to a network or service issue. Please try again.',
+            ? 'Samahani, SomaMkononi AI imeshindwa kujibu kwa sasa kutokana na hitilafu ya mtandao au huduma. Tafadhali jaribu tena.'
+            : 'Sorry, SomaMkononi AI was unable to respond at this time due to a network or service issue. Please try again.',
         isError: true,
       );
 

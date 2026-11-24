@@ -9,7 +9,7 @@ class QuizRepository {
 
   QuizRepository(this._client);
 
-  // Canonical React SomaSmart initial quizzes
+  // Canonical React SomaMkononi initial quizzes
   static const List<QuizModel> _canonicalQuizzes = [
     QuizModel(
       id: 'q1',
@@ -37,7 +37,7 @@ class QuizRepository {
     ),
   ];
 
-  // Canonical React SomaSmart initial questions
+  // Canonical React SomaMkononi initial questions
   static const List<QuizQuestionModel> _canonicalQuestions = [
     QuizQuestionModel(
       id: 'q1_1',

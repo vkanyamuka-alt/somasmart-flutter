@@ -5,7 +5,7 @@ import '../../../../core/theme/theme_provider.dart';
 import '../controllers/settings_controller.dart';
 
 /// Settings Screen (Tab 5)
-/// Fully aligned with SomaSmart React `Settings.jsx` information architecture & visual direction.
+/// Fully aligned with SomaMkononi React `Settings.jsx` information architecture & visual direction.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -160,8 +160,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: currentLang == 'sw' ? 'Mipangilio ya Lugha' : 'Language Settings',
               icon: Icons.language_rounded,
               description: currentLang == 'sw'
-                  ? 'Chagua lugha ya kutumia kwenye jukwaa la SomaSmart.'
-                  : 'Choose the language to use across the SomaSmart platform.',
+                  ? 'Chagua lugha ya kutumia kwenye jukwaa la SomaMkononi.'
+                  : 'Choose the language to use across the SomaMkononi platform.',
               child: Row(
                 children: [
                   Expanded(
@@ -202,8 +202,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ? 'Soma jinsi tunavyolinda na kusimamia taarifa zako za siri.'
                   : 'Read how we secure and protect your private account data.',
               expandedContent: currentLang == 'sw'
-                  ? 'SomaSmart inajali usalama na usiri wa taarifa zako. Tunakusanya taarifa za msingi kama jina, barua pepe na namba ya simu ili kuboresha matumizi yako. Hatushiriki taarifa zako na upande wowote wa tatu bila ridhaa yako.'
-                  : 'SomaSmart values your data privacy. We collect basic account info (name, email, phone) to personalize your learning. Your credentials are fully encrypted and are never shared with third parties without your consent.',
+                  ? 'SomaMkononi inajali usalama na usiri wa taarifa zako. Tunakusanya taarifa za msingi kama jina, barua pepe na namba ya simu ili kuboresha matumizi yako. Hatushiriki taarifa zako na upande wowote wa tatu bila ridhaa yako.'
+                  : 'SomaMkononi values your data privacy. We collect basic account info (name, email, phone) to personalize your learning. Your credentials are fully encrypted and are never shared with third parties without your consent.',
             ),
             const SizedBox(height: 14),
 
@@ -218,11 +218,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 });
               },
               collapsedDescription: currentLang == 'sw'
-                  ? 'Sheria na vigezo vya matumizi ya huduma za SomaSmart.'
-                  : 'The terms and regulations governing the use of SomaSmart app.',
+                  ? 'Sheria na vigezo vya matumizi ya huduma za SomaMkononi.'
+                  : 'The terms and regulations governing the use of SomaMkononi app.',
               expandedContent: currentLang == 'sw'
-                  ? 'Kwa kutumia jukwaa hili, unakubali kutonakili, kutosambaza au kuuza summaries, notes na quizzes za SomaSmart bila kibali maalum cha maandishi. Huduma hii ni kwa matumizi yako ya kibinafsi pekee.'
-                  : 'By accessing SomaSmart services, you agree not to duplicate, distribute, or resell any platform summaries or quiz contents without written consent. The service is strictly for personal educational use.',
+                  ? 'Kwa kutumia jukwaa hili, unakubali kutonakili, kutosambaza au kuuza summaries, notes na quizzes za SomaMkononi bila kibali maalum cha maandishi. Huduma hii ni kwa matumizi yako ya kibinafsi pekee.'
+                  : 'By accessing SomaMkononi services, you agree not to duplicate, distribute, or resell any platform summaries or quiz contents without written consent. The service is strictly for personal educational use.',
             ),
             const SizedBox(height: 14),
 

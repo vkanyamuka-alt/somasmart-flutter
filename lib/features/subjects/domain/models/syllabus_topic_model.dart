@@ -48,7 +48,7 @@ class SubjectNoteItem {
               ? map['profiles']['full_name']
               : null) ??
           map['author_name'] as String? ??
-          'SomaSmart Admin',
+          'SomaMkononi Admin',
       downloads: (map['downloads'] as num?)?.toInt() ?? 0,
       topic: map['topic'] as String?,
       textContent: map['text_content'] as String?,

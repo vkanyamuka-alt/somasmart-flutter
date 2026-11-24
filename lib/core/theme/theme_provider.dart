@@ -26,7 +26,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
     } else if (savedMode == 'dark') {
       state = ThemeMode.dark;
     } else {
-      state = ThemeMode.dark; // Default to dark for SomaSmart
+      state = ThemeMode.dark; // Default to dark for SomaMkononi
     }
   }
 

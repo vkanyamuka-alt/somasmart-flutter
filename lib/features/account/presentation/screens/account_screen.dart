@@ -112,8 +112,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         ),
         content: Text(
           lang == 'sw'
-              ? 'Je, una uhakika unataka kuondoka kwenye akaunti yako ya SomaSmart?'
-              : 'Are you sure you want to sign out of your SomaSmart account?',
+              ? 'Je, una uhakika unataka kuondoka kwenye akaunti yako ya SomaMkononi?'
+              : 'Are you sure you want to sign out of your SomaMkononi account?',
           style: TextStyle(
             fontSize: 13,
             color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
@@ -347,8 +347,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         const SizedBox(height: 8),
                         Text(
                           lang == 'sw'
-                              ? 'Mwanachama hai wa SomaSmart tangu 2026.'
-                              : 'Active member of SomaSmart since 2026.',
+                              ? 'Mwanachama hai wa SomaMkononi tangu 2026.'
+                              : 'Active member of SomaMkononi since 2026.',
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark

@@ -74,7 +74,7 @@ class SideMenuDrawer extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'SomaSmart Scholar',
+                        'SomaMkononi Scholar',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -149,11 +149,11 @@ class SideMenuDrawer extends ConsumerWidget {
           _MenuItem(
             icon: Icons.share_outlined,
             iconColor: AppColors.primary,
-            label: 'Share SomaSmart',
+            label: 'Share SomaMkononi',
             onTap: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('SomaSmart link copied!')),
+                const SnackBar(content: Text('SomaMkononi link copied!')),
               );
             },
           ),
@@ -178,7 +178,7 @@ class SideMenuDrawer extends ConsumerWidget {
           _MenuItem(
             icon: Icons.info_outline_rounded,
             iconColor: AppColors.accentPurple,
-            label: 'Kuhusu SomaSmart (About)',
+            label: 'Kuhusu SomaMkononi (About)',
             onTap: () {
               Navigator.pop(context);
               _showAboutDialog(context);
@@ -221,7 +221,7 @@ class SideMenuDrawer extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Toa Maoni (Feedback)'),
         content: const Text(
-          'Tungependa kusikia kutoka kwako ili kuboresha zaidi huduma za SomaSmart!',
+          'Tungependa kusikia kutoka kwako ili kuboresha zaidi huduma za SomaMkononi!',
         ),
         actions: [
           TextButton(
@@ -237,7 +237,7 @@ class SideMenuDrawer extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('SomaSmart'),
+        title: const Text('SomaMkononi'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

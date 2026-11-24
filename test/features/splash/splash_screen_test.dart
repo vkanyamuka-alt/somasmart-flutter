@@ -16,7 +16,7 @@ void main() {
   });
 
   group('SplashScreen Widget Tests', () {
-    testWidgets('renders official S logo mark, SomaSmart title, and Swahili tagline by default',
+    testWidgets('renders official S logo mark, SomaMkononi title, and Swahili tagline by default',
         (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -37,7 +37,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(Image), findsOneWidget);
-      expect(find.text('SomaSmart'), findsOneWidget);
+      expect(find.text('SomaMkononi'), findsOneWidget);
       expect(find.text('Jifunze Haraka. Elewa Zaidi.\nMudu Kila Mada.'), findsOneWidget);
       expect(find.text('Mfumo wa Kisasa wa Kujisomea'), findsOneWidget);
     });
@@ -87,7 +87,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(Image), findsOneWidget);
-      expect(find.text('SomaSmart'), findsOneWidget);
+      expect(find.text('SomaMkononi'), findsOneWidget);
     });
   });
 }

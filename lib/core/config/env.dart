@@ -1,5 +1,5 @@
-/// Environment configuration for SomaSmart.
-/// Connects to the existing SomaSmart Supabase backend.
+/// Environment configuration for SomaMkononi.
+/// Connects to the existing SomaMkononi Supabase backend.
 class Env {
   Env._();
 

@@ -4,7 +4,7 @@ import 'notification_drawer.dart';
 import 'side_menu_drawer.dart';
 import 'soma_smart_logo.dart';
 
-/// Top header matching React SomaSmart desktop & mobile header with Logo, Notifications badge, and Menu.
+/// Top header matching React SomaMkononi desktop & mobile header with Logo, Notifications badge, and Menu.
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final int unreadNotificationsCount;
 
@@ -45,7 +45,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       child: Row(
         children: [
-          // SomaSmart Logo & Live Wordmark
+          // SomaMkononi Logo & Live Wordmark
           const SomaSmartLogo(size: 34),
 
           const Spacer(),

@@ -7,7 +7,7 @@ import '../../../../core/widgets/soma_smart_logo.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/auth_controller.dart';
 
-/// Official SomaSmart Forgot Password Screen.
+/// Official SomaMkononi Forgot Password Screen.
 /// Supports Email Reset and Contact Support. Phone (SMS) reset is disabled until a server-side OTP exists.
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});

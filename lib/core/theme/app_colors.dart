@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens for SomaSmart's academic color system.
+/// Design tokens for SomaMkononi's academic color system.
 class AppColors {
   AppColors._();
 

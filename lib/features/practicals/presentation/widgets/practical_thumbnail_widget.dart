@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Unified scientific apparatus thumbnail widget for SomaSmart Simulation Laboratory.
+/// Unified scientific apparatus thumbnail widget for SomaMkononi Simulation Laboratory.
 /// Adheres strictly to the Royal Scholar Blue (#0058BE) / Slate design language.
 class PracticalThumbnailWidget extends StatelessWidget {
   final String thumbnailType;

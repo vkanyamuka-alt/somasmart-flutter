@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Custom bottom navigation bar for the 5 SomaSmart core tabs.
+/// Custom bottom navigation bar for the 5 SomaMkononi core tabs.
 class SomaSmartBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
