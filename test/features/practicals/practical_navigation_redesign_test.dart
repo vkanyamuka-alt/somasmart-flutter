@@ -46,7 +46,7 @@ void main() {
 
   testWidgets('the lab home: one card per subject with its name only; A-Level says it is coming', (tester) async {
     await pumpRoutes(tester, '/practical');
-    expect(find.text('SomaSmart Simulation Laboratory'), findsOneWidget);
+    expect(find.text('SomaMkononi Simulation Laboratory'), findsOneWidget);
     expect(find.text('Choose a subject'), findsOneWidget);
     for (final name in ['Chemistry', 'Physics', 'Biology']) {
       expect(find.text(name), findsOneWidget);

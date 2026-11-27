@@ -51,7 +51,7 @@ void main() {
       await tester.pumpWidget(welcome(prefs));
       await tester.pumpAndSettle();
 
-      expect(find.text('SomaSmart', findRichText: true), findsOneWidget);
+      expect(find.text('SomaMkononi', findRichText: true), findsOneWidget);
       expect(find.text('Mustakabali mzuri\nunaanzia hapa'), findsOneWidget);
       expect(find.text('Anza Sasa'), findsOneWidget);
       expect(find.byKey(const Key('welcome-login')), findsOneWidget);
@@ -92,7 +92,7 @@ void main() {
       await tester.pumpWidget(welcome(prefs, theme: ThemeData.dark()));
       await tester.pumpAndSettle();
 
-      expect(find.text('SomaSmart', findRichText: true), findsOneWidget);
+      expect(find.text('SomaMkononi', findRichText: true), findsOneWidget);
       expect(find.text('Muhtasari\nwa masomo'), findsOneWidget);
     });
 
@@ -150,7 +150,7 @@ void main() {
       );
 
       expect(find.byType(Image), findsOneWidget);
-      expect(find.text('SomaSmart'), findsOneWidget);
+      expect(find.text('SomaMkononi'), findsOneWidget);
       expect(find.text('Karibu tena'), findsOneWidget);
       expect(find.text('Ingia uendelee kujisomea.'), findsOneWidget);
       expect(find.byKey(const Key('tab-login')), findsOneWidget);
@@ -158,7 +158,7 @@ void main() {
       expect(find.text('Namba ya simu au email'), findsOneWidget);
       expect(find.text('Neno la siri'), findsOneWidget);
       expect(find.text('Umesahau neno la siri?'), findsOneWidget);
-      expect(find.text('Mgeni SomaSmart? '), findsOneWidget);
+      expect(find.text('Mgeni SomaMkononi? '), findsOneWidget);
       // "Remember me" did nothing (the session is always kept) and is gone.
       expect(find.text('Nikumbuke'), findsNothing);
       expect(find.byType(Checkbox), findsNothing);

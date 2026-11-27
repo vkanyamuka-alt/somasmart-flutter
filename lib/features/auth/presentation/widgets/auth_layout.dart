@@ -7,7 +7,7 @@ import '../../../settings/presentation/controllers/settings_controller.dart';
 
 /// Shared pieces of the sign-in screens (Log in, Sign up, Finish your account).
 ///
-/// The app keeps its own full-page look (white page, logo + "SomaSmart", grey
+/// The app keeps its own full-page look (white page, logo + "SomaMkononi", grey
 /// filled fields, the standard button); from the website it takes the
 /// Ingia | Jisajili tabs, the SW | EN switch and the wording. Always light,
 /// like the `/login` route's forced light theme.
@@ -115,7 +115,7 @@ class AuthLanguageSwitch extends ConsumerWidget {
   }
 }
 
-/// Logo, "SomaSmart", title, subtitle and an optional highlighted line (an
+/// Logo, "SomaMkononi", title, subtitle and an optional highlighted line (an
 /// email address) — the app's own header.
 class AuthHeader extends StatelessWidget {
   final String title;
@@ -133,7 +133,7 @@ class AuthHeader extends StatelessWidget {
           width: 64,
           height: 64,
           fit: BoxFit.contain,
-          semanticLabel: 'SomaSmart',
+          semanticLabel: 'SomaMkononi',
           errorBuilder: (context, error, stackTrace) => Container(
             width: 64,
             height: 64,
@@ -144,7 +144,7 @@ class AuthHeader extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         const Text(
-          'SomaSmart',
+          'SomaMkononi',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.4, color: AuthColors.ink),
         ),
         const SizedBox(height: 24),
@@ -383,7 +383,7 @@ class AuthDivider extends StatelessWidget {
   }
 }
 
-/// "Mgeni SomaSmart? Fungua akaunti" style line under the buttons.
+/// "Mgeni SomaMkononi? Fungua akaunti" style line under the buttons.
 class AuthFooter extends StatelessWidget {
   final String text;
   final String linkText;

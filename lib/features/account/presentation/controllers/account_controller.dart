@@ -182,7 +182,7 @@ class UserProfileNotifier extends AsyncNotifier<UserProfile?> {
       return const UserProfile(
         id: 'guest',
         email: 'student@somasmart.ac.tz',
-        fullName: 'Mwanafunzi SomaSmart',
+        fullName: 'Mwanafunzi SomaMkononi',
         phone: '+255 700 000 000',
         role: 'student',
         subscriptionStatus: 'free',

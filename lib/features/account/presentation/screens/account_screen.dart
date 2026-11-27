@@ -279,8 +279,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         const SizedBox(height: 8),
                         Text(
                           lang == 'sw'
-                              ? 'Mwanachama hai wa SomaSmart tangu 2026.'
-                              : 'Active member of SomaSmart since 2026.',
+                              ? 'Mwanachama hai wa SomaMkononi tangu 2026.'
+                              : 'Active member of SomaMkononi since 2026.',
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark

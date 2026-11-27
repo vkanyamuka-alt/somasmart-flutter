@@ -24,8 +24,8 @@ Future<bool> turnOnNotifications(BuildContext context, WidgetRef ref) async {
     _snack(
       context,
       isSw
-          ? 'Arifa zimezuiwa. Ziruhusu kwa SomaSmart kwenye Mipangilio ya simu yako.'
-          : 'Notifications are blocked. Allow them for SomaSmart in your phone settings.',
+          ? 'Arifa zimezuiwa. Ziruhusu kwa SomaMkononi kwenye Mipangilio ya simu yako.'
+          : 'Notifications are blocked. Allow them for SomaMkononi in your phone settings.',
     );
   }
   return false;

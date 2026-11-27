@@ -135,7 +135,7 @@ class _LabHero extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'SomaSmart Simulation Laboratory',
+                        'SomaMkononi Simulation Laboratory',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 26,

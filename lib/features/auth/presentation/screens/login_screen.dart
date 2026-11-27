@@ -167,7 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 20),
             AuthFooter(
-              text: isSw ? 'Mgeni SomaSmart?' : 'New to SomaSmart?',
+              text: isSw ? 'Mgeni SomaMkononi?' : 'New to SomaMkononi?',
               linkText: isSw ? 'Fungua akaunti' : 'Create an account',
               linkKey: const Key('login-to-signup'),
               onTap: () => context.go('/signup'),

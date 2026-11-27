@@ -50,7 +50,7 @@ void main() {
 
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
       expect(scaffold.backgroundColor, AppColors.lightBgSurface);
-      expect(find.text('SomaSmart'), findsOneWidget);
+      expect(find.text('SomaMkononi'), findsOneWidget);
     });
 
     testWidgets('WelcomeScreen renders in light theme with white background', (tester) async {

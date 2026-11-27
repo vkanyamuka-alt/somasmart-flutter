@@ -12,8 +12,8 @@ void main() {
 
   test('feedback links carry the message', () {
     const c = SupportContact(phone: '+255712345678', email: 'help@example.co.tz');
-    expect(c.feedbackWhatsapp(' Hello ')!.queryParameters['text'], 'SomaSmart feedback:\nHello');
-    expect(c.feedbackMail('Hello').toString(), 'mailto:help@example.co.tz?subject=SomaSmart%20feedback&body=Hello');
+    expect(c.feedbackWhatsapp(' Hello ')!.queryParameters['text'], 'SomaMkononi feedback:\nHello');
+    expect(c.feedbackMail('Hello').toString(), 'mailto:help@example.co.tz?subject=SomaMkononi%20feedback&body=Hello');
   });
 
   test('ignores numbers and emails that are not valid', () {

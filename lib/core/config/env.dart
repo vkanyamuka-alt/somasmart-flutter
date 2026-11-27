@@ -1,4 +1,4 @@
-/// Environment configuration for SomaSmart.
+/// Environment configuration for SomaMkononi.
 ///
 /// Release builds talk to PRODUCTION. A test build for the staging project
 /// passes its own values, without editing this file:

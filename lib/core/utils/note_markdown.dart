@@ -1,5 +1,5 @@
 // How a note's Markdown is read, the same way as the website and the admin
-// preview (SomaSmart App: src/lib/noteMarkdown.js). Both are checked against
+// preview (SomaMkononi App: src/lib/noteMarkdown.js). Both are checked against
 // the same cases: test/fixtures/note_markdown_cases.json is a copy of the
 // website's src/lib/noteMarkdownCases.json, so keep the two in step.
 //

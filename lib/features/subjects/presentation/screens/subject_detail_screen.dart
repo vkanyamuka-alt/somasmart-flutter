@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/documents.dart';
+import '../../../../core/widgets/pdf_viewer_screen.dart';
 import '../../../notes/presentation/screens/note_viewer_screen.dart';
 import '../../domain/models/syllabus_topic_model.dart';
 import '../controllers/subjects_controller.dart';
@@ -419,7 +421,7 @@ class _ContentTab extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (n.isNotEmpty) _NoteLinks(notes: n, lang: lang),
-        if (m.isNotEmpty) _MaterialLinks(materials: m),
+        if (m.isNotEmpty) _MaterialLinks(materials: m, lang: lang),
         if (c.isNotEmpty) _MemoryCards(cards: c),
       ],
     );
@@ -682,8 +684,15 @@ class _NoteLinks extends StatelessWidget {
 /// A topic's videos, audio and files: one row each, the row opens it.
 class _MaterialLinks extends StatelessWidget {
   final List<SubjectMaterialItem> materials;
+  final String lang;
 
-  const _MaterialLinks({required this.materials});
+  const _MaterialLinks({required this.materials, required this.lang});
+
+  static MaterialOpenKind _kind(SubjectMaterialItem m) => materialOpenKind(
+    materialType: m.materialType,
+    url: m.externalUrl,
+    wistiaVideoId: m.wistiaVideoId,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -721,11 +730,15 @@ class _MaterialLinks extends StatelessWidget {
                       ),
                       child: Center(
                         child: Icon(
-                          mat.materialType == 'video'
-                              ? Icons.play_arrow_rounded
-                              : mat.materialType == 'audio'
-                              ? Icons.headphones_rounded
-                              : Icons.description_rounded,
+                          switch (_kind(mat)) {
+                            MaterialOpenKind.pdf =>
+                              Icons.picture_as_pdf_rounded,
+                            MaterialOpenKind.file =>
+                              Icons.insert_drive_file_rounded,
+                            MaterialOpenKind.audio => Icons.headphones_rounded,
+                            MaterialOpenKind.video => Icons.play_arrow_rounded,
+                            _ => Icons.description_rounded,
+                          },
                           color: Colors.white,
                           size: 22,
                         ),
@@ -778,8 +791,33 @@ class _MaterialLinks extends StatelessWidget {
     BuildContext context,
     SubjectMaterialItem mat,
   ) async {
-    final uri = mat.openUri;
     final messenger = ScaffoldMessenger.of(context);
+    final kind = _kind(mat);
+    // PDFs open in the in-app viewer. A Word or other office file cannot be
+    // shown in the app, so say where it can be opened.
+    if (kind == MaterialOpenKind.pdf) {
+      PdfViewerScreen.open(
+        context,
+        url: mat.externalUrl!.trim(),
+        title: mat.title,
+        subtitle: mat.topic,
+        lang: lang,
+      );
+      return;
+    }
+    if (kind == MaterialOpenKind.file) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            lang == 'sw'
+                ? 'Faili hili haliwezi kuonyeshwa kwenye programu. Lipakue kwenye tovuti ya SomaMkononi.'
+                : 'This file cannot be shown in the app. Download it on the SomaMkononi website.',
+          ),
+        ),
+      );
+      return;
+    }
+    final uri = mat.openUri;
     if (uri == null) {
       messenger.showSnackBar(
         const SnackBar(

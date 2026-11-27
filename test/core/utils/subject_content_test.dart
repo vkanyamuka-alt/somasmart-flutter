@@ -22,7 +22,7 @@ void main() {
 
   test('the fixture is the same file as the website copy', () {
     for (final path in [
-      '../SomaSmart App/src/lib/subjectContentCases.json',
+      '../SomaMkononi App/src/lib/subjectContentCases.json',
       '../content/src/lib/subjectContentCases.json',
     ]) {
       final f = File(path);

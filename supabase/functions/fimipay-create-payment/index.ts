@@ -1,5 +1,5 @@
 // ==============================================================================
-// SOMASMART SUPABASE EDGE FUNCTION: fimipay-create-payment
+// SOMAMKONONI SUPABASE EDGE FUNCTION: fimipay-create-payment
 // Initiates server-authoritative mobile payment with FimiPay v1 API.
 // ==============================================================================
 
@@ -105,7 +105,7 @@ serve(async (req: Request) => {
       .eq("id", user.id)
       .maybeSingle();
 
-    const buyerName = profile?.full_name || user.user_metadata?.full_name || "SomaSmart Student";
+    const buyerName = profile?.full_name || user.user_metadata?.full_name || "SomaMkononi Student";
     const buyerEmail = profile?.email || user.email || "student@somasmart.ac.tz";
 
     // 4. Call FimiPay create_order API

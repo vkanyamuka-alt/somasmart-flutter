@@ -5,7 +5,7 @@ import '../theme/app_colors.dart';
 
 /// Floating "Ask me" button: a round 52dp sparkles button, so it covers as
 /// little of the page as possible (same as the web on phones). "Ask me" stays
-/// its tooltip and screen-reader label. Tapping opens the SomaSmart AI panel.
+/// its tooltip and screen-reader label. Tapping opens the SomaMkononi AI panel.
 class FloatingAskMeButton extends StatelessWidget {
   final VoidCallback? onTap;
 

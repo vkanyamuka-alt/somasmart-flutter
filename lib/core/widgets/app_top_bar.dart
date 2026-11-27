@@ -43,7 +43,7 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
       ),
       child: Row(
         children: [
-          // SomaSmart Logo & Live Wordmark
+          // SomaMkononi Logo & Live Wordmark
           const SomaSmartLogo(size: 34),
 
           const Spacer(),

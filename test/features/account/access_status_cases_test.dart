@@ -37,7 +37,7 @@ void main() {
 
   test('the fixture is the same file as the website copy', () {
     // Only checkable when the website checkout sits next to this one.
-    for (final path in ['../SomaSmart App/src/lib/accessStatusCases.json', '../web/src/lib/accessStatusCases.json']) {
+    for (final path in ['../SomaMkononi App/src/lib/accessStatusCases.json', '../web/src/lib/accessStatusCases.json']) {
       final web = File(path);
       if (web.existsSync()) {
         expect(File('test/fixtures/access_status_cases.json').readAsStringSync(), web.readAsStringSync());

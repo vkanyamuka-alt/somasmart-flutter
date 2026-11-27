@@ -21,12 +21,12 @@ class AskMeFloatingPanel extends ConsumerStatefulWidget {
     this.initialPrompt,
   });
 
-  /// Displays the floating SomaSmart AI assistant above the active screen.
+  /// Displays the floating SomaMkononi AI assistant above the active screen.
   static Future<void> show(BuildContext context, {String? initialPrompt}) {
     return showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Dismiss SomaSmart AI',
+      barrierLabel: 'Dismiss SomaMkononi AI',
       barrierColor: Colors.black.withValues(alpha: 0.38),
       transitionDuration: const Duration(milliseconds: 260),
       pageBuilder: (ctx, anim1, anim2) {
@@ -139,8 +139,8 @@ class _AskMeFloatingPanelState extends ConsumerState<AskMeFloatingPanel> {
               const SizedBox(height: 8),
               Text(
                 isSwahili
-                    ? 'Kutumia SomaSmart AI kunahitaji usajili uliolipwa (Premium) au kipindi cha majaribio (Free Trial). Tafadhali jiunge sasa ili upate majibu yasiyo na kikomo.'
-                    : 'Using SomaSmart AI requires an active Premium subscription or Free Trial. Subscribe now to unlock unlimited AI learning support.',
+                    ? 'Kutumia SomaMkononi AI kunahitaji usajili uliolipwa (Premium) au kipindi cha majaribio (Free Trial). Tafadhali jiunge sasa ili upate majibu yasiyo na kikomo.'
+                    : 'Using SomaMkononi AI requires an active Premium subscription or Free Trial. Subscribe now to unlock unlimited AI learning support.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13.5,
@@ -224,8 +224,8 @@ class _AskMeFloatingPanelState extends ConsumerState<AskMeFloatingPanel> {
           title: Text(isSwahili ? 'Futa Mazungumzo' : 'Reset Conversation'),
           content: Text(
             isSwahili
-                ? 'Je, una uhakika unataka kuanza mazungumzo mapya na SomaSmart AI? Ujumbe uliopita utafutwa.'
-                : 'Are you sure you want to start a new conversation with SomaSmart AI? Previous messages will be cleared.',
+                ? 'Je, una uhakika unataka kuanza mazungumzo mapya na SomaMkononi AI? Ujumbe uliopita utafutwa.'
+                : 'Are you sure you want to start a new conversation with SomaMkononi AI? Previous messages will be cleared.',
           ),
           actions: [
             TextButton(
@@ -380,7 +380,7 @@ class _AskMeFloatingPanelState extends ConsumerState<AskMeFloatingPanel> {
                                         Row(
                                           children: [
                                             Text(
-                                              'SomaSmart AI',
+                                              'SomaMkononi AI',
                                               style: TextStyle(
                                                 fontSize: 15.5,
                                                 fontWeight: FontWeight.w800,
@@ -570,8 +570,8 @@ class _AskMeFloatingPanelState extends ConsumerState<AskMeFloatingPanel> {
                                                 const SizedBox(width: 8),
                                                 Text(
                                                   isSwahili
-                                                      ? 'SomaSmart AI inafikiria...'
-                                                      : 'SomaSmart AI is thinking...',
+                                                      ? 'SomaMkononi AI inafikiria...'
+                                                      : 'SomaMkononi AI is thinking...',
                                                   style: TextStyle(
                                                     fontSize: 12.5,
                                                     fontStyle: FontStyle.italic,
@@ -815,8 +815,8 @@ class _AskMeFloatingPanelState extends ConsumerState<AskMeFloatingPanel> {
                                         ),
                                         decoration: InputDecoration(
                                           hintText: isSwahili
-                                              ? 'Uliza swali lolote kwa SomaSmart AI...'
-                                              : 'Ask SomaSmart AI anything...',
+                                              ? 'Uliza swali lolote kwa SomaMkononi AI...'
+                                              : 'Ask SomaMkononi AI anything...',
                                           hintStyle: TextStyle(
                                             fontSize: 12.5,
                                             color: isDark ? Colors.white38 : Colors.black38,

@@ -1,8 +1,8 @@
-// GENERATED from SomaSmart-app/src/lib/somaIcons.json by
+// GENERATED from SomaMkononi-app/src/lib/somaIcons.json by
 // scripts/gen-flutter-icons.mjs. Do not edit by hand: change the JSON on the
 // website repo, then regenerate, so both apps draw the same icons.
 
-/// One SomaSmart drawing on a 24x24 grid.
+/// One SomaMkononi drawing on a 24x24 grid.
 class SomaIconPaths {
   /// Stroked in the ink colour.
   final List<String> line;

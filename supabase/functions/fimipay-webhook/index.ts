@@ -1,5 +1,5 @@
 // ==============================================================================
-// SOMASMART SUPABASE EDGE FUNCTION: fimipay-webhook
+// SOMAMKONONI SUPABASE EDGE FUNCTION: fimipay-webhook
 // Secure FimiPay V4 Webhook Handler with HMAC-SHA256 Raw-Body Signature Verification
 // ==============================================================================
 

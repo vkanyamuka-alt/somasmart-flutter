@@ -402,8 +402,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     final isSw = lang == 'sw';
     if (error == phoneTakenCode) {
       return isSw
-          ? 'Namba hii ya simu tayari ina akaunti ya SomaSmart. Toka, kisha ingia kwa namba hiyo na nenosiri lake.'
-          : 'This phone number already has a SomaSmart account. Sign out, then sign in with that number and its password.';
+          ? 'Namba hii ya simu tayari ina akaunti ya SomaMkononi. Toka, kisha ingia kwa namba hiyo na nenosiri lake.'
+          : 'This phone number already has a SomaMkononi account. Sign out, then sign in with that number and its password.';
     }
     if (error is GoogleSignInException) {
       // Android reports "no internet" from Google only as a generic failure

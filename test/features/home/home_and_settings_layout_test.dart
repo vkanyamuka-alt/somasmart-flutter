@@ -229,7 +229,7 @@ void main() {
       await tester.tap(find.byKey(const Key('settings-row-feedback')));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('once SomaSmart has added its support contact'), findsOneWidget);
+      expect(find.textContaining('once SomaMkononi has added its support contact'), findsOneWidget);
       expect(find.byKey(const Key('settings-feedback-whatsapp')), findsNothing);
     });
 

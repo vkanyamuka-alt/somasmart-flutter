@@ -59,7 +59,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           content: Text(
             result.needsSignIn
                 ? (lang == 'sw' ? 'Akaunti imeundwa! Tafadhali ingia.' : 'Account created! Please sign in.')
-                : (lang == 'sw' ? 'Akaunti imeundwa! Karibu SomaSmart.' : 'Account created! Welcome to SomaSmart.'),
+                : (lang == 'sw' ? 'Akaunti imeundwa! Karibu SomaMkononi.' : 'Account created! Welcome to SomaMkononi.'),
           ),
           backgroundColor: AppColors.success,
         ),

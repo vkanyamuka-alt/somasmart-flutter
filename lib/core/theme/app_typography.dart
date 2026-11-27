@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
-/// Typography hierarchy for SomaSmart educational application.
+/// Typography hierarchy for SomaMkononi educational application.
 class AppTypography {
   AppTypography._();
 

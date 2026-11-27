@@ -131,8 +131,8 @@ class NoteDiagram extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
               child: Text(
                 lang == 'sw'
-                    ? 'Mchoro huu wa maingiliano unaonekana kwenye tovuti ya SomaSmart.'
-                    : 'This interactive diagram is shown on the SomaSmart website.',
+                    ? 'Mchoro huu wa maingiliano unaonekana kwenye tovuti ya SomaMkononi.'
+                    : 'This interactive diagram is shown on the SomaMkononi website.',
                 style: TextStyle(fontSize: 13, height: 1.4, color: ink),
               ),
             ),

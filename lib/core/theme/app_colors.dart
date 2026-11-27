@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// SomaSmart colour tokens, the same palette as the web app
-/// (see `SomaSmart App/docs/DESIGN_SYSTEM.md`): logo navy for actions,
+/// SomaMkononi colour tokens, the same palette as the web app
+/// (see `SomaMkononi App/docs/DESIGN_SYSTEM.md`): logo navy for actions,
 /// gold sparingly for highlights, slate neutrals and three status colours.
 class AppColors {
   AppColors._();

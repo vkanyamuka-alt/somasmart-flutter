@@ -432,7 +432,7 @@ class _BrandChip extends StatelessWidget {
         const SizedBox(width: 8),
         Text.rich(TextSpan(children: [
           TextSpan(text: 'Soma', style: word.copyWith(color: AppColors.primaryDark)),
-          TextSpan(text: 'Smart', style: word.copyWith(color: AppColors.brandGold)),
+          TextSpan(text: 'Mkononi', style: word.copyWith(color: AppColors.brandGold)),
         ])),
       ],
     );

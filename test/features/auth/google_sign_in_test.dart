@@ -58,7 +58,7 @@ void main() {
   test('a phone number taken by another account gets its own message', () {
     expect(
       AuthController.getLocalizedErrorMessage(AuthController.phoneTakenCode, 'en'),
-      contains('already has a SomaSmart account'),
+      contains('already has a SomaMkononi account'),
     );
     expect(
       AuthController.getLocalizedErrorMessage(AuthController.phoneTakenCode, 'sw'),

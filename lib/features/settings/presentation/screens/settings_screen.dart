@@ -43,7 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
-        content: Text(isSw ? 'Kiungo cha SomaSmart kimenakiliwa!' : 'SomaSmart link copied!'),
+        content: Text(isSw ? 'Kiungo cha SomaMkononi kimenakiliwa!' : 'SomaMkononi link copied!'),
         behavior: SnackBarBehavior.floating,
       ));
   }
@@ -249,8 +249,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   SettingsRow(
                     key: const Key('settings-share'),
                     icon: Icons.share_outlined,
-                    title: t('Share SomaSmart', 'Shiriki SomaSmart'),
-                    subtitle: t('Copies the link to SomaSmart', 'Inanakili kiungo cha SomaSmart'),
+                    title: t('Share SomaMkononi', 'Shiriki SomaMkononi'),
+                    subtitle: t('Copies the link to SomaMkononi', 'Inanakili kiungo cha SomaMkononi'),
                     onTap: () => _share(isSw),
                   ),
                   _ExpandRow(
@@ -261,8 +261,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: t('Send feedback', 'Toa maoni'),
                     body: (contact != null && contact.isEmpty)
                         ? Text(
-                            t('Feedback can be sent once SomaSmart has added its support contact.',
-                                'Kutuma maoni kutawezekana pindi SomaSmart itakapoweka mawasiliano yake ya msaada.'),
+                            t('Feedback can be sent once SomaMkononi has added its support contact.',
+                                'Kutuma maoni kutawezekana pindi SomaMkononi itakapoweka mawasiliano yake ya msaada.'),
                             style: bodyStyle,
                           )
                         : Column(
@@ -315,11 +315,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     open: _open == 'about',
                     onToggle: _toggle,
                     icon: Icons.info_outline_rounded,
-                    title: t('About SomaSmart', 'Kuhusu SomaSmart'),
+                    title: t('About SomaMkononi', 'Kuhusu SomaMkononi'),
                     body: Text(
                       t(
-                        'SomaSmart is a learning platform for Tanzanian secondary students: NECTA notes, quizzes and practicals, on the web and the mobile app.',
-                        'SomaSmart ni jukwaa la elimu kwa wanafunzi wa sekondari Tanzania: notes za NECTA, quizzes na practicals, kwenye tovuti na app ya simu.',
+                        'SomaMkononi is a learning platform for Tanzanian secondary students: NECTA notes, quizzes and practicals, on the web and the mobile app.',
+                        'SomaMkononi ni jukwaa la elimu kwa wanafunzi wa sekondari Tanzania: notes za NECTA, quizzes na practicals, kwenye tovuti na app ya simu.',
                       ),
                       style: bodyStyle,
                     ),
@@ -335,8 +335,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: t('Privacy policy', 'Sera ya faragha'),
                     body: Text(
                       t(
-                        'SomaSmart values your data privacy. We collect basic account info (name, email, phone) to personalize your learning. Your data is never shared with third parties without your consent.',
-                        'SomaSmart inajali usalama na usiri wa taarifa zako. Tunakusanya taarifa za msingi kama jina, barua pepe na namba ya simu ili kuboresha matumizi yako. Hatushiriki taarifa zako na upande wowote wa tatu bila ridhaa yako.',
+                        'SomaMkononi values your data privacy. We collect basic account info (name, email, phone) to personalize your learning. Your data is never shared with third parties without your consent.',
+                        'SomaMkononi inajali usalama na usiri wa taarifa zako. Tunakusanya taarifa za msingi kama jina, barua pepe na namba ya simu ili kuboresha matumizi yako. Hatushiriki taarifa zako na upande wowote wa tatu bila ridhaa yako.',
                       ),
                       style: bodyStyle,
                     ),
@@ -349,8 +349,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: t('Terms of service', 'Vigezo na masharti'),
                     body: Text(
                       t(
-                        'By using SomaSmart, you agree not to copy, distribute or resell its summaries, notes or quizzes without written permission. The service is for your personal educational use only.',
-                        'Kwa kutumia jukwaa hili, unakubali kutonakili, kutosambaza au kuuza summaries, notes na quizzes za SomaSmart bila kibali maalum cha maandishi. Huduma hii ni kwa matumizi yako ya kibinafsi pekee.',
+                        'By using SomaMkononi, you agree not to copy, distribute or resell its summaries, notes or quizzes without written permission. The service is for your personal educational use only.',
+                        'Kwa kutumia jukwaa hili, unakubali kutonakili, kutosambaza au kuuza summaries, notes na quizzes za SomaMkononi bila kibali maalum cha maandishi. Huduma hii ni kwa matumizi yako ya kibinafsi pekee.',
                       ),
                       style: bodyStyle,
                     ),
@@ -387,8 +387,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       children: [
                         Text(
                           t(
-                            "To delete your account and all your data, contact the SomaSmart team from the phone number or email you registered with. We'll confirm with you before deleting anything.",
-                            'Ili kufuta akaunti yako na taarifa zako zote, wasiliana na timu ya SomaSmart ukitumia namba au email uliyosajili nayo. Tutakuthibitishia kabla ya kufuta.',
+                            "To delete your account and all your data, contact the SomaMkononi team from the phone number or email you registered with. We'll confirm with you before deleting anything.",
+                            'Ili kufuta akaunti yako na taarifa zako zote, wasiliana na timu ya SomaMkononi ukitumia namba au email uliyosajili nayo. Tutakuthibitishia kabla ya kufuta.',
                           ),
                           style: bodyStyle,
                         ),

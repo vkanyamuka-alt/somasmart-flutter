@@ -5,7 +5,7 @@ import 'package:somasmart_flutter/features/shop/presentation/controllers/shop_co
 
 void main() {
   group('FimiPay Official Payment Integration Unit & Domain Tests', () {
-    test('Amount & Currency: Enforces 2,500 TZS for SomaSmart subscription', () {
+    test('Amount & Currency: Enforces 2,500 TZS for SomaMkononi subscription', () {
       const price = 2500.0;
       const currency = 'TZS';
 

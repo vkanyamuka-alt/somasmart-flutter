@@ -2,10 +2,10 @@
 class AppConstants {
   AppConstants._();
 
-  static const String appName = 'SomaSmart';
+  static const String appName = 'SomaMkononi';
   static const String appTagline = 'Smart Learning for O-Level & A-Level';
 
-  /// The SomaSmart web app; what "Share SomaSmart" copies.
+  /// The SomaMkononi web app; what "Share SomaMkononi" copies.
   static const String webAppUrl = 'https://meek-marzipan-3fc8ef.netlify.app';
   
   // Storage Keys

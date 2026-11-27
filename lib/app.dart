@@ -8,7 +8,7 @@ import 'core/services/push/push_providers.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 
-/// Root Application Widget for SomaSmart Flutter.
+/// Root Application Widget for SomaMkononi Flutter.
 class SomaSmartApp extends ConsumerStatefulWidget {
   const SomaSmartApp({super.key});
 

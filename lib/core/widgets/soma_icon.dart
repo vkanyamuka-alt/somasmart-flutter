@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_colors.dart';
 import 'soma_icon_data.dart';
 
-/// SomaSmart's own Ask me mark, the same one the website draws. Subjects have
+/// SomaMkononi's own Ask me mark, the same one the website draws. Subjects have
 /// no icons. Lines use [color] (default: the icon theme colour), the
 /// accent is filled gold.
 class SomaIcon extends StatelessWidget {

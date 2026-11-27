@@ -65,7 +65,7 @@ void main() {
   final student = UserProfile(
     id: 'demo',
     email: '255711000000@phone.somasmart.com',
-    fullName: 'Mwanafunzi SomaSmart',
+    fullName: 'Mwanafunzi SomaMkononi',
     phone: '+255711000000',
     role: 'student',
     subscriptionStatus: 'free',

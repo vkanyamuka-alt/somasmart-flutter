@@ -84,7 +84,7 @@ void main() {
     expect(find.byWidgetPredicate((w) => w is CustomPaint && w.painter is GeometryPainter), findsOneWidget);
     // The chemistry block has no still drawing yet: titled card, no raw data.
     expect(find.text('Water molecule'), findsOneWidget);
-    expect(find.textContaining('tovuti ya SomaSmart'), findsOneWidget);
+    expect(find.textContaining('tovuti ya SomaMkononi'), findsOneWidget);
     expect(find.textContaining('"type"'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -106,7 +106,7 @@ void main() {
     expect(find.text('Figure 1: Forces on a slope'), findsOneWidget);
     expect(tester.widget<FractionallySizedBox>(find.byType(FractionallySizedBox)).widthFactor, 0.6);
     // Not the "shown on the website" card, and no raw data.
-    expect(find.textContaining('SomaSmart website'), findsNothing);
+    expect(find.textContaining('SomaMkononi website'), findsNothing);
     expect(find.textContaining('"src"'), findsNothing);
   });
 

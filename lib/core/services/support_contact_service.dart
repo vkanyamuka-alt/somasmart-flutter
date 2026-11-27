@@ -32,14 +32,14 @@ class SupportContact {
   /// WhatsApp with the student's feedback already written in.
   Uri? feedbackWhatsapp(String message) => _digits == null
       ? null
-      : Uri.https('wa.me', '/$_digits', {'text': 'SomaSmart feedback:\n${message.trim()}'});
+      : Uri.https('wa.me', '/$_digits', {'text': 'SomaMkononi feedback:\n${message.trim()}'});
 
   /// Email with subject and the student's feedback as the body.
   Uri? feedbackMail(String message) => _hasEmail
       ? Uri(
           scheme: 'mailto',
           path: email,
-          query: 'subject=${Uri.encodeComponent('SomaSmart feedback')}&body=${Uri.encodeComponent(message.trim())}',
+          query: 'subject=${Uri.encodeComponent('SomaMkononi feedback')}&body=${Uri.encodeComponent(message.trim())}',
         )
       : null;
 }

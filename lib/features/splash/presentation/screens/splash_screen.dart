@@ -10,11 +10,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/google_profile.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 
-/// Official SomaSmart splash screen.
+/// Official SomaMkononi splash screen.
 ///
 /// Intro (about 1.9 s): the logo springs in with a slight turn while a soft
 /// navy halo grows behind it, a gold ring draws itself around the logo, then
-/// the "SomaSmart" wordmark rises and the tagline fades in. While the app
+/// the "SomaMkononi" wordmark rises and the tagline fades in. While the app
 /// decides where to go, the logo breathes gently and the ring turns slowly.
 /// Honors the system "reduce motion" setting.
 class SplashScreen extends ConsumerStatefulWidget {
@@ -265,7 +265,7 @@ class _Wordmark extends StatelessWidget {
     return Text.rich(
       TextSpan(children: [
         TextSpan(text: 'Soma', style: base.copyWith(color: AppColors.primaryDark)),
-        TextSpan(text: 'Smart', style: base.copyWith(color: AppColors.brandGold)),
+        TextSpan(text: 'Mkononi', style: base.copyWith(color: AppColors.brandGold)),
       ]),
     );
   }

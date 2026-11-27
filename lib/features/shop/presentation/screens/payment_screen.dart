@@ -151,7 +151,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'SomaSmart Premium',
+                                  'SomaMkononi Premium',
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
@@ -624,7 +624,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                               child: Column(
                                 children: [
                                   const Text(
-                                    'Lipa TSh 2,500 kwenda SomaSmart kwa ajili ya Subscription.\nWeka PIN yako ya malipo:',
+                                    'Lipa TSh 2,500 kwenda SomaMkononi kwa ajili ya Subscription.\nWeka PIN yako ya malipo:',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: Color(0xFFE2E8F0),
@@ -780,8 +780,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       const SizedBox(height: 6),
                       Text(
                         lang == 'sw'
-                            ? 'Akaunti yako imesasishwa kuwa SomaSmart Premium kwa mwezi mmoja.'
-                            : 'Your account has been upgraded to SomaSmart Premium for one month.',
+                            ? 'Akaunti yako imesasishwa kuwa SomaMkononi Premium kwa mwezi mmoja.'
+                            : 'Your account has been upgraded to SomaMkononi Premium for one month.',
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,

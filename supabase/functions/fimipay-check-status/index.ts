@@ -1,5 +1,5 @@
 // ==============================================================================
-// SOMASMART SUPABASE EDGE FUNCTION: fimipay-check-status
+// SOMAMKONONI SUPABASE EDGE FUNCTION: fimipay-check-status
 // Checks / reconciles order status directly with FimiPay order_status API.
 // Supports read-only querying as well as server-authoritative fulfillment.
 // ==============================================================================

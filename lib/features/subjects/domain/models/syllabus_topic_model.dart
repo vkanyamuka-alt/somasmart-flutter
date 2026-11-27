@@ -23,6 +23,8 @@ class SubjectNoteItem {
 
   /// 'text' (default) or 'pdf'.
   final String fileType;
+  /// The file of an older note saved as a PDF (read in the in-app viewer).
+  final String? fileUrl;
 
   /// The subject tab the admin chose: notes, understand_master or memorize.
   final String? section;
@@ -40,6 +42,7 @@ class SubjectNoteItem {
     this.textContent,
     this.fileType = 'text',
     this.section,
+    this.fileUrl,
   });
 
   factory SubjectNoteItem.fromMap(Map<String, dynamic> map) {
@@ -53,12 +56,13 @@ class SubjectNoteItem {
       authorName:
           (map['profiles'] is Map ? map['profiles']['full_name'] : null) ??
           map['author_name'] as String? ??
-          'SomaSmart Admin',
+          'SomaMkononi Admin',
       downloads: (map['downloads'] as num?)?.toInt() ?? 0,
       topic: map['topic'] as String?,
       textContent: map['text_content'] as String?,
       fileType: map['file_type'] as String? ?? 'text',
       section: map['section'] as String?,
+      fileUrl: map['file_url'] as String?,
     );
   }
 }
