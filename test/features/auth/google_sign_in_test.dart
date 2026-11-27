@@ -66,6 +66,16 @@ void main() {
     );
   });
 
+  test('finishing a Google profile keeps the existing form, or form 1', () {
+    expect(AuthController.keptFormLevel(3), 3);
+    expect(AuthController.keptFormLevel(6), 6);
+    expect(AuthController.keptFormLevel('5'), 5);
+    expect(AuthController.keptFormLevel(null), 1);
+    expect(AuthController.keptFormLevel(0), 1);
+    expect(AuthController.keptFormLevel(9), 1);
+    expect(AuthController.keptFormLevel('x'), 1);
+  });
+
   group('screens', () {
     late SharedPreferences prefs;
     setUp(() async {
@@ -102,13 +112,18 @@ void main() {
       expect(find.text('Continue with Google'), findsOneWidget);
     });
 
-    testWidgets('finishing the profile needs a valid phone number and a form', (tester) async {
+    testWidgets('finishing the profile asks for a phone number but no form', (tester) async {
       await tester.pumpWidget(ProviderScope(
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
         child: const MaterialApp(home: CompleteProfileScreen()),
       ));
       await tester.pumpAndSettle();
       expect(find.text('Finish your account'), findsOneWidget);
+      expect(find.text('One more step: your phone number.'), findsOneWidget);
+      // Students pick a form on each subject page, not here.
+      expect(find.byKey(const Key('complete-form-level')), findsNothing);
+      expect(find.byType(DropdownButtonFormField<int>), findsNothing);
+      expect(find.text('Form'), findsNothing);
 
       await tester.enterText(find.byKey(const Key('complete-name')), 'Asha Juma');
       await tester.enterText(find.byKey(const Key('complete-phone')), '0712');
@@ -117,7 +132,21 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Enter a valid phone number (e.g. 07XXXXXXXX).'), findsOneWidget);
-      expect(find.text('Please choose your form.'), findsOneWidget);
+      expect(find.text('Please choose your form.'), findsNothing);
+    });
+
+    testWidgets('the Swahili intro no longer mentions the form', (tester) async {
+      SharedPreferences.setMockInitialValues({'somasmart_language': 'sw'});
+      final swPrefs = await SharedPreferences.getInstance();
+      await tester.pumpWidget(ProviderScope(
+        overrides: [sharedPreferencesProvider.overrideWithValue(swPrefs)],
+        child: const MaterialApp(home: CompleteProfileScreen()),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('Kamilisha akaunti'), findsOneWidget);
+      expect(find.text('Hatua moja zaidi: namba yako ya simu.'), findsOneWidget);
+      expect(find.textContaining('kidato', findRichText: true), findsNothing);
+      expect(find.textContaining('Kidato', findRichText: true), findsNothing);
     });
   });
 }
