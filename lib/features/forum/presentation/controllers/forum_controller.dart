@@ -41,7 +41,7 @@ class ForumController extends StateNotifier<AsyncValue<void>> {
   bool checkEntitlement() {
     final profile = _ref.read(userProfileProvider).value;
     if (profile == null) return false;
-    return profile.isPremium || profile.isTrialActive;
+    return profile.hasAccess;
   }
 
   /// Create a new discussion post

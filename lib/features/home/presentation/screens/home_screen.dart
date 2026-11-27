@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
-import '../../../subjects/presentation/controllers/subjects_controller.dart';
+import '../../../settings/presentation/widgets/study_reminder_flow.dart';
 import '../widgets/plant_cell_tablet_widget.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -21,54 +22,61 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = ref.watch(languageProvider);
+    final isSwahili = lang == 'sw';
 
     final quickAccessCards = [
       _QuickCardData(
-        title: 'O-level',
+        id: 'o-level',
+        title: 'O-Level',
         icon: Icons.school_rounded,
         onTap: () {
-          ref.read(selectedFormLevelProvider.notifier).state = 4;
-          context.push('/subjects');
+          context.push('/subjects?level=o-level');
         },
       ),
       _QuickCardData(
-        title: 'A-level',
+        id: 'a-level',
+        title: 'A-Level',
         icon: Icons.menu_book_rounded,
         onTap: () {
-          ref.read(selectedFormLevelProvider.notifier).state = 5;
-          context.push('/subjects');
+          context.push('/subjects?level=a-level');
         },
       ),
       _QuickCardData(
-        title: 'Practicals',
+        id: 'practicals',
+        title: isSwahili ? 'Vitendo' : 'Practicals',
         icon: Icons.science_rounded,
         onTap: () {
           context.push('/practicals');
         },
       ),
       _QuickCardData(
-        title: 'Syllabus',
+        id: 'syllabus',
+        title: isSwahili ? 'Mtaala' : 'Syllabus',
         icon: Icons.description_outlined,
         onTap: () {
           context.push('/syllabus');
         },
       ),
       _QuickCardData(
-        title: 'Past Papers',
+        id: 'past-papers',
+        title: isSwahili ? 'Mitihani ya zamani' : 'Past papers',
         icon: Icons.assignment_turned_in_outlined,
         onTap: () {
-          context.push('/quiz-exams?tab=practice');
+          context.push('/quiz-exams?tab=past_paper');
         },
       ),
       _QuickCardData(
-        title: 'Quiz & Exams',
+        id: 'quiz-exams',
+        title: isSwahili ? 'Majaribio na mitihani' : 'Quizzes and exams',
         icon: Icons.fact_check_outlined,
         onTap: () {
           context.push('/quiz-exams');
         },
       ),
       _QuickCardData(
-        title: 'Discussion Forum',
+        id: 'forum',
+        title: isSwahili ? 'Jukwaa la majadiliano' : 'Discussion forum',
         icon: Icons.chat_bubble_outline_rounded,
         onTap: () {
           context.push('/forum');
@@ -76,59 +84,57 @@ class HomeScreen extends ConsumerWidget {
       ),
     ];
 
-    final lang = ref.watch(languageProvider);
-    final isSwahili = lang == 'sw';
     final userProfileAsync = ref.watch(userProfileProvider);
     final profile = userProfileAsync.valueOrNull;
 
     final rawName = profile?.fullName.trim();
-    final firstName = (rawName != null && rawName.isNotEmpty && rawName != 'User')
+    final firstName =
+        (rawName != null && rawName.isNotEmpty && rawName != 'User')
         ? rawName.split(' ').first
-        : 'Anna';
+        : (isSwahili ? 'Mwanafunzi' : 'Student');
 
-    // Authoritative dynamic subscription state
-    final bool isPaidActive = profile?.isPremium == true;
-    final bool isTrialActive = profile != null && !isPaidActive && profile.isTrialActive;
+    // One rule for every screen (UserProfile.accessAt = the server's
+    // has_active_subscription). No card until the profile has loaded, so a
+    // slow or failed load never shows "Usajili Umeisha".
+    final access = profile?.access;
 
-    final int? daysCount;
-    final String statusTitle;
-    final String? statusSubtext;
-    final String badgeLabel;
-    final Color badgeTextColor;
-    final Color badgeBgColor;
-    final Color badgeDotColor;
+    int? daysCount;
+    String statusTitle = '';
+    String? statusSubtext;
+    String badgeLabel = '';
+    Color badgeTextColor = AppColors.error;
+    Color badgeBgColor = Colors.transparent;
+    Color badgeDotColor = AppColors.error;
 
-    if (isPaidActive) {
-      daysCount = profile?.subscriptionDaysRemaining ?? 0;
-      statusTitle = isSwahili ? 'Siku Zilizobaki' : 'Days Remaining';
-      final expiryStr = _formatDate(profile?.subscriptionExpiresAt);
+    if (access != null && access.kind != AccessKind.expired) {
+      daysCount = access.days;
+      statusTitle = daysCount != null
+          ? (isSwahili ? 'Siku Zilizobaki' : 'Days Remaining')
+          : (isSwahili ? 'Ufikiaji Kamili' : 'Full Access');
+      final expiryStr = _formatDate(access.endsAt);
       statusSubtext = expiryStr.isNotEmpty
           ? (isSwahili ? 'Inaisha tarehe $expiryStr' : 'Expires $expiryStr')
           : null;
-      badgeLabel = 'Premium';
-      badgeTextColor = const Color(0xFF059669);
-      badgeBgColor = isDark ? const Color(0xFF064E3B) : const Color(0xFFD1FAE5);
-      badgeDotColor = const Color(0xFF10B981);
-    } else if (isTrialActive) {
-      daysCount = profile.trialDaysLeft;
-      statusTitle = isSwahili ? 'Siku Zilizobaki' : 'Days Remaining';
-      final trialEnd = profile.createdAt?.add(const Duration(days: 6));
-      final expiryStr = _formatDate(trialEnd);
-      statusSubtext = expiryStr.isNotEmpty
-          ? (isSwahili ? 'Inaisha tarehe $expiryStr' : 'Expires $expiryStr')
-          : null;
-      badgeLabel = isSwahili ? 'Jaribio la Bure' : 'Free Trial';
-      badgeTextColor = const Color(0xFFD97706);
-      badgeBgColor = isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7);
-      badgeDotColor = const Color(0xFFF59E0B);
-    } else {
-      daysCount = null;
+      if (access.kind == AccessKind.paid) {
+        badgeLabel = 'Premium';
+        badgeTextColor = isDark ? const Color(0xFF2FA866) : AppColors.success;
+        badgeBgColor = AppColors.success.withValues(alpha: isDark ? 0.16 : 0.12);
+        badgeDotColor = badgeTextColor;
+      } else {
+        badgeLabel = isSwahili ? 'Jaribio la Bure' : 'Free Trial';
+        badgeTextColor = isDark ? const Color(0xFFE0AA4F) : AppColors.warning;
+        badgeBgColor = isDark
+            ? AppColors.brandGold.withValues(alpha: 0.14)
+            : AppColors.brandGoldSoft;
+        badgeDotColor = isDark ? const Color(0xFFE0AA4F) : AppColors.brandGold;
+      }
+    } else if (access != null) {
       statusTitle = isSwahili ? 'Usajili Umeisha' : 'Subscription Expired';
-      statusSubtext = isSwahili ? 'Boresha uendelee kusoma' : 'Upgrade to continue';
+      statusSubtext = isSwahili
+          ? 'Boresha uendelee kusoma'
+          : 'Upgrade to continue';
       badgeLabel = isSwahili ? 'Umeisha' : 'Expired';
-      badgeTextColor = AppColors.error;
-      badgeBgColor = isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2);
-      badgeDotColor = AppColors.error;
+      badgeBgColor = AppColors.error.withValues(alpha: isDark ? 0.16 : 0.10);
     }
 
     return Scaffold(
@@ -146,30 +152,38 @@ class HomeScreen extends ConsumerWidget {
             _DashboardHeroBanner(
               isDark: isDark,
               displayName: firstName,
+              isSwahili: isSwahili,
               onContinue: () {
                 context.push('/subjects');
               },
             ),
             const SizedBox(height: 12),
 
+            // Daily study reminder offer (from the second day of use; hidden once answered).
+            const StudyReminderPrompt(),
+
             // ===== 2. SUBSCRIPTION STATUS CARD =====
+            if (access != null) ...[
             InkWell(
               onTap: () => context.push('/subscription'),
               borderRadius: BorderRadius.circular(14),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F1D32) : const Color(0xFFF0F7FF),
+                  color: isDark ? AppColors.darkBgSurface : Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF1E3A5F)
-                        : const Color(0xFFD0E2FF),
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                     width: 1,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.02,
+                      ),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -183,14 +197,14 @@ class HomeScreen extends ConsumerWidget {
                       height: 44,
                       decoration: BoxDecoration(
                         color: isDark
-                            ? const Color(0xFF1E293B)
-                            : const Color(0xFFDCEBFF),
+                            ? AppColors.primaryLight.withValues(alpha: 0.16)
+                            : AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.calendar_month_rounded,
                         size: 24,
-                        color: AppColors.primary,
+                        color: isDark ? AppColors.primaryLight : AppColors.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -201,26 +215,30 @@ class HomeScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                          // Wraps instead of overflowing on very narrow phones.
+                          Wrap(
                             children: [
                               if (daysCount != null) ...[
                                 Text(
                                   '$daysCount ',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16.5,
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.primary,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.lightTextPrimary,
                                     letterSpacing: -0.3,
                                   ),
                                 ),
                               ],
                               Text(
                                 statusTitle,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16.5,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.primary,
+                                  color: isDark
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.lightTextPrimary,
                                   letterSpacing: -0.3,
                                 ),
                               ),
@@ -277,101 +295,53 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
                       size: 20,
-                      color: AppColors.primary,
+                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
                     ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 14),
+            ],
 
             // ===== 3. FEATURE GRID (2-Column) =====
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: quickAccessCards.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 2.25,
-              ),
-              itemBuilder: (ctx, index) {
-                final card = quickAccessCards[index];
-                return InkWell(
-                  onTap: card.onTap,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
+            // ===== 3. FEATURE GRID: two per row, the forum tile across the full width =====
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const spacing = 10.0;
+                final tileHeight = (constraints.maxWidth - spacing) / 2 / 2.25;
+                final gridCards = quickAccessCards
+                    .where((c) => c.id != 'forum')
+                    .toList();
+                final forum = quickAccessCards.firstWhere(
+                  (c) => c.id == 'forum',
+                );
+                return Column(
+                  children: [
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: gridCards.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: spacing,
+                            crossAxisSpacing: spacing,
+                            childAspectRatio: 2.25,
+                          ),
+                      itemBuilder: (ctx, index) =>
+                          _buildTile(gridCards[index], isDark),
                     ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.darkBgSurface
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.darkBorder
-                            : const Color(0xFFE2E8F0),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: isDark ? 0.15 : 0.025,
-                          ),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                    const SizedBox(height: spacing),
+                    SizedBox(
+                      height: tileHeight,
+                      width: double.infinity,
+                      child: _buildTile(forum, isDark),
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF1E293B)
-                                : const Color(0xFFEDF5FF),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            card.icon,
-                            color: AppColors.primary,
-                            size: 19,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            card.title,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? AppColors.darkTextPrimary
-                                  : const Color(0xFF0F172A),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 15,
-                          color: isDark
-                              ? AppColors.darkTextMuted
-                              : const Color(0xFF94A3B8),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 );
               },
             ),
@@ -382,12 +352,75 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
+/// One quick-access tile (same size and style as before).
+Widget _buildTile(_QuickCardData card, bool isDark) {
+  return InkWell(
+    key: Key('home-card-${card.id}'),
+    onTap: card.onTap,
+    borderRadius: BorderRadius.circular(14),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBgSurface : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.025),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEDF5FF),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(card.icon, color: AppColors.primary, size: 19),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              card.title,
+              style: TextStyle(
+                fontSize: 13.5,
+                height: 1.2,
+                fontWeight: FontWeight.w700,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : const Color(0xFF0F172A),
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_rounded,
+            size: 15,
+            color: isDark ? AppColors.darkTextMuted : const Color(0xFF94A3B8),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _QuickCardData {
+  final String id;
   final String title;
   final IconData icon;
   final VoidCallback onTap;
 
   const _QuickCardData({
+    required this.id,
     required this.title,
     required this.icon,
     required this.onTap,
@@ -403,19 +436,19 @@ class _QuickCardData {
 class _DashboardHeroBanner extends StatelessWidget {
   final bool isDark;
   final String displayName;
+  final bool isSwahili;
   final VoidCallback onContinue;
 
   const _DashboardHeroBanner({
     required this.isDark,
     required this.displayName,
+    required this.isSwahili,
     required this.onContinue,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cardBg = isDark
-        ? const Color(0xFF0F1D32)
-        : const Color(0xFFEDF5FF);
+    final cardBg = isDark ? const Color(0xFF0F1D32) : const Color(0xFFEDF5FF);
     final borderColor = isDark
         ? const Color(0xFF1E3A5F)
         : const Color(0xFFD0E2FF);
@@ -425,17 +458,16 @@ class _DashboardHeroBanner extends StatelessWidget {
         final totalWidth = constraints.maxWidth;
         // Responsive tablet width allocation (~44% of width clamped)
         final tabletWidth = (totalWidth * 0.44).clamp(135.0, 185.0);
-        final initial = displayName.isNotEmpty ? displayName[0].toLowerCase() : 'a';
+        final initial = displayName.isNotEmpty
+            ? displayName[0].toLowerCase()
+            : 'a';
 
         return Container(
           width: double.infinity,
           decoration: BoxDecoration(
             color: cardBg,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: borderColor,
-              width: 1,
-            ),
+            border: Border.all(color: borderColor, width: 1),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
@@ -479,9 +511,10 @@ class _DashboardHeroBanner extends StatelessWidget {
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            'Hi, $displayName',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            isSwahili
+                                ? 'Habari, $displayName'
+                                : 'Hi, $displayName',
+                            maxLines: 2,
                             style: TextStyle(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w600,
@@ -497,15 +530,13 @@ class _DashboardHeroBanner extends StatelessWidget {
 
                     // "Learn."
                     Text(
-                      'Learn.',
+                      isSwahili ? 'Jifunze.' : 'Learn.',
                       style: TextStyle(
                         fontSize: totalWidth < 360 ? 22 : 25,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
                         height: 1.05,
-                        color: isDark
-                            ? Colors.white
-                            : const Color(0xFF0B1A36),
+                        color: isDark ? Colors.white : const Color(0xFF0B1A36),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -522,18 +553,16 @@ class _DashboardHeroBanner extends StatelessWidget {
                         ),
                         children: [
                           TextSpan(
-                            text: 'Practice, ',
+                            text: isSwahili ? 'Jizoeze, ' : 'Practice, ',
                             style: TextStyle(
                               color: isDark
                                   ? Colors.white
                                   : const Color(0xFF0B1A36),
                             ),
                           ),
-                          const TextSpan(
-                            text: 'Excel.',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                            ),
+                          TextSpan(
+                            text: isSwahili ? 'Fanikiwa.' : 'Excel.',
+                            style: const TextStyle(color: AppColors.primary),
                           ),
                         ],
                       ),
@@ -559,18 +588,25 @@ class _DashboardHeroBanner extends StatelessWidget {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Continue Learning',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                isSwahili
+                                    ? 'Endelea Kujifunza'
+                                    : 'Continue Learning',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
-                          SizedBox(width: 5),
-                          Icon(Icons.arrow_forward_rounded, size: 13),
+                          const SizedBox(width: 5),
+                          const Icon(Icons.arrow_forward_rounded, size: 13),
                         ],
                       ),
                     ),

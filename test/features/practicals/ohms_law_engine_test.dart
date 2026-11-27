@@ -19,7 +19,7 @@ void main() {
       expect(state.isCompleted, isFalse);
       expect(state.circuitConnected, isFalse);
       expect(state.isSwitchClosed, isFalse);
-      expect(state.voltageSetting, equals(1.0));
+      expect(state.voltageSetting, equals(1.5));
       expect(state.knownResistance, equals(10.0));
       expect(state.measuredVoltage, equals(0.0));
       expect(state.measuredCurrent, equals(0.0));

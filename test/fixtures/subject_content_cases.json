@@ -1,0 +1,14 @@
+[
+  { "name": "a written note with no tab stays in Notes", "kind": "note", "section": null, "tab": "notes" },
+  { "name": "a written note in Notes", "kind": "note", "section": "notes", "tab": "notes" },
+  { "name": "a written note in Understand & Master", "kind": "note", "section": "understand_master", "tab": "understand" },
+  { "name": "a written note in Memorize", "kind": "note", "section": "memorize", "tab": "memorize" },
+  { "name": "a note with an unknown tab stays in Notes", "kind": "note", "section": "elsewhere", "tab": "notes" },
+  { "name": "a video with no tab stays in Understand & Master", "kind": "material", "section": null, "tab": "understand" },
+  { "name": "a video in Understand & Master", "kind": "material", "section": "understand_master", "tab": "understand" },
+  { "name": "a file in Notes", "kind": "material", "section": "notes", "tab": "notes" },
+  { "name": "a video in Memorize", "kind": "material", "section": "memorize", "tab": "memorize" },
+  { "name": "a material with an unknown tab stays in Understand & Master", "kind": "material", "section": "elsewhere", "tab": "understand" },
+  { "name": "a memory card is always in Memorize", "kind": "card", "section": null, "tab": "memorize" },
+  { "name": "a memory card ignores a tab", "kind": "card", "section": "notes", "tab": "memorize" }
+]

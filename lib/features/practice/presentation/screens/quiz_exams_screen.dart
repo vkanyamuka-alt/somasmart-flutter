@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/card_surface.dart';
-import '../../../../core/widgets/status_badge.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/models/quiz_models.dart';
 import '../controllers/quiz_controllers.dart';
+import '../../../../core/utils/learning_language.dart';
 
 /// Screen representing the Quiz & Exams Discovery Hub.
 /// Faithfully mirrors React `QuizExams.jsx` functionality, tabs, filters, and access rules.
@@ -29,7 +28,9 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
     super.initState();
     if (widget.initialTab != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(quizTabFilterProvider.notifier).state = widget.initialTab!;
+        // "practice" is the old name of the past-papers tab.
+        ref.read(quizTabFilterProvider.notifier).state =
+            widget.initialTab == 'practice' ? 'past_paper' : widget.initialTab!;
       });
     }
   }
@@ -42,7 +43,7 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
 
   bool _hasAccess(UserProfile? profile) {
     if (profile == null) return false;
-    return profile.isPremium || profile.isTrialActive;
+    return profile.hasAccess;
   }
 
   void _handleStartQuiz(BuildContext context, QuizModel quiz, bool hasAccess, String lang) {
@@ -163,7 +164,7 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lang = ref.watch(languageProvider);
+    final lang = learningLanguage();
     final activeTab = ref.watch(quizTabFilterProvider);
     final selectedForm = ref.watch(quizFormFilterProvider);
     final quizzesAsync = ref.watch(quizListProvider);
@@ -171,16 +172,17 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
     final hasAccess = _hasAccess(userProfileAsync.value);
 
     final tabs = [
-      {'key': 'topic', 'label_sw': 'Mada (Topic)', 'label_en': 'Topic Quizzes', 'icon': Icons.menu_book_rounded},
-      {'key': 'exam', 'label_sw': 'Mitihani (Exams)', 'label_en': 'Subject Exams', 'icon': Icons.description_outlined},
-      {'key': 'practice', 'label_sw': 'Mazoezi (Practice)', 'label_en': 'Practice Tests', 'icon': Icons.check_circle_outline_rounded},
-      {'key': 'timed', 'label_sw': 'Muda (Timed)', 'label_en': 'Timed Drills', 'icon': Icons.timer_outlined},
+      // Same types, labels and order as the web Quiz & exams page.
+      {'key': 'topic', 'label_sw': 'Mada', 'label_en': 'Topic quizzes'},
+      {'key': 'exam', 'label_sw': 'Mitihani ya masomo', 'label_en': 'Subject exams'},
+      {'key': 'past_paper', 'label_sw': 'Mitihani ya zamani', 'label_en': 'Past papers'},
+      {'key': 'timed', 'label_sw': 'Ya muda', 'label_en': 'Timed'},
     ];
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          lang == 'sw' ? 'Majaribio & Mitihani' : 'Quiz & Exams',
+          lang == 'sw' ? 'Majaribio na mitihani' : 'Quizzes and exams',
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
         ),
         leading: IconButton(
@@ -203,8 +205,8 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
                   children: [
                     Text(
                       lang == 'sw'
-                          ? 'Pima uelewa wako, fanya mazoezi na kujiandaa na mitihani yako ya kitaifa ya NECTA.'
-                          : 'Test your understanding, practice and prepare for your national NECTA examinations.',
+                          ? 'Pima ulichojifunza na ujiandae kwa mitihani ya NECTA.'
+                          : 'Test what you have learned and prepare for NECTA exams.',
                       style: TextStyle(
                         fontSize: 13.5,
                         color: isDark
@@ -225,8 +227,8 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
                       },
                       decoration: InputDecoration(
                         hintText: lang == 'sw'
-                            ? 'Tafuta jaribio au mada...'
-                            : 'Search quiz or topic...',
+                            ? 'Tafuta jaribio au somo'
+                            : 'Search a quiz or subject',
                         prefixIcon: const Icon(Icons.search_rounded, size: 20),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
@@ -257,27 +259,12 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
                           final label = lang == 'sw'
                               ? tab['label_sw'] as String
                               : tab['label_en'] as String;
-                          final icon = tab['icon'] as IconData;
 
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: ChoiceChip(
-                              label: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    icon,
-                                    size: 16,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : (isDark
-                                            ? AppColors.darkTextSecondary
-                                            : AppColors.lightTextSecondary),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(label),
-                                ],
-                              ),
+                              label: Text(label),
+                              showCheckmark: false,
                               selected: isSelected,
                               selectedColor: AppColors.primary,
                               labelStyle: TextStyle(
@@ -310,7 +297,8 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
                           Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: FilterChip(
-                              label: Text(lang == 'sw' ? 'Madarasa Yote' : 'All Forms'),
+                              label: Text(lang == 'sw' ? 'Vidato vyote' : 'All forms'),
+                              showCheckmark: false,
                               selected: selectedForm == null,
                               onSelected: (_) {
                                 ref.read(quizFormFilterProvider.notifier).state = null;
@@ -323,7 +311,8 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
                             return Padding(
                               padding: const EdgeInsets.only(right: 6),
                               child: FilterChip(
-                                label: Text('Form $form'),
+                                label: Text(lang == 'sw' ? 'Kidato $form' : 'Form $form'),
+                                showCheckmark: false,
                                 selected: isSel,
                                 onSelected: (_) {
                                   ref.read(quizFormFilterProvider.notifier).state =
@@ -343,43 +332,10 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
             // Quizzes List
             quizzesAsync.when(
               data: (allQuizzes) {
-                // Apply Tab categorization logic matching React getQuizzesByType
-                List<QuizModel> tabQuizzes;
-                if (activeTab == 'topic') {
-                  tabQuizzes = allQuizzes
-                      .asMap()
-                      .entries
-                      .where((e) => e.key % 4 == 0 || e.key % 4 == 1)
-                      .map((e) => e.value)
-                      .toList();
-                } else if (activeTab == 'exam') {
-                  tabQuizzes = allQuizzes
-                      .asMap()
-                      .entries
-                      .where((e) => e.key % 4 == 2)
-                      .map((e) => e.value)
-                      .toList();
-                } else if (activeTab == 'practice') {
-                  tabQuizzes = allQuizzes
-                      .asMap()
-                      .entries
-                      .where((e) => e.key % 4 == 3 && e.key != 3)
-                      .map((e) => e.value)
-                      .toList();
-                } else {
-                  // timed tab
-                  tabQuizzes = allQuizzes
-                      .asMap()
-                      .entries
-                      .where((e) => e.key == 3)
-                      .map((e) => e.value)
-                      .toList();
-                }
-
-                // If tab filter results in empty list but allQuizzes has items, show allQuizzes
-                if (tabQuizzes.isEmpty && allQuizzes.isNotEmpty) {
-                  tabQuizzes = allQuizzes;
-                }
+                // Each quiz's type is set by admins in the admin panel.
+                var tabQuizzes = allQuizzes
+                    .where((q) => q.isPublished && q.quizType == activeTab)
+                    .toList();
 
                 // Apply text search
                 if (_searchQuery.isNotEmpty) {
@@ -514,12 +470,38 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
     required String lang,
     required bool isDark,
   }) {
-    Color diffColor = AppColors.success;
-    if (quiz.difficulty == 'medium') {
-      diffColor = AppColors.warning;
-    } else if (quiz.difficulty == 'hard') {
-      diffColor = AppColors.danger;
-    }
+    final sw = lang == 'sw';
+    final secondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final level = switch (quiz.difficulty) {
+      'easy' => sw ? 'Rahisi' : 'Easy',
+      'hard' => sw ? 'Ngumu' : 'Hard',
+      _ => sw ? 'Wastani' : 'Medium',
+    };
+    final count = quiz.totalQuestions;
+    final hasSubject = quiz.subjectNameSw != null || quiz.subjectNameEn != null;
+
+    Widget tag(String text) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          decoration: BoxDecoration(
+            color: (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted)
+                .withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: secondary),
+          ),
+        );
+
+    Widget meta(IconData icon, String text) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: secondary),
+            const SizedBox(width: 5),
+            Text(text, style: TextStyle(fontSize: 13, color: secondary)),
+          ],
+        );
 
     return CardSurface(
       margin: const EdgeInsets.only(bottom: 14),
@@ -527,116 +509,72 @@ class _QuizExamsScreenState extends ConsumerState<QuizExamsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Difficulty badge & Duration
-          Row(
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
             children: [
-              StatusBadge(
-                label: quiz.difficulty.toUpperCase(),
-                color: diffColor,
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'Form ${quiz.formLevel}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.access_time_rounded,
-                    size: 14,
-                    color: isDark
-                        ? AppColors.darkTextMuted
-                        : AppColors.lightTextMuted,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${quiz.timeLimitMinutes} mins',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                  ),
-                ],
-              ),
+              tag(level),
+              tag(sw ? 'Kidato cha ${quiz.formLevel}' : 'Form ${quiz.formLevel}'),
             ],
           ),
-          const SizedBox(height: 12),
-
-          // Title
+          const SizedBox(height: 10),
           Text(
             quiz.title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
           ),
-          const SizedBox(height: 6),
-
-          // Subject Name
-          if (quiz.subjectNameSw != null || quiz.subjectNameEn != null)
-            Text(
-              quiz.getSubjectDisplayName(lang),
-              style: TextStyle(
-                fontSize: 12.5,
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary,
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 14,
+            runSpacing: 4,
+            children: [
+              if (hasSubject)
+                meta(Icons.menu_book_outlined, quiz.getSubjectDisplayName(lang)),
+              if (count > 0)
+                meta(
+                  Icons.help_outline_rounded,
+                  sw
+                      ? (count == 1 ? 'Swali 1' : 'Maswali $count')
+                      : (count == 1 ? '1 question' : '$count questions'),
+                ),
+              if (quiz.timeLimitMinutes > 0)
+                meta(
+                  Icons.access_time_rounded,
+                  sw ? 'Dakika ${quiz.timeLimitMinutes}' : '${quiz.timeLimitMinutes} min',
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () => _handleStartQuiz(context, quiz, hasAccess, lang),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    sw ? 'Anza jaribio' : 'Start quiz',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    hasAccess ? Icons.arrow_forward_rounded : Icons.lock_rounded,
+                    size: 16,
+                    semanticLabel: hasAccess ? null : (sw ? 'Inahitaji Premium' : 'Needs Premium'),
+                  ),
+                ],
               ),
             ),
-          const SizedBox(height: 14),
-
-          // Bottom Action Row: Total Questions + Start Test Button
-          Row(
-            children: [
-              Text(
-                '${quiz.totalQuestions > 0 ? quiz.totalQuestions : 5} ${lang == 'sw' ? 'Maswali' : 'Questions'}',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary,
-                ),
-              ),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: () => _handleStartQuiz(context, quiz, hasAccess, lang),
-                icon: Text(
-                  lang == 'sw' ? 'Anza Jaribio' : 'Start Test',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                ),
-                label: Icon(
-                  hasAccess ? Icons.arrow_forward_rounded : Icons.lock_rounded,
-                  size: 14,
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),

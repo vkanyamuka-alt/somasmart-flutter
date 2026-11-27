@@ -330,6 +330,8 @@ class AcidBaseTitrationEngine
         buretteReading: nextDelivered,
         flaskVolume: 25.0 + nextDelivered,
         stopcockState: reachedMax ? StopcockState.closed : currentState.stopcockState,
+        isDropFalling: !reachedMax,
+        flaskRipple: !reachedMax,
         hasSwirledAtCurrentVolume: false,
         notebookLogs: newLogs,
       );
@@ -353,6 +355,8 @@ class AcidBaseTitrationEngine
     if (action is PauseTitrationAction) {
       return currentState.copyWith(
         stopcockState: StopcockState.paused,
+        isDropFalling: false,
+        flaskRipple: false,
         previousActiveStopcockState: currentState.stopcockState == StopcockState.flow || currentState.stopcockState == StopcockState.slow
             ? currentState.stopcockState
             : currentState.previousActiveStopcockState,
@@ -366,7 +370,8 @@ class AcidBaseTitrationEngine
     }
 
     if (action is CloseStopcockAction) {
-      return currentState.copyWith(stopcockState: StopcockState.closed);
+      // nothing more leaves the jet once the tap is shut
+      return currentState.copyWith(stopcockState: StopcockState.closed, isDropFalling: false, flaskRipple: false);
     }
 
     // Swirling & Endpoint Actions

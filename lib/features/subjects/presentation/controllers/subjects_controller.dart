@@ -125,10 +125,16 @@ const List<SubjectModel> initialSubjects = [
   ),
 ];
 
-/// Currently selected Form Level (1 to 6).
-final selectedFormLevelProvider = StateProvider<int>((ref) {
-  final userProfile = ref.watch(userProfileProvider).value;
-  return userProfile?.formLevel ?? 4;
+/// The form the student picked (level screen or subject page), if any.
+final pickedFormLevelProvider = StateProvider<int?>((ref) => null);
+
+/// Form (1 to 6) whose content is shown: the student's pick, otherwise their
+/// own form. (It used to be one value recomputed from the profile, so a
+/// profile reload threw the pick away mid-way through a subject.)
+final selectedFormLevelProvider = Provider<int>((ref) {
+  final picked = ref.watch(pickedFormLevelProvider);
+  if (picked != null) return picked;
+  return ref.watch(userProfileProvider).value?.formLevel ?? 4;
 });
 
 /// Subject search query.
@@ -246,7 +252,7 @@ final subjectDetailProvider =
   final topics = syllabusTopicsData[key]?[formLevel] ?? [];
 
   // 6. Access entitlement verification (Server-aligned check)
-  final hasAccess = userProfile != null && (userProfile.isPremium || userProfile.isTrialActive);
+  final hasAccess = userProfile != null && userProfile.hasAccess;
 
   return SubjectDetailData(
     subject: subject,

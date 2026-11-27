@@ -14,15 +14,16 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      primaryColor: AppColors.primary,
+      // Dark mode lifts the navy so it stays readable, as on the web.
+      primaryColor: AppColors.primaryLight,
       scaffoldBackgroundColor: AppColors.darkBgBase,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.primary,
+        primary: AppColors.primaryLight,
         onPrimary: Colors.white,
         primaryContainer: AppColors.primaryDark,
         onPrimaryContainer: Colors.white,
         secondary: AppColors.secondary,
-        onSecondary: Colors.black,
+        onSecondary: Colors.white,
         surface: AppColors.darkBgSurface,
         onSurface: AppColors.darkTextPrimary,
         error: AppColors.error,
@@ -64,7 +65,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.primaryLight,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -75,6 +76,14 @@ class AppTheme {
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -148,6 +157,14 @@ class AppTheme {
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.control)),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
     );

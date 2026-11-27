@@ -150,7 +150,8 @@ class TitrationController extends StateNotifier<TitrationState> {
       state = state.copyWith(
         isDropFalling: false,
         flaskRipple: false,
-        stopcockState: StopcockState.closed,
+        // a flow chosen while the drop fell stays on
+        stopcockState: state.stopcockState == StopcockState.single ? StopcockState.closed : state.stopcockState,
       );
       HapticFeedback.selectionClick();
     });
@@ -184,7 +185,6 @@ class TitrationController extends StateNotifier<TitrationState> {
         return;
       }
       state = _engine.processAction(state, const DeliverTitrantTickAction());
-      state = state.copyWith(isDropFalling: true, flaskRipple: true);
     });
   }
 
@@ -245,18 +245,30 @@ class TitrationController extends StateNotifier<TitrationState> {
   void nextStep() {
     if (state.canAdvanceStep()) {
       HapticFeedback.selectionClick();
+      _shutTap();
       state = _engine.processAction(state, const NextStepAction());
     }
   }
 
   void prevStep() {
     HapticFeedback.selectionClick();
+    _shutTap();
     state = _engine.processAction(state, const PrevStepAction());
   }
 
   void jumpToStep(int stepIndex) {
     HapticFeedback.selectionClick();
+    _shutTap();
     state = _engine.processAction(state, JumpToStepAction(stepIndex));
+  }
+
+  /// Leaving a step with the tap open would let the burette keep running on
+  /// a step that has no Close button, so the tap is shut first.
+  void _shutTap() {
+    _flowTimer?.cancel();
+    if (state.stopcockState != StopcockState.closed) {
+      state = _engine.processAction(state, const CloseStopcockAction());
+    }
   }
 
   void reset() {

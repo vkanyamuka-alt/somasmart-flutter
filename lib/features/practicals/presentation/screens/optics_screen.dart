@@ -3,13 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/optics_state.dart';
 import '../../data/models/practical_model.dart';
+import '../controllers/lab_inspect_provider.dart';
 import '../controllers/optics_controller.dart';
 import '../widgets/optics_bench_painter.dart';
+import '../widgets/lab_hand.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/optics_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
+import '../../../../core/utils/learning_language.dart';
 
 class OpticsScreen extends ConsumerWidget {
   final PracticalMode mode;
@@ -23,7 +26,7 @@ class OpticsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(opticsControllerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentLocale = ref.watch(languageProvider);
+    final currentLocale = learningLanguage();
     final isSwahili = currentLocale == 'sw';
 
     return Scaffold(
@@ -36,21 +39,22 @@ class OpticsScreen extends ConsumerWidget {
             _buildStepTabBar(ref, state, isDark, isSwahili),
 
             // Main Laboratory Viewport & Step Content
+            // Bench and step controls: stacked on phones, side by side when wide.
             Expanded(
-              child: SingleChildScrollView(
+              child: PracticalSplitLayout(
+                step: state.step,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Column(
+                bench: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Dynamic Hint Banner
                     _buildHintBanner(state, isDark, isSwahili),
                     const SizedBox(height: 10),
-
-                    // Virtual Optics Laboratory Bench
                     _buildOpticsBench(context, ref, state, isDark, isSwahili),
-                    const SizedBox(height: 12),
-
-                    // Active Step Interactive Controls Card
+                  ],
+                ),
+                controls: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     _buildStepContentCard(context, ref, state, isDark, isSwahili),
                     const SizedBox(height: 16),
                   ],
@@ -87,74 +91,58 @@ class OpticsScreen extends ConsumerWidget {
         icon: const Icon(Icons.arrow_back),
         onPressed: () => _showExitConfirmationDialog(context, isDark, isSwahili),
       ),
+      // Mode and session time above the title, so the title has the full width.
       title: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                  color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   mode.labelEn.toUpperCase(),
                   style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF0284C7),
+                    color: AppColors.primary,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  isSwahili ? 'Mche wa Kioo (Optics)' : 'Refraction & Prism',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              const Icon(Icons.timer_outlined, size: 13, color: AppColors.primary),
+              const SizedBox(width: 3),
+              Text(
+                timeStr,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'monospace',
+                  color: isDark ? Colors.white70 : const Color(0xFF0F172A),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            isSwahili ? 'Mche wa Kioo (Optics)' : 'Refraction & Prism',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
       actions: [
-        // Live Experiment Timer
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.timer_outlined, size: 14, color: Color(0xFF0284C7)),
-              const SizedBox(width: 4),
-              Text(
-                timeStr,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-
         // Lab Notebook Button
         IconButton(
-          icon: const Icon(Icons.menu_book_outlined, color: Color(0xFF0284C7)),
+          icon: const Icon(Icons.menu_book_outlined, color: AppColors.primary),
           tooltip: isSwahili ? 'Daftari la Maabara' : 'Lab Notebook',
           onPressed: () => _openLabNotebook(context, state, isDark, isSwahili),
         ),
@@ -217,11 +205,11 @@ class OpticsScreen extends ConsumerWidget {
                 ],
               ),
               selected: isActive,
-              selectedColor: const Color(0xFF0058BE),
+              selectedColor: AppColors.primary,
               backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
               side: BorderSide(
                 color: isActive
-                    ? const Color(0xFF0058BE)
+                    ? AppColors.primary
                     : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
               ),
               onSelected: (_) {
@@ -241,10 +229,10 @@ class OpticsScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.15 : 0.08),
+        color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: const Color(0xFF0284C7).withValues(alpha: isDark ? 0.3 : 0.2),
+          color: AppColors.primary.withValues(alpha: isDark ? 0.3 : 0.2),
         ),
       ),
       child: Row(
@@ -252,7 +240,7 @@ class OpticsScreen extends ConsumerWidget {
         children: [
           const Padding(
             padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.info_outline, size: 16, color: Color(0xFF0284C7)),
+            child: Icon(Icons.info_outline, size: 16, color: AppColors.primary),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -261,7 +249,7 @@ class OpticsScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 12,
                 height: 1.35,
-                color: isDark ? const Color(0xFFE0F2FE) : const Color(0xFF0369A1),
+                color: isDark ? const Color(0xFFE0F2FE) : AppColors.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -303,10 +291,14 @@ class OpticsScreen extends ConsumerWidget {
           children: [
             // CustomPainter for Drawing Board, Prism, Light Ray, Pins, Protractor
             Positioned.fill(
-              child: CustomPaint(
-                painter: OpticsBenchPainter(
+              child: LabHandPaint(
+                watch: OpticsBenchPainter.handKeys(state),
+                painter: (hands) => OpticsBenchPainter(
                   state: state,
                   isDark: isDark,
+                  hands: hands,
+                  inspectedItemKey:
+                      state.step == OpticsStep.inspectApparatus ? ref.watch(labInspectedProvider('optics')) : null,
                 ),
               ),
             ),
@@ -427,11 +419,11 @@ class OpticsScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
           color: isActive
-              ? const Color(0xFF0284C7).withValues(alpha: 0.2)
+              ? AppColors.primary.withValues(alpha: 0.2)
               : (isDark ? const Color(0xFF0F172A).withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.8)),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isActive ? const Color(0xFF0284C7) : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+            color: isActive ? AppColors.primary : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
           ),
         ),
         child: Row(
@@ -440,7 +432,7 @@ class OpticsScreen extends ConsumerWidget {
             Icon(
               icon,
               size: 13,
-              color: isActive ? const Color(0xFF0284C7) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+              color: isActive ? AppColors.primary : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
             ),
             const SizedBox(width: 3),
             Text(
@@ -448,7 +440,7 @@ class OpticsScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 9.5,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? const Color(0xFF0284C7) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+                color: isActive ? AppColors.primary : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
               ),
             ),
           ],
@@ -574,6 +566,7 @@ class OpticsScreen extends ConsumerWidget {
                   ),
                   onTap: () {
                     ref.read(opticsControllerProvider.notifier).inspectApparatus(item.id);
+                    ref.read(labInspectedProvider('optics').notifier).state = item.id;
                   },
                 ),
               ),
@@ -624,7 +617,7 @@ class OpticsScreen extends ConsumerWidget {
                 child: _buildInfoMetricBox(
                   title: isSwahili ? 'Pembe ya Mche (A)' : 'Prism Angle (A)',
                   value: '60.0°',
-                  color: const Color(0xFF0284C7),
+                  color: AppColors.primary,
                   isDark: isDark,
                 ),
               ),
@@ -696,7 +689,7 @@ class OpticsScreen extends ConsumerWidget {
             min: 20.0,
             max: 70.0,
             divisions: 50,
-            activeColor: const Color(0xFF0058BE),
+            activeColor: AppColors.primary,
             inactiveColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
             onChanged: (val) {
               ref.read(opticsControllerProvider.notifier).setIncidentAngle(val);
@@ -713,7 +706,7 @@ class OpticsScreen extends ConsumerWidget {
               return ChoiceChip(
                 label: Text('${angle.toStringAsFixed(0)}°'),
                 selected: isSelected,
-                selectedColor: const Color(0xFF0058BE),
+                selectedColor: AppColors.primary,
                 onSelected: (_) {
                   ref.read(opticsControllerProvider.notifier).setIncidentAngle(angle);
                 },
@@ -770,7 +763,7 @@ class OpticsScreen extends ConsumerWidget {
                 icon: const Icon(Icons.bookmark_add, size: 16),
                 label: Text(isSwahili ? 'Hifadhi Jaribio' : 'Record Trial'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0058BE),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
@@ -883,7 +876,7 @@ class OpticsScreen extends ConsumerWidget {
                 icon: const Icon(Icons.add, size: 16),
                 label: Text(isSwahili ? 'Hifadhi Pembe Hii' : 'Record Current'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0058BE),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
@@ -943,7 +936,7 @@ class OpticsScreen extends ConsumerWidget {
                           trial.calculatedIndex.toStringAsFixed(3),
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF0284C7),
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -1077,7 +1070,7 @@ class OpticsScreen extends ConsumerWidget {
             icon: const Icon(Icons.fact_check),
             label: Text(isSwahili ? 'Wasilisha na Kamilisha Jaribio' : 'Submit & Complete Practical'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0058BE),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1099,7 +1092,7 @@ class OpticsScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: valueColor ?? const Color(0xFF0284C7),
+            color: valueColor ?? AppColors.primary,
           ),
         ),
       ],
@@ -1196,7 +1189,7 @@ class OpticsScreen extends ConsumerWidget {
                     : (isSwahili ? 'Hatua Inayofuata' : 'Next Step'),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0058BE),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

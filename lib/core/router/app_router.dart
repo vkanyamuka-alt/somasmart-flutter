@@ -14,7 +14,7 @@ import '../../features/shop/presentation/screens/payment_screen.dart';
 import '../../features/shop/presentation/screens/shop_screen.dart';
 import '../../features/shop/presentation/screens/subscription_screen.dart';
 import '../../features/subjects/presentation/screens/subject_detail_screen.dart';
-import '../../features/subjects/presentation/screens/subjects_screen.dart';
+import '../../features/subjects/presentation/screens/level_screen.dart';
 import '../../features/forum/presentation/screens/discussion_detail_screen.dart';
 import '../../features/forum/presentation/screens/forum_screen.dart';
 import '../../features/practice/presentation/screens/quiz_exams_screen.dart';
@@ -24,7 +24,7 @@ import '../../features/syllabus/presentation/screens/syllabus_library_screen.dar
 import '../../features/tutor/presentation/screens/ask_me_screen.dart';
 import '../../features/practicals/data/models/practical_model.dart';
 import '../../features/practicals/presentation/screens/practical_level_screen.dart';
-import '../../features/practicals/presentation/screens/practical_subject_select_screen.dart';
+import '../../features/practicals/presentation/screens/practical_theory_screen.dart';
 import '../../features/practicals/presentation/screens/practical_subject_screen.dart';
 import '../../features/practicals/presentation/screens/practical_mode_screen.dart';
 import '../../features/practicals/presentation/screens/microscope_screen.dart';
@@ -40,6 +40,7 @@ import '../../features/auth/presentation/screens/welcome_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../../features/auth/presentation/screens/complete_profile_screen.dart';
 import '../theme/app_theme.dart';
 import '../../features/auth/presentation/screens/contact_support_screen.dart';
 
@@ -113,7 +114,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/welcome',
         name: 'welcome',
         parentNavigatorKey: rootNavigatorKey,
-        pageBuilder: (context, state) => MaterialPage(
+        // Fades in from the splash instead of sliding.
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          transitionDuration: const Duration(milliseconds: 450),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut), child: child),
           child: Theme(
             data: AppTheme.lightTheme,
             child: const WelcomeScreen(),
@@ -150,6 +156,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: Theme(
             data: AppTheme.lightTheme,
             child: const ForgotPasswordScreen(),
+          ),
+        ),
+      ),
+      // First Google sign-in: phone number and form (signed-in only).
+      GoRoute(
+        path: '/complete-profile',
+        name: 'complete-profile',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) => MaterialPage(
+          child: Theme(
+            data: AppTheme.lightTheme,
+            child: const CompleteProfileScreen(),
           ),
         ),
       ),
@@ -253,7 +271,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/subjects',
         name: 'subjects',
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const SubjectsScreen(),
+        builder: (context, state) =>
+            LevelScreen(level: state.uri.queryParameters['level'] ?? 'o-level'),
+      ),
+      GoRoute(
+        // A form's (or stream's) own screen: /subjects/o-level/2, /subjects/a-level/arts.
+        path: '/subjects/:level/:choice',
+        name: 'level-choice',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => LevelScreen(
+          level: state.pathParameters['level'] ?? 'o-level',
+          choice: state.pathParameters['choice'],
+        ),
       ),
       GoRoute(
         path: '/subjects/:id',
@@ -372,6 +401,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/practical/theory/:practicalId',
+        name: 'practical-theory',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => PracticalTheoryScreen(practicalId: state.pathParameters['practicalId'] ?? 'titration'),
+      ),
+      GoRoute(
         path: '/practical/simulation/:practicalId',
         name: 'practical-simulation',
         parentNavigatorKey: rootNavigatorKey,
@@ -419,11 +454,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/practical/:level',
         name: 'practical-level',
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) {
-          final levelStr = state.pathParameters['level'] ?? 'o-level';
-          final level = PracticalLevelExtension.fromId(levelStr);
-          return PracticalSubjectSelectScreen(level: level);
-        },
+        // The lab home lists the subjects (one place for it, as on the web).
+        builder: (context, state) => const PracticalLevelScreen(),
       ),
     ],
   );

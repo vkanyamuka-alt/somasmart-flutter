@@ -132,6 +132,27 @@ void main() {
       expect(state.stopcockState, equals(StopcockState.closed)); // Automatically closes
     });
 
+    test('Closing the stopcock stops the drops falling', () {
+      var state = engine.createInitialState(PracticalMode.guidedPractice);
+      state = state.copyWith(buretteFilled: true, flaskVolume: 25.0, indicatorAdded: true, flaskPositioned: true);
+
+      state = engine.processAction(state, const SetStopcockStateAction(StopcockState.flow));
+      state = engine.processAction(state, const DeliverTitrantTickAction());
+      expect(state.isDropFalling, isTrue);
+      expect(state.flaskRipple, isTrue);
+
+      state = engine.processAction(state, const CloseStopcockAction());
+      expect(state.stopcockState, equals(StopcockState.closed));
+      expect(state.isDropFalling, isFalse);
+      expect(state.flaskRipple, isFalse);
+
+      // Pausing a running burette stops the drops too.
+      state = engine.processAction(state, const SetStopcockStateAction(StopcockState.slow));
+      state = engine.processAction(state, const DeliverTitrantTickAction());
+      state = engine.processAction(state, const PauseTitrationAction());
+      expect(state.isDropFalling, isFalse);
+    });
+
     test('Exact Endpoint Boundaries and Swirling Color Transitions', () {
       var state = engine.createInitialState(PracticalMode.guidedPractice);
       state = state.copyWith(flaskVolume: 25.0, indicatorAdded: true);

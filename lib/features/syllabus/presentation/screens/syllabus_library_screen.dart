@@ -5,26 +5,9 @@ import '../../../../core/widgets/pdf_viewer_screen.dart';
 import '../../domain/models/syllabus_document_model.dart';
 import '../controllers/syllabus_library_controller.dart';
 
-// ─── Subject colour map (mirrors React getCurriculumThumbnailSvg) ─────────────
-const Map<String, Color> _subjectColors = {
-  'physics': Color(0xFF0284C7),
-  'mathematics': Color(0xFF2563EB),
-  'chemistry': Color(0xFF7C3AED),
-  'biology': Color(0xFF059669),
-  'geography': Color(0xFFD97706),
-  'history': Color(0xFFB45309),
-  'civics': Color(0xFF4B5563),
-  'english language': Color(0xFFDC2626),
-  'kiswahili': Color(0xFF0891B2),
-  'economics': Color(0xFF0D9488),
-  'commerce': Color(0xFFEA580C),
-  'basic applied mathematics': Color(0xFF4338CA),
-  'general studies': Color(0xFF6366F1),
-};
-
-Color _subjectColor(String subjectName) {
-  return _subjectColors[subjectName.toLowerCase()] ?? AppColors.primary;
-}
+// Covers without an uploaded thumbnail are plain navy with the subject's own
+// icon, like the website (no per-subject rainbow, no imitation TIE cover).
+Color _subjectColor(String subjectName) => AppColors.primary;
 
 // ─── Custom Book Cover Painter ────────────────────────────────────────────────
 
@@ -46,78 +29,15 @@ class _BookCoverPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // 1. Gradient background
-    final bgRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, w, h),
-      const Radius.circular(10),
-    );
-    final bgPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [baseColor, const Color(0xFF0F172A)],
-      ).createShader(Rect.fromLTWH(0, 0, w, h));
-    canvas.drawRRect(bgRect, bgPaint);
-
-    // 2. Spine strip
-    final spinePaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [
-          Colors.black.withValues(alpha: 0.35),
-          Colors.white.withValues(alpha: 0.1),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, w * 0.07, h));
-    canvas.drawRect(Rect.fromLTWH(0, 0, w * 0.07, h), spinePaint);
-
-    // 3. "CURRICULUM DOCUMENT" header badge
-    final badgeRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(w * 0.11, h * 0.07, w * 0.77, h * 0.08),
-      const Radius.circular(5),
-    );
+    // Plain navy cover with a gold edge (matches the website's cover).
     canvas.drawRRect(
-      badgeRect,
-      Paint()..color = Colors.white.withValues(alpha: 0.12),
+      RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, h), const Radius.circular(10)),
+      Paint()..color = baseColor,
     );
-
-    // 4. Tanzania emblem circle
-    final circleCentre = Offset(w / 2, h * 0.30);
-    final circleR = w * 0.18;
-    canvas.drawCircle(
-      circleCentre,
-      circleR,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.08)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      circleCentre,
-      circleR,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.25)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5,
-    );
-
-    // 5. Divider line
-    canvas.drawLine(
-      Offset(w * 0.19, h * 0.63),
-      Offset(w * 0.81, h * 0.63),
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.2)
-        ..strokeWidth = 1.2,
-    );
-
-    // 6. Coverage badge
-    final covRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(w * 0.22, h * 0.68, w * 0.56, h * 0.09),
-      const Radius.circular(6),
-    );
-    canvas.drawRRect(
-      covRect,
-      Paint()..color = Colors.white.withValues(alpha: 0.15),
-    );
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, h), const Radius.circular(10)));
+    canvas.drawRect(Rect.fromLTWH(0, 0, w * 0.045, h), Paint()..color = AppColors.brandGold);
+    canvas.restore();
   }
 
   @override
@@ -185,39 +105,7 @@ class _SyllabusBookCover extends StatelessWidget {
           Positioned.fill(
             child: Column(
               children: [
-                // Header label
-                SizedBox(height: height * 0.09),
-                Text(
-                  'CURRICULUM DOCUMENT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: width * 0.065,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                // Emblem area — flag emoji
-                SizedBox(height: height * 0.03),
-                Text(
-                  '🇹🇿',
-                  style: TextStyle(fontSize: width * 0.14),
-                ),
-
-                SizedBox(height: height * 0.01),
-                Text(
-                  'TANZANIA INSTITUTE OF EDUCATION',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: width * 0.048,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                SizedBox(height: height * 0.03),
+                SizedBox(height: height * 0.3),
 
                 // Subject name
                 Padding(
@@ -273,7 +161,7 @@ class _SyllabusBookCover extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.only(bottom: height * 0.04),
                   child: Text(
-                    'Official Curriculum • $year',
+                    year,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.75),
                       fontSize: width * 0.06,

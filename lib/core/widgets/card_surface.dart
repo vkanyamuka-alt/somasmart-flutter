@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Reusable Academic Card Surface with clean borders and subtle elevation.
+/// Card surface from the design system: 1px border, 16 radius, faint shadow.
 class CardSurface extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -44,20 +44,15 @@ class CardSurface extends StatelessWidget {
           color: isSelected ? activeBorder : (borderColor ?? defaultBorder),
           width: isSelected ? 1.5 : 1.0,
         ),
+        // Borders carry the structure; light mode adds only a faint shadow.
         boxShadow: isDark
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ]
+            ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
               ],
       ),
       child: Material(

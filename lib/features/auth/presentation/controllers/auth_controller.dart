@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/config/env.dart';
+import '../../../../core/services/push/push_providers.dart';
 import '../../../../core/services/supabase_service.dart';
+import '../../data/google_profile.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../account/presentation/controllers/account_controller.dart';
 
@@ -40,6 +44,13 @@ class AuthResult {
   /// Sign-up worked but Supabase returned no session (e.g. email confirmation is on):
   /// the student has to sign in.
   final bool needsSignIn;
+
+  /// Signed in with Google for the first time: the phone number and form are
+  /// still missing, so /complete-profile comes before /home.
+  final bool needsProfile;
+
+  /// The student closed the Google account picker: no error to show.
+  final bool cancelled;
   final String? phone;
   final String? errorMessage;
 
@@ -48,6 +59,8 @@ class AuthResult {
   const AuthResult({
     required this.success,
     this.needsSignIn = false,
+    this.needsProfile = false,
+    this.cancelled = false,
     this.phone,
     this.errorMessage,
   });
@@ -62,6 +75,8 @@ class AuthResult {
         success: false,
         errorMessage: error,
       );
+
+  factory AuthResult.cancelled() => const AuthResult(success: false, cancelled: true);
 }
 
 /// Controller managing Phone-First Supabase authentication.
@@ -168,7 +183,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       final cleanEmail = email?.trim().isNotEmpty == true ? email!.trim() : null;
       final authEmail = cleanEmail ?? '${normPhone.replaceAll('+', '')}@phone.somasmart.com';
 
-      debugPrint('🔵 [SUPABASE AUTH SIGNUP ATTEMPT] authEmail=$authEmail, phone=$normPhone');
+      debugPrint('[SUPABASE AUTH SIGNUP ATTEMPT] authEmail=$authEmail, phone=$normPhone');
 
       final response = await _client.auth.signUp(
         email: authEmail,
@@ -183,25 +198,14 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         },
       );
 
-      debugPrint('🟢 [SUPABASE AUTH SIGNUP SUCCESS] user.id=${response.user?.id}, hasSession=${response.session != null}');
+      debugPrint('[SUPABASE AUTH SIGNUP SUCCESS] user.id=${response.user?.id}, hasSession=${response.session != null}');
 
       final user = response.user;
       if (user != null) {
-        // 3. Create initial profile record (marked is_verified: false)
-        try {
-          await _client.from('profiles').upsert({
-            'id': user.id,
-            'phone': normPhone,
-            'email': cleanEmail ?? '',
-            'full_name': fullName.trim(),
-            'role': 'student',
-            'is_verified': false,
-            'subscription_status': 'trial',
-          });
-        } catch (dbErr, dbSt) {
-          debugPrint('⚠️ [PROFILES DB UPSERT NON-FATAL ERROR]: $dbErr\n$dbSt');
-        }
-
+        // The profile row is made by the database's sign-up trigger
+        // (handle_new_user) from the metadata above. The app used to upsert it
+        // with subscription_status 'trial', which is not a valid status, so
+        // that write always failed.
         try {
           await _client.from('student_profiles').upsert({
             'id': user.id,
@@ -209,7 +213,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
             'stream': 'none',
           });
         } catch (studentDbErr, studentDbSt) {
-          debugPrint('⚠️ [STUDENT PROFILES DB UPSERT NON-FATAL ERROR]: $studentDbErr\n$studentDbSt');
+          debugPrint('[STUDENT PROFILES DB UPSERT NON-FATAL ERROR]: $studentDbErr\n$studentDbSt');
         }
 
         // No phone verification step (see class comment).
@@ -223,7 +227,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         throw const AuthException('Registration failed. Please try again.');
       }
     } on AuthException catch (e, st) {
-      debugPrint('🔴 [SUPABASE AUTH EXCEPTION]');
+      debugPrint('[SUPABASE AUTH EXCEPTION]');
       debugPrint('  Error Type: ${e.runtimeType}');
       debugPrint('  Error Message: ${e.message}');
       debugPrint('  Status Code: ${e.statusCode}');
@@ -232,7 +236,7 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       state = AsyncValue.error(e, st);
       return AuthResult.failure(e.message);
     } catch (e, st) {
-      debugPrint('🔴 [UNEXPECTED AUTH EXCEPTION]');
+      debugPrint('[UNEXPECTED AUTH EXCEPTION]');
       debugPrint('  Error Type: ${e.runtimeType}');
       debugPrint('  Error: $e');
       debugPrint('  Stack Trace:\n$st');
@@ -240,6 +244,97 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       return AuthResult.failure(e.toString());
     }
   }
+
+  /// GoogleSignIn.initialize may run only once per app start.
+  static Future<void>? _googleInit;
+
+  /// "Continue with Google": Android's own account picker gives a Google ID
+  /// token, and Supabase signs in with it (no browser, no deep link). A first
+  /// sign-in creates the auth user; the on_auth_user_created trigger then makes
+  /// the profile as a free student, whatever the token or metadata say.
+  Future<AuthResult> signInWithGoogle() async {
+    if (!Env.googleSignInConfigured) {
+      return AuthResult.failure('Google sign-in is not set up in this build.');
+    }
+    state = const AsyncValue.loading();
+    try {
+      final google = GoogleSignIn.instance;
+      _googleInit ??= google.initialize(serverClientId: Env.googleWebClientId);
+      await _googleInit;
+
+      final account = await google.authenticate(scopeHint: const ['email']);
+      final idToken = account.authentication.idToken;
+      if (idToken == null) {
+        throw const AuthException('Google did not return an ID token.');
+      }
+
+      await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+      );
+
+      await _ref.read(userProfileProvider.notifier).refreshProfile();
+      final profile = _ref.read(userProfileProvider).value;
+      state = const AsyncValue.data(null);
+      return AuthResult(
+        success: true,
+        needsProfile: needsProfileCompletion(_client.auth.currentUser, profile?.phone),
+      );
+    } on GoogleSignInException catch (e, st) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        state = const AsyncValue.data(null);
+        return AuthResult.cancelled();
+      }
+      debugPrint('[GOOGLE SIGN-IN] ${e.code}: ${e.description}');
+      state = AsyncValue.error(e, st);
+      return AuthResult.failure(e.toString());
+    } on AuthException catch (e, st) {
+      debugPrint('[GOOGLE SIGN-IN -> SUPABASE] ${e.statusCode} ${e.message}');
+      state = AsyncValue.error(e, st);
+      return AuthResult.failure(e.message);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return AuthResult.failure(e.toString());
+    }
+  }
+
+  /// Last step of a first Google sign-in: the phone number and form that the
+  /// sign-up screen asks everyone else for. The form is saved first because
+  /// the phone number is what marks the profile as complete. Name and phone go
+  /// through update_my_profile, like the website.
+  Future<AuthResult> completeGoogleProfile({
+    required String fullName,
+    required String phone,
+    required int formLevel,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return AuthResult.failure('Not signed in.');
+    state = const AsyncValue.loading();
+    final normPhone = normalizePhoneNumber(phone);
+    try {
+      await _client.from('student_profiles').upsert({
+        'id': user.id,
+        'form_level': formLevel,
+      });
+      await _client.rpc('update_my_profile', params: {
+        'p_full_name': fullName.trim(),
+        'p_phone': normPhone,
+      });
+      await _ref.read(userProfileProvider.notifier).refreshProfile();
+      state = const AsyncValue.data(null);
+      return AuthResult.success(phone: normPhone);
+    } on PostgrestException catch (e, st) {
+      final error = e.code == '23505' ? phoneTakenCode : e.message;
+      state = AsyncValue.error(error, st);
+      return AuthResult.failure(error);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return AuthResult.failure(e.toString());
+    }
+  }
+
+  /// Error when the phone number already belongs to another account.
+  static const phoneTakenCode = 'phone_taken';
 
   /// Send password reset link via Supabase for users with email.
   Future<bool> resetPasswordForEmail({required String email}) async {
@@ -284,6 +379,16 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
 
   /// Sign out of Supabase auth and clear session profile.
   Future<void> signOut() async {
+    // Stop notifications to this phone while the session can still delete
+    // its own device_tokens row.
+    await unregisterPushBeforeSignOut(_ref);
+    // Forget the Google account too, so the next student on a shared phone
+    // gets the account picker instead of being signed straight back in.
+    if (_googleInit != null) {
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
+    }
     try {
       await _client.auth.signOut();
       await _ref.read(userProfileProvider.notifier).signOut();
@@ -295,6 +400,19 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
   static String getLocalizedErrorMessage(dynamic error, String lang) {
     if (error == null) return '';
     final isSw = lang == 'sw';
+    if (error == phoneTakenCode) {
+      return isSw
+          ? 'Namba hii ya simu tayari ina akaunti ya SomaMkononi. Toka, kisha ingia kwa namba hiyo na nenosiri lake.'
+          : 'This phone number already has a SomaMkononi account. Sign out, then sign in with that number and its password.';
+    }
+    if (error is GoogleSignInException) {
+      // Android reports "no internet" from Google only as a generic failure
+      // (seen on a Pixel: GMS getToken NETWORK_ERROR), so the internet is the
+      // first thing to suggest.
+      return isSw
+          ? 'Imeshindwa kuingia kwa Google. Hakikisha una intaneti, kisha jaribu tena au tumia namba ya simu.'
+          : 'Could not sign in with Google. Check that you are connected to the internet, then try again or use your phone number.';
+    }
     final msg = error is AuthException ? error.message.toLowerCase() : error.toString().toLowerCase();
 
     // Check specific AuthException codes and message content
@@ -331,8 +449,8 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
         msg.contains('invalid_grant') ||
         msg.contains('invalid credentials')) {
       return isSw
-          ? 'Namba ya simu au nenosiri si sahihi. Tafadhali jaribu tena.'
-          : 'Invalid phone number or password. Please check your credentials.';
+          ? 'Namba ya simu/email au neno la siri si sahihi. Tafadhali jaribu tena.'
+          : 'Wrong phone number/email or password. Please try again.';
     }
     if (msg.contains('user already registered') ||
         msg.contains('user already exists') ||

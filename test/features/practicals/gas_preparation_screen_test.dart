@@ -106,7 +106,7 @@ void main() {
       expect(find.text('Pour'), findsNothing);
     });
 
-    testWidgets('renders Swahili bilingual UI properly', (tester) async {
+    testWidgets('stays in English when the app is in Swahili', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -117,10 +117,9 @@ void main() {
       await tester.pumpWidget(buildTestableWidget(prefs: prefs, mode: PracticalMode.guidedPractice));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Utayarishaji wa Gesi Maabarani'), findsOneWidget);
-      expect(find.text('Gesi ya Oksijeni (O₂)'), findsOneWidget);
-      expect(find.text('Gesi ya Dioksidi ya Kaboni (CO₂)'), findsOneWidget);
-      expect(find.text('Gesi ya Haidrojeni (H₂)'), findsOneWidget);
+      expect(find.text('Laboratory Preparation of Gases'), findsOneWidget);
+      expect(find.text('Oxygen Gas (O₂)'), findsOneWidget);
+      expect(find.text('Gesi ya Oksijeni (O₂)'), findsNothing);
     });
 
     testWidgets('renders Dark mode properly without crash', (tester) async {

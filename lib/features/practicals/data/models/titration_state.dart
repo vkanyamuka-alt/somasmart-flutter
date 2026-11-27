@@ -267,7 +267,7 @@ class TitrationState {
       isCompleted: isCompleted ?? this.isCompleted,
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
       inspectedItems: inspectedItems ?? this.inspectedItems,
-      selectedInspectItemKey: selectedInspectItemKey,
+      selectedInspectItemKey: selectedInspectItemKey ?? this.selectedInspectItemKey,
       buretteFilled: buretteFilled ?? this.buretteFilled,
       buretteReading: buretteReading ?? this.buretteReading,
       pipetteStep: pipetteStep ?? this.pipetteStep,

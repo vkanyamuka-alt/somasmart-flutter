@@ -54,7 +54,7 @@ void main() {
       expect(find.text('3. Apply Iodine'), findsOneWidget);
     });
 
-    testWidgets('Renders initial UI components in Kiswahili', (tester) async {
+    testWidgets('stays in English when the app is in Swahili', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -65,10 +65,9 @@ void main() {
       await tester.pumpWidget(buildTestableWidget(prefs: prefs, mode: PracticalMode.guidedPractice));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Darubini ya Mwanga & Seli'), findsOneWidget);
-      expect(find.text('MAZOEZI'), findsOneWidget);
-      expect(find.text('Kagua Vifaa'), findsOneWidget);
-      expect(find.text('Meza ya Kutayarisha Kiolezo'), findsOneWidget);
+      expect(find.text('Light Microscope Cell Staining'), findsOneWidget);
+      expect(find.text('Inspect Apparatus'), findsOneWidget);
+      expect(find.text('Kagua Vifaa'), findsNothing);
     });
 
     testWidgets('Apparatus inspection opens modal and checks off items', (tester) async {

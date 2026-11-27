@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/notification_drawer.dart';
 import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../controllers/account_controller.dart';
 
@@ -97,59 +96,6 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
   }
 
-  void _handleSignOut() {
-    final lang = ref.read(languageProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkBgSurface : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          lang == 'sw' ? 'Ondoka kwenye Akaunti?' : 'Sign Out?',
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-        ),
-        content: Text(
-          lang == 'sw'
-              ? 'Je, una uhakika unataka kuondoka kwenye akaunti yako ya SomaMkononi?'
-              : 'Are you sure you want to sign out of your SomaMkononi account?',
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              lang == 'sw' ? 'Ghairi' : 'Cancel',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await ref.read(userProfileProvider.notifier).signOut();
-              if (mounted) {
-                context.go('/welcome');
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(lang == 'sw' ? 'Ondoka' : 'Sign Out'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -203,20 +149,6 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                   // Header
                   Row(
                     children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.person_rounded,
-                          color: AppColors.primary,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -675,9 +607,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 4. Quick Access Links
+                  // 4. Subscription. Updates live under the bell and Sign out
+                  // in Settings, so they are not repeated here.
                   Text(
-                    lang == 'sw' ? 'Viungo vya Haraka' : 'Quick Access',
+                    lang == 'sw' ? 'Usajili' : 'Subscription',
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -695,65 +628,6 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                     onTap: () {
                       context.push('/subscription');
                     },
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Updates Card Link -> NotificationDrawer
-                  _QuickAccessTile(
-                    icon: Icons.notifications_active_outlined,
-                    title: lang == 'sw'
-                        ? 'Marekebisho (Platform Updates)'
-                        : 'Platform Updates',
-                    description: lang == 'sw'
-                        ? 'Angalia taarifa mpya za mfumo na masomo'
-                        : 'Check latest platform news and updates',
-                    onTap: () {
-                      NotificationDrawer.show(context);
-                    },
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 5. Sign Out Section
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.only(top: 14),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: isDark
-                              ? AppColors.darkBorder
-                              : AppColors.lightBorder,
-                        ),
-                      ),
-                    ),
-                    child: OutlinedButton.icon(
-                      onPressed: _handleSignOut,
-                      icon: const Icon(
-                        Icons.logout_rounded,
-                        size: 18,
-                        color: AppColors.error,
-                      ),
-                      label: Text(
-                        lang == 'sw'
-                            ? 'Ondoka kwenye Akaunti'
-                            : 'Sign Out',
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.error,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: AppColors.error.withValues(alpha: 0.05),
-                        side: BorderSide(
-                          color: AppColors.error.withValues(alpha: 0.25),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),

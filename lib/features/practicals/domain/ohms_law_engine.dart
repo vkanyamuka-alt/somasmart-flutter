@@ -72,7 +72,13 @@ class ResetEngineAction extends OhmsLawAction {
 
 /// Domain Engine for Ohm's Law Verification practical simulation.
 /// Adheres to: V = I * R <=> I = V / R <=> R = V / I
+/// As in school (and NECTA papers) the voltage comes from 1.5 V dry cells:
+/// the student changes it by putting one to four cells in the circuit.
 class OhmsLawEngine implements PracticalSimulationEngine<OhmsLawState, OhmsLawAction> {
+  static const double cellVolts = 1.5;
+  static const int maxCells = 4;
+  static const double maxVolts = cellVolts * maxCells;
+
   @override
   String get engineId => 'ohms_law';
 
@@ -102,7 +108,7 @@ class OhmsLawEngine implements PracticalSimulationEngine<OhmsLawState, OhmsLawAc
       inspectedItems: const {},
       circuitConnected: mode == PracticalMode.freeExploration, // Auto-connect in free exploration
       isSwitchClosed: false,
-      voltageSetting: 1.0,
+      voltageSetting: cellVolts,
       knownResistance: 10.0,
       measuredVoltage: 0.0,
       measuredCurrent: 0.0,
@@ -140,7 +146,7 @@ class OhmsLawEngine implements PracticalSimulationEngine<OhmsLawState, OhmsLawAc
 
     if (action is ConnectCircuitAction) {
       final logs = List<String>.from(currentState.notebookLogs);
-      logs.add('• Circuit assembled: Connected Power Supply, Standard Resistor (10.0 Ω), Ammeter in series, and Voltmeter in parallel.');
+      logs.add('• Circuit connected: cells, key, ammeter and resistor in series; voltmeter across the resistor.');
       return currentState.copyWith(
         circuitConnected: true,
         notebookLogs: logs,
@@ -157,9 +163,9 @@ class OhmsLawEngine implements PracticalSimulationEngine<OhmsLawState, OhmsLawAc
       if (isClosed && currentState.circuitConnected) {
         measuredV = currentState.voltageSetting;
         measuredI = _computeCurrent(measuredV, currentState.knownResistance);
-        logs.add('• Switch CLOSED. Voltage = ${measuredV.toStringAsFixed(2)} V, Current = ${measuredI.toStringAsFixed(3)} A.');
+        logs.add('• Key closed: V = ${measuredV.toStringAsFixed(2)} V, I = ${measuredI.toStringAsFixed(3)} A.');
       } else {
-        logs.add('• Switch OPENED. Circuit is de-energized (I = 0.00 A).');
+        logs.add('• Key opened: no current flows.');
       }
 
       return currentState.copyWith(
@@ -171,7 +177,7 @@ class OhmsLawEngine implements PracticalSimulationEngine<OhmsLawState, OhmsLawAc
     }
 
     if (action is SetVoltageAction) {
-      final newV = action.voltage.clamp(0.0, 10.0);
+      final newV = action.voltage.clamp(0.0, maxVolts);
       double measuredV = 0.0;
       double measuredI = 0.0;
 
@@ -328,17 +334,17 @@ class OhmsLawEngine implements PracticalSimulationEngine<OhmsLawState, OhmsLawAc
   static String _getApparatusName(String key) {
     switch (key) {
       case 'battery':
-        return 'DC Power Supply';
+        return 'Dry cells in a holder';
       case 'resistor':
-        return 'Standard Resistor (10.0 Ω)';
+        return 'Resistor R';
       case 'ammeter':
-        return 'Digital Ammeter';
+        return 'Ammeter (0–1 A)';
       case 'voltmeter':
-        return 'Digital Voltmeter';
+        return 'Voltmeter (0–6 V)';
       case 'switch':
-        return 'Single-Pole Knife Switch';
+        return 'Key (K)';
       case 'wires':
-        return 'Copper Connecting Wires';
+        return 'Connecting wires';
       default:
         return 'Apparatus';
     }
@@ -347,17 +353,17 @@ class OhmsLawEngine implements PracticalSimulationEngine<OhmsLawState, OhmsLawAc
   static String _getApparatusDescription(String key) {
     switch (key) {
       case 'battery':
-        return 'Provides variable direct current voltage (0.0 V - 6.0 V) to power the circuit.';
+        return 'Four 1.5 V cells. The crocodile clip chooses how many are in the circuit: 1, 2, 3 or 4 cells give 1.5, 3.0, 4.5 or 6.0 V.';
       case 'resistor':
-        return 'Standard ohmic resistor of fixed resistance R = 10.0 Ω obeying Ohm’s Law.';
+        return 'The conductor under test, on a board with two brass terminals. Keep it cool so R stays constant.';
       case 'ammeter':
-        return 'Connected in series with the resistor to measure current (I) in amperes (A).';
+        return 'Moving-coil meter in series with the resistor; measures the current I. Its red + terminal goes towards the + of the cells.';
       case 'voltmeter':
-        return 'Connected in parallel across the resistor to measure potential difference (V) in volts (V).';
+        return 'Moving-coil meter connected across the resistor (in parallel); measures the potential difference V.';
       case 'switch':
-        return 'Closes or opens the electrical loop to initiate or interrupt current flow.';
+        return 'Push the plug in to close the circuit for a reading; take it out between readings so the resistor does not heat up.';
       case 'wires':
-        return 'Insulated low-resistance copper wires linking all components into a closed circuit.';
+        return 'Copper leads with crocodile clips, joining everything into one loop.';
       default:
         return 'Standard physics laboratory equipment.';
     }

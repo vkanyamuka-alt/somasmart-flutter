@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/theme_provider.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/practical_model.dart';
 import '../../data/models/rates_of_reaction_state.dart';
+import '../controllers/lab_inspect_provider.dart';
 import '../controllers/rates_of_reaction_controller.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/rates_of_reaction_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/rates_of_reaction_graph_widget.dart';
 import '../widgets/titration_completion_card.dart';
+import '../../../../core/utils/learning_language.dart';
 
 class RatesOfReactionScreen extends ConsumerStatefulWidget {
   final PracticalMode mode;
@@ -48,9 +50,8 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ratesOfReactionControllerProvider);
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
-    final isSwahili = ref.watch(languageProvider) == 'sw';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSwahili = learningLanguage() == 'sw';
 
     return PopScope(
       canPop: false,
@@ -72,7 +73,8 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
 
               // 3. Main Workspace Area
               Expanded(
-                child: SingleChildScrollView(
+                child: StepScrollView(
+                  step: state.step,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -128,7 +130,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: widget.mode == PracticalMode.guidedPractice
-                      ? const Color(0xFF38BDF8).withValues(alpha: 0.15)
+                      ? AppColors.primary.withValues(alpha: 0.15)
                       : (widget.mode == PracticalMode.examMode
                           ? const Color(0xFF8B5CF6).withValues(alpha: 0.15)
                           : const Color(0xFF10B981).withValues(alpha: 0.15)),
@@ -140,7 +142,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
                     color: widget.mode == PracticalMode.guidedPractice
-                        ? const Color(0xFF0284C7)
+                        ? AppColors.primary
                         : (widget.mode == PracticalMode.examMode
                             ? const Color(0xFF7C3AED)
                             : const Color(0xFF059669)),
@@ -219,14 +221,14 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.25 : 0.15)
+                    ? AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.15)
                     : (isUnlocked
                         ? (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9))
                         : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC))),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF38BDF8)
+                      ? AppColors.primary
                       : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
               ),
@@ -244,7 +246,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                       fontSize: 11,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       color: isSelected
-                          ? (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
+                          ? (isDark ? AppColors.primaryLight : AppColors.primary)
                           : (isUnlocked
                               ? (isDark ? Colors.white70 : const Color(0xFF475569))
                               : (isDark ? Colors.white30 : Colors.black26)),
@@ -306,17 +308,17 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : const Color(0xFFE0F2FE),
+      color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : AppColors.primarySoft,
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF0284C7)),
+          const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               instruction,
               style: TextStyle(
                 fontSize: 11.5,
-                color: isDark ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF0369A1),
+                color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.primary,
                 height: 1.3,
               ),
             ),
@@ -330,6 +332,8 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
   // Laboratory Canvas
   // ---------------------------------------------------------------------------
   Widget _buildLaboratoryCanvas(RatesOfReactionState state, bool isDark) {
+    final inspected =
+        state.step == RatesOfReactionStep.inspectApparatus ? ref.watch(labInspectedProvider('rates')) : null;
     return Container(
       height: 240,
       decoration: BoxDecoration(
@@ -347,12 +351,15 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
         child: AnimatedBuilder(
           animation: _pulseController,
           builder: (context, _) {
-            return CustomPaint(
+            return LabHandPaint(
               size: const Size(double.infinity, 240),
-              painter: RatesOfReactionBenchPainter(
+              watch: RatesOfReactionBenchPainter.handKeys(state),
+              painter: (hands) => RatesOfReactionBenchPainter(
                 state: state,
                 isDark: isDark,
                 animationValue: _pulseController.value,
+                hands: hands,
+                inspectedItemKey: inspected,
               ),
             );
           },
@@ -415,7 +422,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
               decoration: BoxDecoration(
                 color: state.allApparatusInspected
                     ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                    : const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                    : AppColors.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -425,7 +432,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                   fontWeight: FontWeight.w800,
                   color: state.allApparatusInspected
                       ? const Color(0xFF10B981)
-                      : const Color(0xFF0284C7),
+                      : AppColors.primary,
                 ),
               ),
             ),
@@ -447,20 +454,22 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
             child: Material(
               color: Colors.transparent,
               child: ListTile(
-                onTap: () =>
-                    ref.read(ratesOfReactionControllerProvider.notifier).inspectItem(item.id),
+                onTap: () {
+                  ref.read(ratesOfReactionControllerProvider.notifier).inspectItem(item.id);
+                  ref.read(labInspectedProvider('rates').notifier).state = item.id;
+                },
                 leading: Container(
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
                     color: item.inspected
                         ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                        : const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                        : AppColors.primary.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     item.inspected ? Icons.check_circle_rounded : Icons.search_rounded,
-                    color: item.inspected ? const Color(0xFF10B981) : const Color(0xFF0284C7),
+                    color: item.inspected ? const Color(0xFF10B981) : AppColors.primary,
                     size: 18,
                   ),
                 ),
@@ -551,7 +560,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                    color: AppColors.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   alignment: Alignment.center,
@@ -560,7 +569,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0284C7),
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -595,7 +604,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                           .prepareSolution(trial.flaskNumber),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    backgroundColor: const Color(0xFF38BDF8),
+                    backgroundColor: AppColors.primary,
                   ),
                   child: Text(
                     trial.isPrepared
@@ -646,7 +655,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFF38BDF8)
+                          ? AppColors.primary
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -763,7 +772,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF38BDF8),
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -1022,7 +1031,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
               icon: const Icon(Icons.arrow_forward_rounded, size: 16),
               label: Text(isSwahili ? 'Hatua Inayofuata' : 'Next Step'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF38BDF8),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
             )
@@ -1100,7 +1109,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
             children: [
               Row(
                 children: [
-                  const Icon(Icons.menu_book_rounded, color: Color(0xFF38BDF8)),
+                  const Icon(Icons.menu_book_rounded, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Text(
                     isSwahili ? 'Daftari la Nadharia ya Kasi' : 'Reaction Kinetics Theory',
@@ -1119,7 +1128,7 @@ class _RatesOfReactionScreenState extends ConsumerState<RatesOfReactionScreen>
                   fontSize: 12,
                   fontFamily: 'monospace',
                   fontWeight: FontWeight.w700,
-                  color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                  color: isDark ? AppColors.primaryLight : AppColors.primary,
                 ),
               ),
               const SizedBox(height: 10),

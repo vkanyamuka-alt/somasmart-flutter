@@ -4,6 +4,9 @@ class AppConstants {
 
   static const String appName = 'SomaMkononi';
   static const String appTagline = 'Smart Learning for O-Level & A-Level';
+
+  /// The SomaMkononi web app; what "Share SomaMkononi" copies.
+  static const String webAppUrl = 'https://meek-marzipan-3fc8ef.netlify.app';
   
   // Storage Keys
   static const String keyThemeMode = 'somasmart_theme_mode';

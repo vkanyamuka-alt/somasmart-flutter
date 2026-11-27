@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/services/support_contact_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/soma_smart_logo.dart';
@@ -64,39 +65,10 @@ class _ContactSupportScreenState extends ConsumerState<ContactSupportScreen> {
     }
   }
 
-  Future<void> _launchWhatsApp() async {
-    const contact = '+255768000000';
-    await Clipboard.setData(const ClipboardData(text: contact));
-    if (mounted) {
-      final lang = ref.read(languageProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lang == 'sw'
-                ? 'Nambari ya WhatsApp ($contact) imenakiliwa!'
-                : 'WhatsApp support number ($contact) copied to clipboard!',
-          ),
-          backgroundColor: AppColors.primary,
-        ),
-      );
-    }
-  }
-
-  Future<void> _launchCall() async {
-    const contact = '+255768000000';
-    await Clipboard.setData(const ClipboardData(text: contact));
-    if (mounted) {
-      final lang = ref.read(languageProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lang == 'sw'
-                ? 'Nambari ya simu ($contact) imenakiliwa!'
-                : 'Helpline phone number ($contact) copied to clipboard!',
-          ),
-          backgroundColor: AppColors.primary,
-        ),
-      );
+  Future<void> _launch(Uri uri) async {
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(uri.toString())));
     }
   }
 
@@ -196,6 +168,7 @@ class _ContactSupportScreenState extends ConsumerState<ContactSupportScreen> {
     required bool isDark,
     required bool isSw,
   }) {
+    final contact = ref.watch(supportContactProvider).valueOrNull;
     return Form(
       key: _formKey,
       child: Column(
@@ -322,55 +295,58 @@ class _ContactSupportScreenState extends ConsumerState<ContactSupportScreen> {
           const SizedBox(height: 24),
 
           // Direct Channels
-          Row(
-            children: [
-              Expanded(child: Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  isSw ? 'Au wasiliana nasi moja kwa moja' : 'Or reach us directly',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+          // Direct contact, from the details an admin set in the admin panel.
+          if (contact != null && contact.whatsapp != null) ...[
+            Row(
+              children: [
+                Expanded(child: Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    isSw ? 'Au wasiliana nasi moja kwa moja' : 'Or reach us directly',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                    ),
                   ),
                 ),
-              ),
-              Expanded(child: Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
-            ],
-          ),
-          const SizedBox(height: 14),
+                Expanded(child: Divider(color: isDark ? AppColors.darkBorder : AppColors.lightBorder)),
+              ],
+            ),
+            const SizedBox(height: 14),
 
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _launchWhatsApp,
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-                  label: const Text('WhatsApp'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF22C55E),
-                    side: const BorderSide(color: Color(0xFF22C55E)),
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _launch(contact.whatsapp!),
+                    icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                    label: const Text('WhatsApp'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF22C55E),
+                      side: const BorderSide(color: Color(0xFF22C55E)),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _launchCall,
-                  icon: const Icon(Icons.phone_in_talk_rounded, size: 16),
-                  label: Text(isSw ? 'Piga Simu' : 'Call Support'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _launch(contact.call!),
+                    icon: const Icon(Icons.phone_in_talk_rounded, size: 16),
+                    label: Text(isSw ? 'Piga Simu' : 'Call Support'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );

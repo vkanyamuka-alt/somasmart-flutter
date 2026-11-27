@@ -1,4 +1,5 @@
 import 'dart:ui';
+import '../../../../core/widgets/soma_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -121,8 +122,8 @@ class _AskMeFloatingPanelState extends ConsumerState<AskMeFloatingPanel> {
                   color: AppColors.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.auto_awesome_rounded,
+                child: const SomaIcon(
+                  'ask',
                   color: AppColors.primary,
                   size: 30,
                 ),
@@ -364,8 +365,8 @@ class _AskMeFloatingPanelState extends ConsumerState<AskMeFloatingPanel> {
                                           .withValues(alpha: isDark ? 0.25 : 0.14),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
-                                    child: const Icon(
-                                      Icons.auto_awesome_rounded,
+                                    child: const SomaIcon(
+                                      'ask',
                                       color: AppColors.primary,
                                       size: 19,
                                     ),
@@ -528,8 +529,8 @@ class _AskMeFloatingPanelState extends ConsumerState<AskMeFloatingPanel> {
                                               color: AppColors.primary.withValues(alpha: 0.15),
                                               shape: BoxShape.circle,
                                             ),
-                                            child: const Icon(
-                                              Icons.auto_awesome_rounded,
+                                            child: const SomaIcon(
+                                              'ask',
                                               size: 14,
                                               color: AppColors.primary,
                                             ),
@@ -607,14 +608,9 @@ class _AskMeFloatingPanelState extends ConsumerState<AskMeFloatingPanel> {
                                                   : AppColors.primary.withValues(alpha: 0.15),
                                               shape: BoxShape.circle,
                                             ),
-                                            child: Icon(
-                                              msg.isError
-                                                  ? Icons.error_outline_rounded
-                                                  : Icons.auto_awesome_rounded,
-                                              size: 14,
-                                              color:
-                                                  msg.isError ? AppColors.error : AppColors.primary,
-                                            ),
+                                            child: msg.isError
+                                              ? const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.error)
+                                              : const SomaIcon('ask', size: 14, color: AppColors.primary),
                                           ),
                                           const SizedBox(width: 8),
                                         ],

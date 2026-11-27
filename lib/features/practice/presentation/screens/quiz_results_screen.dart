@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/card_surface.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../domain/models/quiz_models.dart';
 import '../controllers/quiz_controllers.dart';
+import '../../../../core/utils/learning_language.dart';
 
 /// Results and Answer Review screen.
 /// Faithfully reproduces React `QuizResults.jsx` scoring, metrics, trophy display, and question-by-question review.
@@ -34,7 +34,7 @@ class QuizResultsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final lang = ref.watch(languageProvider);
+    final lang = learningLanguage();
 
     final isOffline = attemptId == 'offline';
 
@@ -163,6 +163,10 @@ class QuizResultsScreen extends ConsumerWidget {
     required bool isDark,
   }) {
     final isPassed = score >= 50.0;
+    // Marks out of the whole quiz (e.g. 7/10), as on the web.
+    final correctCount = questionsList
+        .where((q) => isQuizAnswerCorrect(q, answersMap[q.id]?.toString()))
+        .length;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
@@ -216,16 +220,20 @@ class QuizResultsScreen extends ConsumerWidget {
                     Column(
                       children: [
                         Text(
-                          '${score.round()}%',
+                          questionsList.isNotEmpty
+                              ? '$correctCount/${questionsList.length}'
+                              : '${score.round()}%',
+                          key: const Key('quiz-marks'),
                           style: TextStyle(
-                            fontSize: 42,
+                            fontSize: 40,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -1,
                             color: isPassed ? AppColors.success : AppColors.danger,
                           ),
                         ),
                         Text(
-                          lang == 'sw' ? 'Alama Yako' : 'Your Score',
+                          '${lang == 'sw' ? 'Alama Yako' : 'Your Score'}'
+                          '${questionsList.isNotEmpty ? ' · ${score.round()}%' : ''}',
                           style: TextStyle(
                             fontSize: 13,
                             color: isDark
@@ -416,19 +424,10 @@ class QuizResultsScreen extends ConsumerWidget {
               final q = entry.value;
               final userAnswer = answersMap[q.id]?.toString();
 
-              bool isUserCorrect = false;
-              String correctAnswerText = '';
-
-              if (q.questionType == 'mcq' || q.questionType == 'true_false') {
-                final selectedOpt = q.options.where((o) => o.text == userAnswer).firstOrNull;
-                isUserCorrect = selectedOpt?.correct ?? false;
-                correctAnswerText = q.options.where((o) => o.correct).firstOrNull?.text ?? '';
-              } else if (q.questionType == 'short') {
-                isUserCorrect = userAnswer != null &&
-                    userAnswer.trim().toLowerCase() ==
-                        (q.correctAnswer ?? '').trim().toLowerCase();
-                correctAnswerText = q.correctAnswer ?? '';
-              }
+              final isUserCorrect = isQuizAnswerCorrect(q, userAnswer);
+              final correctAnswerText = q.questionType == 'short'
+                  ? (q.correctAnswer ?? '')
+                  : q.options.where((o) => o.correct).firstOrNull?.text ?? '';
 
               return CardSurface(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -596,4 +595,14 @@ class QuizResultsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// One mark per question answered correctly; unanswered counts as wrong.
+/// Same rules as the web app's `quizScoring.js`.
+bool isQuizAnswerCorrect(QuizQuestionModel q, String? answer) {
+  if (answer == null || answer.trim().isEmpty) return false;
+  if (q.questionType == 'short') {
+    return answer.trim().toLowerCase() == (q.correctAnswer ?? '').trim().toLowerCase();
+  }
+  return q.options.where((o) => o.text == answer).firstOrNull?.correct ?? false;
 }

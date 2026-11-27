@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/theme_provider.dart';
-import '../../../settings/presentation/controllers/settings_controller.dart';
 import '../../data/models/gas_preparation_state.dart';
 import '../../data/models/practical_model.dart';
 import '../controllers/gas_preparation_controller.dart';
+import '../controllers/lab_inspect_provider.dart';
+import '../widgets/practical_layout.dart';
 import '../widgets/gas_preparation_bench_painter.dart';
+import '../widgets/lab_hand.dart';
 import '../widgets/titration_completion_card.dart';
+import '../../../../core/utils/learning_language.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class GasPreparationScreen extends ConsumerStatefulWidget {
   final PracticalMode mode;
@@ -44,9 +47,8 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(gasPreparationControllerProvider);
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
-    final isSwahili = ref.watch(languageProvider) == 'sw';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSwahili = learningLanguage() == 'sw';
 
     return PopScope(
       canPop: false,
@@ -68,7 +70,8 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
 
               // 3. Main Workspace Area
               Expanded(
-                child: SingleChildScrollView(
+                child: StepScrollView(
+                  step: state.step,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -124,7 +127,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: widget.mode == PracticalMode.guidedPractice
-                      ? const Color(0xFF38BDF8).withValues(alpha: 0.15)
+                      ? AppColors.primary.withValues(alpha: 0.15)
                       : (widget.mode == PracticalMode.examMode
                           ? const Color(0xFF8B5CF6).withValues(alpha: 0.15)
                           : const Color(0xFF10B981).withValues(alpha: 0.15)),
@@ -136,7 +139,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                     fontSize: 9,
                     fontWeight: FontWeight.w800,
                     color: widget.mode == PracticalMode.guidedPractice
-                        ? const Color(0xFF0284C7)
+                        ? AppColors.primary
                         : (widget.mode == PracticalMode.examMode
                             ? const Color(0xFF7C3AED)
                             : const Color(0xFF059669)),
@@ -215,14 +218,14 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.25 : 0.15)
+                    ? AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.15)
                     : (isUnlocked
                         ? (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9))
                         : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC))),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF38BDF8)
+                      ? AppColors.primary
                       : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
               ),
@@ -240,7 +243,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                       fontSize: 11,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       color: isSelected
-                          ? (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
+                          ? (isDark ? AppColors.primaryLight : AppColors.primary)
                           : (isUnlocked
                               ? (isDark ? Colors.white70 : const Color(0xFF475569))
                               : (isDark ? Colors.white30 : Colors.black26)),
@@ -303,17 +306,17 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : const Color(0xFFE0F2FE),
+      color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : AppColors.primarySoft,
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF0284C7)),
+          const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               instruction,
               style: TextStyle(
                 fontSize: 11.5,
-                color: isDark ? Colors.white.withValues(alpha: 0.9) : const Color(0xFF0369A1),
+                color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.primary,
                 height: 1.3,
               ),
             ),
@@ -327,6 +330,8 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
   // Laboratory Canvas
   // ---------------------------------------------------------------------------
   Widget _buildLaboratoryCanvas(GasPreparationState state, bool isDark) {
+    final inspected =
+        state.step == GasPrepStep.inspectApparatus ? ref.watch(labInspectedProvider('gas')) : null;
     return Container(
       height: 250,
       decoration: BoxDecoration(
@@ -344,12 +349,15 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
         child: AnimatedBuilder(
           animation: _pulseController,
           builder: (context, _) {
-            return CustomPaint(
+            return LabHandPaint(
               size: const Size(double.infinity, 250),
-              painter: GasPreparationBenchPainter(
+              watch: GasPreparationBenchPainter.handKeys(state),
+              painter: (hands) => GasPreparationBenchPainter(
                 state: state,
                 isDark: isDark,
                 animationValue: _pulseController.value,
+                hands: hands,
+                inspectedItemKey: inspected,
               ),
             );
           },
@@ -416,12 +424,12 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.2 : 0.1)
+                        ? AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.1)
                         : (isDark ? const Color(0xFF1E293B) : Colors.white),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFF0284C7)
+                          ? AppColors.primary
                           : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                       width: isSelected ? 2 : 1,
                     ),
@@ -432,7 +440,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF0284C7) : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                          color: isSelected ? AppColors.primary : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
@@ -465,14 +473,14 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                               style: TextStyle(
                                 fontSize: 11,
                                 fontFamily: 'monospace',
-                                color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                                color: isDark ? AppColors.primaryLight : AppColors.primary,
                               ),
                             ),
                           ],
                         ),
                       ),
                       if (isSelected)
-                        const Icon(Icons.check_circle_rounded, color: Color(0xFF0284C7), size: 22),
+                        const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 22),
                     ],
                   ),
                 ),
@@ -530,8 +538,10 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () =>
-                    ref.read(gasPreparationControllerProvider.notifier).inspectItem(item.id),
+                onTap: () {
+                  ref.read(gasPreparationControllerProvider.notifier).inspectItem(item.id);
+                  ref.read(labInspectedProvider('gas').notifier).state = item.id;
+                },
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -634,7 +644,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                   fontSize: 13,
                   fontFamily: 'monospace',
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF0284C7),
+                  color: AppColors.primary,
                 ),
               ),
             ],
@@ -667,7 +677,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                 children: [
                   Icon(
                     state.isSolidAdded ? Icons.check_circle_rounded : Icons.science_outlined,
-                    color: state.isSolidAdded ? const Color(0xFF10B981) : const Color(0xFF0284C7),
+                    color: state.isSolidAdded ? const Color(0xFF10B981) : AppColors.primary,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -699,7 +709,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                       onPressed: () =>
                           ref.read(gasPreparationControllerProvider.notifier).addSolidReactant(),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0284C7),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(60, 36),
                       ),
@@ -737,7 +747,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                 children: [
                   Icon(
                     state.isLiquidAdded ? Icons.check_circle_rounded : Icons.water_drop_outlined,
-                    color: state.isLiquidAdded ? const Color(0xFF10B981) : const Color(0xFF0284C7),
+                    color: state.isLiquidAdded ? const Color(0xFF10B981) : AppColors.primary,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -769,7 +779,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                       onPressed: () =>
                           ref.read(gasPreparationControllerProvider.notifier).addLiquidReactant(),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0284C7),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(60, 36),
                       ),
@@ -825,7 +835,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                       fontSize: 15,
                       fontFamily: 'monospace',
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF0284C7),
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -838,7 +848,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                   minHeight: 12,
                   backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    state.isGasJarFull ? const Color(0xFF10B981) : const Color(0xFF0284C7),
+                    state.isGasJarFull ? const Color(0xFF10B981) : AppColors.primary,
                   ),
                 ),
               ),
@@ -860,7 +870,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
                 style: TextStyle(
                   fontSize: 11,
                   fontStyle: FontStyle.italic,
-                  color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                  color: isDark ? AppColors.primaryLight : AppColors.primary,
                 ),
               ),
             ],
@@ -874,7 +884,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
             icon: const Icon(Icons.fast_forward_rounded),
             label: Text(isSwahili ? 'Kamilisha Ukusanyaji Mara Moja' : 'Fast-Forward Collection'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0284C7),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
@@ -1041,7 +1051,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
               icon: const Icon(Icons.chevron_right_rounded, size: 20),
               label: Text(isSwahili ? 'Endelea' : 'Next'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0284C7),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 minimumSize: const Size(100, 48),
               ),
@@ -1176,7 +1186,7 @@ class _GasPreparationScreenState extends ConsumerState<GasPreparationScreen>
             style: const TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF0284C7),
+              color: AppColors.primary,
             ),
           ),
           const SizedBox(height: 6),

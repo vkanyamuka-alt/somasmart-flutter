@@ -87,7 +87,7 @@ class AskMeController extends StateNotifier<AskMeState> {
   bool checkEntitlement() {
     final profile = _ref.read(userProfileProvider).value;
     if (profile == null) return false;
-    return profile.isPremium || profile.isTrialActive;
+    return profile.hasAccess;
   }
 
   /// Sends a user question to Ask Me AI

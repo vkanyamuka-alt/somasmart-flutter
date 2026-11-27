@@ -93,7 +93,7 @@ void main() {
       expect(find.text('Cylinder trimmed to 40mm (skin removed)'), findsWidgets);
     });
 
-    testWidgets('renders Swahili bilingual UI properly', (tester) async {
+    testWidgets('stays in English when the app is in Swahili', (tester) async {
       tester.view.physicalSize = const Size(1080, 2340);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -104,9 +104,9 @@ void main() {
       await tester.pumpWidget(buildTestableWidget(prefs: prefs, mode: PracticalMode.guidedPractice));
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Osmosisi kwenye Viazi'), findsOneWidget);
-      expect(find.text('1. Kagua Vifaa'), findsWidgets);
-      expect(find.text('Kiazi Mviringo Kibichi (Solanum tuberosum)'), findsOneWidget);
+      expect(find.text('Osmosis in Potato Tissues'), findsOneWidget);
+      expect(find.text('1. Inspect Apparatus'), findsWidgets);
+      expect(find.text('1. Kagua Vifaa'), findsNothing);
     });
 
     testWidgets('renders in Dark Theme without crashing', (tester) async {

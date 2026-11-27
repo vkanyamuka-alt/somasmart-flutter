@@ -4,7 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
-  flutter_secure_storage_windows
+  firebase_core
   pdfx
   url_launcher_windows
 )
