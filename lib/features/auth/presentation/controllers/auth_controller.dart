@@ -298,23 +298,30 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Last step of a first Google sign-in: the phone number and form that the
-  /// sign-up screen asks everyone else for. The form is saved first because
-  /// the phone number is what marks the profile as complete. Name and phone go
-  /// through update_my_profile, like the website.
+  /// Last step of a first Google sign-in: the phone number that the sign-up
+  /// screen asks everyone else for. No form is asked: students pick a form on
+  /// each subject page. The student row is made sure of first, keeping the
+  /// form it already has (or form 1), because the phone number is what marks
+  /// the profile as complete. Name and phone go through update_my_profile,
+  /// like the website.
   Future<AuthResult> completeGoogleProfile({
     required String fullName,
     required String phone,
-    required int formLevel,
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) return AuthResult.failure('Not signed in.');
     state = const AsyncValue.loading();
     final normPhone = normalizePhoneNumber(phone);
     try {
+      final existing = await _client
+          .from('student_profiles')
+          .select('form_level, stream')
+          .eq('id', user.id)
+          .maybeSingle();
       await _client.from('student_profiles').upsert({
         'id': user.id,
-        'form_level': formLevel,
+        'form_level': keptFormLevel(existing?['form_level']),
+        'stream': (existing?['stream'] as String?) ?? 'none',
       });
       await _client.rpc('update_my_profile', params: {
         'p_full_name': fullName.trim(),
@@ -331,6 +338,13 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
       state = AsyncValue.error(e, st);
       return AuthResult.failure(e.toString());
     }
+  }
+
+  /// The form a student row keeps when the Google profile is finished: the
+  /// one it already has, or form 1 (the sign-up trigger's starting value).
+  static int keptFormLevel(Object? existing) {
+    final level = existing is num ? existing.toInt() : int.tryParse('${existing ?? ''}');
+    return (level != null && level >= 1 && level <= 6) ? level : 1;
   }
 
   /// Error when the phone number already belongs to another account.

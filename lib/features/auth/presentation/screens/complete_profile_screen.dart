@@ -8,8 +8,9 @@ import '../controllers/auth_controller.dart';
 import '../widgets/auth_layout.dart';
 
 /// First Google sign-in: Google gives a name and an email, but not the phone
-/// number and form that every other sign-up asks for. Same fields and rules as
-/// the website's /complete-profile page.
+/// number that every other sign-up asks for. Same fields and rules as the
+/// website's /complete-profile page. No form (Kidato) is asked: students pick
+/// a form on each subject page.
 class CompleteProfileScreen extends ConsumerStatefulWidget {
   const CompleteProfileScreen({super.key});
 
@@ -21,7 +22,6 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  int? _formLevel;
   String? _errorMessage;
   bool _nameFilled = false;
 
@@ -51,7 +51,6 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
     final result = await ref.read(authControllerProvider.notifier).completeGoogleProfile(
           fullName: _nameController.text,
           phone: _phoneController.text,
-          formLevel: _formLevel!,
         );
     if (!mounted) return;
     if (result.isSuccess) {
@@ -85,8 +84,8 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
             AuthHeader(
               title: isSw ? 'Kamilisha akaunti' : 'Finish your account',
               subtitle: isSw
-                  ? 'Hatua moja zaidi: namba yako ya simu na kidato chako.'
-                  : 'One more step: your phone number and your form.',
+                  ? 'Hatua moja zaidi: namba yako ya simu.'
+                  : 'One more step: your phone number.',
               note: email,
             ),
             const SizedBox(height: 20),
@@ -115,7 +114,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                 key: const Key('complete-phone'),
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
+                textInputAction: TextInputAction.done,
                 style: authInputTextStyle,
                 decoration: authInputDecoration(hint: '07XXXXXXXX', icon: Icons.phone_iphone_rounded),
                 validator: (v) => AuthController.isValidTanzanianPhone(v ?? '')
@@ -123,26 +122,6 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                     : (isSw
                         ? 'Weka namba ya simu sahihi (mfano 07XXXXXXXX).'
                         : 'Enter a valid phone number (e.g. 07XXXXXXXX).'),
-              ),
-            ),
-            const SizedBox(height: 16),
-            AuthField(
-              label: isSw ? 'Kidato' : 'Form',
-              child: DropdownButtonFormField<int>(
-                key: const Key('complete-form-level'),
-                initialValue: _formLevel,
-                decoration: authInputDecoration(
-                  hint: isSw ? 'Chagua kidato' : 'Choose your form',
-                  icon: Icons.school_outlined,
-                ),
-                dropdownColor: Colors.white,
-                style: authInputTextStyle,
-                items: [
-                  for (var level = 1; level <= 6; level++)
-                    DropdownMenuItem(value: level, child: Text(isSw ? 'Kidato cha $level' : 'Form $level')),
-                ],
-                onChanged: (v) => setState(() => _formLevel = v),
-                validator: (v) => v == null ? (isSw ? 'Chagua kidato chako.' : 'Please choose your form.') : null,
               ),
             ),
             const SizedBox(height: 20),
