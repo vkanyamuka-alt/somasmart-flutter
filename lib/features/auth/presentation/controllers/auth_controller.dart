@@ -158,7 +158,10 @@ class AuthController extends StateNotifier<AsyncValue<void>> {
     required String password,
     required String fullName,
     String? email,
-    int formLevel = 4,
+    // No form is asked at sign-up: students pick a form on each subject page.
+    // Form 1 is the starting value, the same as the website and the database's
+    // sign-up trigger.
+    int formLevel = 1,
   }) async {
     state = const AsyncValue.loading();
     final normPhone = normalizePhoneNumber(phone);
